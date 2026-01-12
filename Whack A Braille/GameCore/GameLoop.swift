@@ -63,4 +63,227 @@ final class GameLoop {
 	var onScoreUpdated: ((Int, Int) -> Void)?
 
 	init() {}
+	
+	// MARK: - Round Control
+
+	func startRound(
+		modeId: String,
+		durationSeconds: Int,
+		inputMode: InputMode,
+		difficulty: Difficulty = .normal,
+		itemsForMode: [BrailleItem]
+	) {
+		if isRunning {
+			return
+		}
+
+		score = 0
+		hitStreak = 0
+		hitsThisRound = 0
+		missesThisRound = 0
+		escapesThisRound = 0
+		streakBonusCount = 0
+		speedHitCount = 0
+		speedBonusTickets = 0
+
+		currentModeId = modeId
+		currentDurationSeconds = durationSeconds
+		currentInputMode = modeId == "everything" ? .perkins : inputMode
+		difficultyMultiplier = difficultyMultipliers[difficulty] ?? 1.0
+
+		roundDurationMs = durationSeconds * 1000
+		availableItems = itemsForMode
+		roundItems = pickFiveItems(from: availableItems)
+
+		isRunning = true
+		roundEnding = false
+
+		roundStartTimeMs = TimeUtils.nowMs()
+
+		activeMoleIndex = nil
+		activeMoleId = 0
+		missRegisteredForMole = false
+
+		cancelTimers()
+		scheduleRoundEnd()
+		scheduleNextMole(extraDelayMs: 0)
+	}
+
+	func stopRound() {
+		endRoundNow(canceled: true)
+	}
+
+	private func computeRoundEndGraceMs(
+		baseGraceMs: Int,
+		maxGraceMs: Int
+	) -> Int {
+		// JS behavior: random value between base and max
+		let range = maxGraceMs - baseGraceMs
+		if range <= 0 {
+			return baseGraceMs
+		}
+
+		return baseGraceMs + Int.random(in: 0...range)
+	}
+
+	private func scheduleRoundEnd() {
+		let timer = DispatchSource.makeTimerSource(queue: .main)
+		timer.schedule(deadline: .now() + .milliseconds(roundDurationMs))
+		timer.setEventHandler { [weak self] in
+			self?.requestRoundEnd()
+		}
+		timer.resume()
+		roundTimer = timer
+	}
+
+	private func requestRoundEnd() {
+		if !isRunning {
+			return
+		}
+
+		roundEnding = true
+
+		moleTimer?.cancel()
+		moleTimer = nil
+
+		let graceMs = computeRoundEndGraceMs(
+			baseGraceMs: 350,
+			maxGraceMs: 750
+		)
+
+		roundTimer?.cancel()
+
+		let timer = DispatchSource.makeTimerSource(queue: .main)
+		timer.schedule(deadline: .now() + .milliseconds(graceMs))
+		timer.setEventHandler { [weak self] in
+			self?.endRoundNow(canceled: false)
+		}
+		timer.resume()
+		roundTimer = timer
+	}
+
+	private func endRoundNow(canceled: Bool) {
+		if !isRunning {
+			return
+		}
+
+		isRunning = false
+		roundEnding = false
+
+		cancelTimers()
+		clearActiveMole()
+
+		let baseTickets = scoreToTickets(score)
+
+		let result = RoundResult(
+			modeId: currentModeId,
+			inputMode: currentInputMode,
+			durationSeconds: currentDurationSeconds,
+			score: score,
+			hits: hitsThisRound,
+			misses: missesThisRound,
+			escapes: escapesThisRound,
+			streakBonusCount: streakBonusCount,
+			canceled: canceled,
+			baseTickets: baseTickets,
+			streakBonusTickets: streakBonusCount,
+			speedBonusTickets: speedBonusTickets
+		)
+
+		onRoundEnded?(result)
+	}
+
+	// MARK: - Timing Math
+
+	private func getProgress() -> Double {
+		let elapsed = TimeUtils.nowMs() - roundStartTimeMs
+		var progress = min(Double(elapsed) / Double(roundDurationMs), 1.0)
+
+		if roundDurationMs >= 45_000 {
+			if progress > 0.3 && progress < 0.7 {
+				progress = 0.3 + (progress - 0.3) * 1.6
+			} else if progress >= 0.7 {
+				progress = 0.9
+			}
+		}
+
+		return min(progress, 1.0)
+	}
+
+	private func getCurrentInterval() -> Int {
+		var interval = TimeUtils.lerp(
+			start: startIntervalMs,
+			end: endIntervalMs,
+			t: getProgress()
+		)
+
+		if getProgress() > 0.7 {
+			interval = Int(Double(interval) * 0.45)
+		}
+
+		let adjusted = Int(Double(interval) * difficultyMultiplier)
+		return max(adjusted, 180)
+	}
+
+	private func getCurrentUpTime() -> Int {
+		let base = TimeUtils.lerp(
+			start: startUpTimeMs,
+			end: endUpTimeMs,
+			t: getProgress()
+		)
+		return Int(Double(base) * difficultyMultiplier)
+	}
+
+	private func randomJitter() -> Int {
+		Int.random(in: 0..<120)
+	}
+
+	private func scheduleNextMole(extraDelayMs: Int) {
+		if !isRunning || roundEnding {
+			return
+		}
+
+		let delayMs = getCurrentInterval() + randomJitter() + extraDelayMs
+
+		moleTimer?.cancel()
+
+		let timer = DispatchSource.makeTimerSource(queue: .main)
+		timer.schedule(deadline: .now() + .milliseconds(delayMs))
+		timer.setEventHandler { [weak self] in
+			// showRandomMole will be implemented next step
+		}
+		timer.resume()
+
+		moleTimer = timer
+	}
+
+	// MARK: - Utilities
+
+	private func pickFiveItems(from pool: [BrailleItem]) -> [BrailleItem] {
+		var copy = pool
+		copy.shuffle()
+		return Array(copy.prefix(5))
+	}
+
+	private func scoreToTickets(_ score: Int) -> Int {
+		if score >= 200 { return 20 }
+		if score >= 150 { return 15 }
+		if score >= 100 { return 10 }
+		if score >= 50 { return 5 }
+		return 0
+	}
+
+	private func cancelTimers() {
+		roundTimer?.cancel()
+		moleTimer?.cancel()
+		moleUpTimer?.cancel()
+
+		roundTimer = nil
+		moleTimer = nil
+		moleUpTimer = nil
+	}
+	private func clearActiveMole() {
+		activeMoleIndex = nil
+	}
+
 }
