@@ -32,12 +32,19 @@ struct BrailleInputSinkView: UIViewRepresentable {
 	private func handleTextInput(_ text: String) {
 		// Multiple characters can arrive at once
 		for scalar in text {
+			let character = String(scalar)
+
+			// Ignore whitespace and control characters
+			if character.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+				continue
+			}
+
 			let attempt = Attempt(
 				moleId: gameLoop.currentMoleId,
 				type: .brailleText,
 				dotMask: nil,
 				key: nil,
-				char: String(scalar)
+				char: character
 			)
 
 			gameLoop.handleAttempt(attempt)
