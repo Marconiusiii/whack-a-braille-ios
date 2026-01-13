@@ -5,12 +5,17 @@ struct GameView: View {
 	@StateObject private var viewModel = GameViewModel()
 	@State private var settings = GameSettings()
 
+	@AccessibilityFocusState private var isBraillePadFocused: Bool
+
 	var body: some View {
 		VStack(alignment: .leading, spacing: 16) {
+
+			// MARK: - Title + Status (hidden during gameplay)
 
 			Text("Whack A Braille")
 				.font(.title)
 				.accessibilityAddTraits(.isHeader)
+				.accessibilityHidden(viewModel.isRunning)
 
 			VStack(alignment: .leading, spacing: 8) {
 				Text("Score: \(viewModel.score)")
@@ -23,8 +28,14 @@ struct GameView: View {
 				"Score \(viewModel.score), streak \(viewModel.hitStreak), " +
 				(viewModel.isRunning ? "round in progress" : "round not running")
 			)
+			.accessibilityHidden(viewModel.isRunning)
+
+			// MARK: - Settings (hidden during gameplay)
 
 			settingsSection
+				.accessibilityHidden(viewModel.isRunning)
+
+			// MARK: - Start / Stop Button
 
 			Button {
 				if viewModel.isRunning {
@@ -35,11 +46,19 @@ struct GameView: View {
 			} label: {
 				Text(viewModel.isRunning ? "Stop round" : "Start round")
 			}
+			.accessibilityHidden(
+				viewModel.isRunning && settings.touchPadMode != .off
+			)
+
+			// MARK: - Instructions (spoken before gameplay)
 
 			Text(instructionsText)
 				.font(.body)
+				.accessibilityHidden(viewModel.isRunning)
 
-			// 1) Text sink for BSI, braille displays, and standard keyboard typing
+			// MARK: - Hidden Input Sinks (always alive)
+
+			// Braille Screen Input, braille displays, normal keyboard typing
 			BrailleTextInputSinkView(
 				gameLoop: viewModel.gameLoop,
 				isEnabled: true,
@@ -49,7 +68,7 @@ struct GameView: View {
 			.opacity(0.01)
 			.accessibilityHidden(true)
 
-			// 2) Perkins keyboard sink (s/d/f/j/k/l) for immediate dotMask chording
+			// Perkins keyboard home-row input (s d f j k l)
 			PerkinsKeyboardSinkView(
 				gameLoop: viewModel.gameLoop,
 				isEnabled: settings.effectiveKeyboardMode == .perkins
@@ -58,27 +77,40 @@ struct GameView: View {
 			.opacity(0.01)
 			.accessibilityHidden(true)
 
-			// 3) Touch Perkins pad (true immediate dotMask)
-			if settings.touchPadMode != .off {
-				let orientation: BraillePadOrientation = (settings.touchPadMode == .tabletop) ? .tabletop : .screenAway
+			// MARK: - Direct Touch Braille Pad (gameplay only)
+
+			if viewModel.isRunning && settings.touchPadMode != .off {
+				let orientation: BraillePadOrientation =
+					(settings.touchPadMode == .tabletop) ? .tabletop : .screenAway
 
 				BraillePadView(
 					gameLoop: viewModel.gameLoop,
 					isEnabled: true,
 					orientation: orientation
 				)
-				.frame(maxWidth: .infinity, maxHeight: 220)
+				.frame(maxWidth: .infinity, maxHeight: 240)
 				.overlay(
 					RoundedRectangle(cornerRadius: 16)
 						.stroke(Color.secondary, lineWidth: 2)
 				)
+				.accessibilityElement(children: .ignore)
 				.accessibilityLabel("Braille pad")
 				.accessibilityHint("Direct touch area for Perkins chording.")
 				.accessibilityAddTraits(.allowsDirectInteraction)
+				.accessibilityFocused($isBraillePadFocused)
 			}
 		}
 		.padding()
+		.onChange(of: viewModel.isRunning) { running in
+			if running && settings.touchPadMode != .off {
+				DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+					isBraillePadFocused = true
+				}
+			}
+		}
 	}
+
+	// MARK: - Settings UI
 
 	private var settingsSection: some View {
 		VStack(alignment: .leading, spacing: 12) {
@@ -103,27 +135,41 @@ struct GameView: View {
 				}
 			}
 
-			Toggle("Braille submit mode (for displays and contracted input)", isOn: $settings.brailleSubmitMode)
+			Toggle(
+				"Braille submit mode (for displays and contracted input)",
+				isOn: $settings.brailleSubmitMode
+			)
 		}
 	}
+
+	// MARK: - Instructions Text
 
 	private var instructionsText: String {
 		if settings.isPerkinsLockedByMode {
-			return "This game set expects Perkins input. Use the braille pad, Perkins home-row keys on a keyboard, or braille input. If using a braille display or contracted input, turn on submit mode."
+			return
+				"This game set expects Perkins input. " +
+				"Use the braille pad, Perkins home-row keys on a keyboard, " +
+				"or braille input. For braille displays or contracted input, " +
+				"enable submit mode."
 		}
 
 		if settings.effectiveKeyboardMode == .perkins {
-			return "Keyboard is in Perkins mode. Use F D S and J K L as dots 1 through 6."
+			return
+				"Keyboard is in Perkins mode. " +
+				"Use F D S and J K L as dots 1 through 6."
 		}
 
-		return "Type the character using braille input or a keyboard. You can also enable the braille pad or Perkins keyboard mode."
+		return
+			"Type the character using braille input or a keyboard. " +
+			"You can also enable the braille pad or Perkins keyboard mode."
 	}
 
+	// MARK: - Round Start Logic
+
 	private func startRoundFromSettings() {
-		let modeId = settings.modeId
 		let items: [BrailleItem]
 
-		switch modeId {
+		switch settings.modeId {
 		case "grade1LettersNumbers":
 			items = BrailleRegistry.getItems(for: "grade1LettersNumbers")
 		case "grade2Symbols":
@@ -136,10 +182,11 @@ struct GameView: View {
 			items = BrailleRegistry.getItems(for: "grade1LettersNumbers")
 		}
 
-		let inputMode: InputMode = settings.isPerkinsLockedByMode ? .perkins : .qwerty
+		let inputMode: InputMode =
+			settings.isPerkinsLockedByMode ? .perkins : .qwerty
 
 		viewModel.startRound(
-			modeId: modeId,
+			modeId: settings.modeId,
 			durationSeconds: 30,
 			inputMode: inputMode,
 			items: items
