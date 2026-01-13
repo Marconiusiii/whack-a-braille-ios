@@ -88,19 +88,76 @@ enum BrailleRegistry {
 		makeItem(id: "0", announce: "0", dots: [2,4,5], modes: ["grade1Numbers","grade1LettersNumbers"], standardKey: "0")
 	]
 
+	static let grade2Symbols: [BrailleItem] = [
+		makeItem(id: "er", announce: "E R", dots: [1,2,4,5,6], modes: ["grade2Symbols"]),
+		makeItem(id: "ed", announce: "E D", dots: [1,2,4,6], modes: ["grade2Symbols"]),
+		makeItem(id: "gh", announce: "G H", dots: [1,2,6], modes: ["grade2Symbols"]),
+		makeItem(id: "ar", announce: "A R", dots: [3,4,5], modes: ["grade2Symbols"]),
+		makeItem(id: "ow", announce: "O W", dots: [2,4,6], modes: ["grade2Symbols"]),
+		makeItem(id: "ou", announce: "O U", dots: [1,2,5,6], modes: ["grade2Symbols"]),
+		makeItem(id: "st", announce: "S T", dots: [3,4], modes: ["grade2Symbols"]),
+		makeItem(id: "ch", announce: "C H", dots: [1,6], modes: ["grade2Symbols"]),
+		makeItem(id: "wh", announce: "W H", dots: [1,5,6], modes: ["grade2Symbols"]),
+		makeItem(id: "ing", announce: "I N G", dots: [3,4,6], modes: ["grade2Symbols"]),
+		makeItem(id: "dis", announce: "dis", dots: [2,5,6], modes: ["grade2Symbols"]),
+		makeItem(id: "con", announce: "con", dots: [2,5], modes: ["grade2Symbols"]),
+		makeItem(id: "of", announce: "of", dots: [1,2,3,5,6], modes: ["grade2Symbols"]),
+		makeItem(id: "with", announce: "with", dots: [2,3,4,5,6], modes: ["grade2Symbols"]),
+		makeItem(id: "and", announce: "and", dots: [1,2,3,4,6], modes: ["grade2Symbols"]),
+		makeItem(id: "for", announce: "for", dots: [1,2,3,4,5,6], modes: ["grade2Symbols"]),
+		makeItem(id: "the", announce: "the", dots: [2,3,4,6], modes: ["grade2Symbols"])
+	]
+
+	static let grade2Words: [BrailleItem] = [
+		makeItem(id: "but", announce: "but", dots: [1,2], modes: ["grade2Words"]),
+		makeItem(id: "can", announce: "can", dots: [1,4], modes: ["grade2Words"]),
+		makeItem(id: "do", announce: "do", dots: [1,4,5], modes: ["grade2Words"]),
+		makeItem(id: "every", announce: "every", dots: [1,5], modes: ["grade2Words"]),
+		makeItem(id: "from", announce: "from", dots: [1,2,4], modes: ["grade2Words"]),
+		makeItem(id: "go", announce: "go", dots: [1,2,4,5], modes: ["grade2Words"]),
+		makeItem(id: "have", announce: "have", dots: [1,2,5], modes: ["grade2Words"]),
+		makeItem(id: "just", announce: "just", dots: [2,4,5], modes: ["grade2Words"]),
+		makeItem(id: "knowledge", announce: "knowledge", dots: [1,3], modes: ["grade2Words"]),
+		makeItem(id: "like", announce: "like", dots: [1,2,3], modes: ["grade2Words"]),
+		makeItem(id: "more", announce: "more", dots: [1,3,4], modes: ["grade2Words"]),
+		makeItem(id: "not", announce: "not", dots: [1,3,4,5], modes: ["grade2Words"]),
+		makeItem(id: "people", announce: "people", dots: [1,2,3,4], modes: ["grade2Words"]),
+		makeItem(id: "quite", announce: "quite", dots: [1,2,3,4,5], modes: ["grade2Words"]),
+		makeItem(id: "rather", announce: "rather", dots: [1,2,3,5], modes: ["grade2Words"]),
+		makeItem(id: "so", announce: "so", dots: [2,3,4], modes: ["grade2Words"]),
+		makeItem(id: "that", announce: "that", dots: [2,3,4,5], modes: ["grade2Words"]),
+		makeItem(id: "us", announce: "us", dots: [1,3,6], modes: ["grade2Words"]),
+		makeItem(id: "very", announce: "very", dots: [1,2,3,6], modes: ["grade2Words"]),
+		makeItem(id: "will", announce: "will", dots: [2,4,5,6], modes: ["grade2Words"]),
+		makeItem(id: "it", announce: "it", dots: [1,3,4,6], modes: ["grade2Words"]),
+		makeItem(id: "you", announce: "you", dots: [1,3,4,5,6], modes: ["grade2Words"]),
+		makeItem(id: "as", announce: "as", dots: [1,3,5,6], modes: ["grade2Words"]),
+		makeItem(id: "this", announce: "this", dots: [1,4,5,6], modes: ["grade2Words"]),
+		makeItem(id: "which", announce: "which", dots: [1,5,6], modes: ["grade2Words"]),
+		makeItem(id: "child", announce: "child", dots: [1,6], modes: ["grade2Words"]),
+		makeItem(id: "shall", announce: "shall", dots: [1,4,6], modes: ["grade2Words"])
+	]
+
 	// MARK: - Combined access
 
 	static let allItems: [BrailleItem] =
 		grade1Letters +
-		grade1Numbers
-		// Grade 2 symbols + word signs can be appended next
+		grade1Numbers +
+		grade2Symbols +
+		grade2Words
 
 	static func getItems(for modeId: String) -> [BrailleItem] {
 		switch modeId {
 		case "grade1LettersNumbers":
+			return grade1Letters + grade1Numbers
+		case "grade2Symbols":
+			return grade2Symbols
+		case "grade2Words":
+			return grade2Words
+		case "everything":
 			return allItems
 		default:
-			return allItems
+			return grade1Letters + grade1Numbers
 		}
 	}
 }
