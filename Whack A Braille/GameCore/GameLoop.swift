@@ -234,6 +234,59 @@ final class GameLoop {
 		return Int(Double(base) * difficultyMultiplier)
 	}
 
+	private func pickNextMoleIndex() -> Int {
+		guard !roundItems.isEmpty else {
+			return 0
+		}
+
+		var index: Int
+		repeat {
+			index = Int.random(in: 0..<roundItems.count)
+		} while index == activeMoleIndex
+
+		return index
+	}
+
+	private func showRandomMole() {
+		if !isRunning || roundEnding {
+			return
+		}
+
+		clearActiveMole()
+
+		activeMoleId += 1
+		missRegisteredForMole = false
+
+		let index = pickNextMoleIndex()
+		activeMoleIndex = index
+
+		let thisMoleId = activeMoleId
+		let upTime = getCurrentUpTime()
+		activeMoleUpTimeMs = upTime
+
+		activeMoleShownAtMs = TimeUtils.nowMs()
+
+		// Escape timer (JS moleUpTimer)
+		moleUpTimer?.cancel()
+
+		let timer = DispatchSource.makeTimerSource(queue: .main)
+		timer.schedule(deadline: .now() + .milliseconds(upTime))
+		timer.setEventHandler { [weak self] in
+			guard let self else { return }
+			if !self.isRunning || self.roundEnding { return }
+			if thisMoleId != self.activeMoleId { return }
+
+			self.escapesThisRound += 1
+			self.hitStreak = 0
+
+			self.clearActiveMole()
+			self.scheduleNextMole(extraDelayMs: 0)
+		}
+		timer.resume()
+
+		moleUpTimer = timer
+	}
+
 	private func randomJitter() -> Int {
 		Int.random(in: 0..<120)
 	}
@@ -250,7 +303,7 @@ final class GameLoop {
 		let timer = DispatchSource.makeTimerSource(queue: .main)
 		timer.schedule(deadline: .now() + .milliseconds(delayMs))
 		timer.setEventHandler { [weak self] in
-			// showRandomMole will be implemented next step
+			self?.showRandomMole()
 		}
 		timer.resume()
 
