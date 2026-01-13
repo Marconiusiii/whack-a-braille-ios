@@ -66,6 +66,101 @@ final class GameLoop {
 	
 	// MARK: - Round Control
 
+	func handleAttempt(_ attempt: Attempt) {
+		if !isRunning || roundEnding {
+			return
+		}
+
+		guard let activeIndex = activeMoleIndex else {
+			return
+		}
+
+		if attempt.moleId != activeMoleId {
+			return
+		}
+
+		// Perkins mode ignores standard keyboard attempts
+		if currentInputMode == .perkins && attempt.type == .qwerty {
+			return
+		}
+
+		let currentItem = roundItems[activeIndex]
+		var isHit = false
+
+		switch attempt.type {
+		case .perkins:
+			if let mask = attempt.dotMask {
+				isHit = mask == currentItem.dotMask
+			}
+
+		case .qwerty:
+			if
+				let a = attempt.key?.lowercased(),
+				let b = currentItem.standardKey?.lowercased()
+			{
+				isHit = a == b
+			}
+
+		case .brailleText:
+			if let c = attempt.char?.lowercased() {
+				isHit = c == currentItem.id.lowercased()
+			}
+		}
+
+		if isHit {
+			handleHit()
+			return
+		}
+
+		if missRegisteredForMole {
+			return
+		}
+
+		missRegisteredForMole = true
+		handleMiss()
+	}
+
+	private func handleHit() {
+		hitsThisRound += 1
+		hitStreak += 1
+		score += 10
+
+		if hitStreak % 5 == 0 {
+			score += 10
+			streakBonusCount += 1
+		}
+
+		let nowMs = TimeUtils.nowMs()
+		let reactionMs = nowMs - activeMoleShownAtMs
+		let speedThresholdMs = Int(Double(activeMoleUpTimeMs) * 0.55)
+
+		if reactionMs <= speedThresholdMs {
+			speedHitCount += 1
+
+			if speedHitCount % 3 == 0 && speedBonusTickets < 5 {
+				speedBonusTickets += 1
+			}
+		}
+
+		moleUpTimer?.cancel()
+		moleUpTimer = nil
+
+		missRegisteredForMole = true
+
+		clearActiveMole()
+		scheduleNextMole(extraDelayMs: 0)
+
+		onScoreUpdated?(score, hitStreak)
+	}
+
+	private func handleMiss() {
+		missesThisRound += 1
+		hitStreak = 0
+		score = max(0, score - 2)
+
+		onScoreUpdated?(score, hitStreak)
+	}
+
 	func startRound(
 		modeId: String,
 		durationSeconds: Int,
