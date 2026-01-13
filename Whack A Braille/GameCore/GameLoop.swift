@@ -88,7 +88,12 @@ final class GameLoop {
 			return
 		}
 
+		guard let activeIndex = activeMoleIndex else {
+			return
+		}
+
 		let currentItem = roundItems[activeIndex]
+
 		var isHit = false
 
 		switch attempt.type {
