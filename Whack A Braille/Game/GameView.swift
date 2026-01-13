@@ -1,87 +1,130 @@
 import SwiftUI
+import AVFoundation
 
 struct GameView: View {
 
 	@StateObject private var viewModel = GameViewModel()
-	@State private var settings = GameSettings()
+
+	@State private var modeId: String = "grade1LettersNumbers"
+	@State private var difficulty: Difficulty = .normal
+	@State private var roundDurationSeconds: Int = 30
+
+	@State private var inputMode: InputMode = .qwerty
+	@State private var touchPadMode: TouchPadMode = .off
+	@State private var brailleSubmitMode: Bool = false
+
+	@State private var speechRate: Float = AVSpeechUtteranceDefaultSpeechRate
+	@State private var selectedVoiceId: String = "com.apple.ttsbundle.Samantha-compact"
 
 	@AccessibilityFocusState private var isBraillePadFocused: Bool
 
 	var body: some View {
 		VStack(alignment: .leading, spacing: 16) {
 
-			// MARK: - Title + Status (hidden during gameplay)
-
 			Text("Whack A Braille")
 				.font(.title)
 				.accessibilityAddTraits(.isHeader)
 				.accessibilityHidden(viewModel.isRunning)
 
-			VStack(alignment: .leading, spacing: 8) {
+			VStack(alignment: .leading, spacing: 6) {
 				Text("Score: \(viewModel.score)")
 				Text("Streak: \(viewModel.hitStreak)")
 				Text(viewModel.isRunning ? "Round in progress" : "Round not running")
 			}
-			.accessibilityElement(children: .combine)
-			.accessibilityLabel("Game status")
-			.accessibilityValue(
-				"Score \(viewModel.score), streak \(viewModel.hitStreak), " +
-				(viewModel.isRunning ? "round in progress" : "round not running")
-			)
 			.accessibilityHidden(viewModel.isRunning)
 
-			// MARK: - Settings (hidden during gameplay)
+			VStack(alignment: .leading, spacing: 12) {
 
-			settingsSection
-				.accessibilityHidden(viewModel.isRunning)
+				Picker("Game set", selection: $modeId) {
+					Text("Grade 1: Letters and Numbers").tag("grade1LettersNumbers")
+					Text("Grade 2: Symbols").tag("grade2Symbols")
+					Text("Grade 2: Word signs").tag("grade2Words")
+					Text("Everything").tag("everything")
+				}
 
-			// MARK: - Start / Stop Button
+				Picker("Difficulty", selection: $difficulty) {
+					Text("Beginner").tag(Difficulty.beginner)
+					Text("Normal").tag(Difficulty.normal)
+					Text("Supreme Mole Whacker").tag(Difficulty.supreme)
+				}
+
+				Picker("Round length", selection: $roundDurationSeconds) {
+					Text("15 seconds").tag(15)
+					Text("30 seconds").tag(30)
+					Text("45 seconds").tag(45)
+					Text("60 seconds").tag(60)
+				}
+
+				Picker("Keyboard input", selection: $inputMode) {
+					Text("Standard QWERTY").tag(InputMode.qwerty)
+					Text("Perkins (home row)").tag(InputMode.perkins)
+				}
+
+				Picker("Touch pad", selection: $touchPadMode) {
+					ForEach(TouchPadMode.allCases) { mode in
+						Text(mode.label).tag(mode)
+					}
+				}
+
+				Toggle(
+					"Braille submit mode (for displays and contracted input)",
+					isOn: $brailleSubmitMode
+				)
+			}
+			.accessibilityHidden(viewModel.isRunning)
+
+			Menu {
+				Section("Voice") {
+					Picker("Voice", selection: $selectedVoiceId) {
+						ForEach(availableVoices, id: \.identifier) { voice in
+							Text(voice.name).tag(voice.identifier)
+						}
+					}
+				}
+
+				Section("Rate") {
+					Slider(
+						value: $speechRate,
+						in: 0.4...0.6,
+						step: 0.02
+					)
+					Text("Speech rate")
+				}
+
+				Button("Test speech") {
+					applySpeechSettings()
+					SpeechEngine.shared.speak("Whack A Braille speech test")
+				}
+			} label: {
+				Label("Speech & Audio", systemImage: "speaker.wave.2")
+			}
+			.accessibilityHidden(viewModel.isRunning)
 
 			Button {
 				if viewModel.isRunning {
 					viewModel.stopRound()
 				} else {
-					startRoundFromSettings()
+					startRound()
 				}
 			} label: {
 				Text(viewModel.isRunning ? "Stop round" : "Start round")
 			}
 			.accessibilityHidden(
-				viewModel.isRunning && settings.touchPadMode != .off
+				viewModel.isRunning && touchPadMode != .off
 			)
 
-			// MARK: - Instructions (spoken before gameplay)
-
-			Text(instructionsText)
-				.font(.body)
-				.accessibilityHidden(viewModel.isRunning)
-
-			// MARK: - Hidden Input Sinks (always alive)
-
-			// Braille Screen Input, braille displays, normal keyboard typing
 			BrailleTextInputSinkView(
 				gameLoop: viewModel.gameLoop,
 				isEnabled: true,
-				submissionMode: settings.brailleSubmitMode ? .submitKey : .immediate
+				submissionMode: brailleSubmitMode ? .submitKey : .immediate
 			)
 			.frame(width: 1, height: 1)
 			.opacity(0.01)
 			.accessibilityHidden(true)
 
-			// Perkins keyboard home-row input (s d f j k l)
-			PerkinsKeyboardSinkView(
-				gameLoop: viewModel.gameLoop,
-				isEnabled: settings.effectiveKeyboardMode == .perkins
-			)
-			.frame(width: 1, height: 1)
-			.opacity(0.01)
-			.accessibilityHidden(true)
-
-			// MARK: - Direct Touch Braille Pad (gameplay only)
-
-			if viewModel.isRunning && settings.touchPadMode != .off {
+			if viewModel.isRunning && touchPadMode != .off {
 				let orientation: BraillePadOrientation =
-					(settings.touchPadMode == .tabletop) ? .tabletop : .screenAway
+					(touchPadMode == .tabletop) ? .tabletop : .screenAway
 
 				BraillePadView(
 					gameLoop: viewModel.gameLoop,
@@ -102,94 +145,46 @@ struct GameView: View {
 		}
 		.padding()
 		.onChange(of: viewModel.isRunning) { running in
-			if running && settings.touchPadMode != .off {
+			if running && touchPadMode != .off {
 				DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
 					isBraillePadFocused = true
 				}
 			}
 		}
-	}
-
-	// MARK: - Settings UI
-
-	private var settingsSection: some View {
-		VStack(alignment: .leading, spacing: 12) {
-
-			Picker("Game set", selection: $settings.modeId) {
-				Text("Grade 1: Letters and Numbers").tag("grade1LettersNumbers")
-				Text("Grade 2: Symbols").tag("grade2Symbols")
-				Text("Grade 2: Word signs").tag("grade2Words")
-				Text("Everything").tag("everything")
-			}
-
-			Picker("Keyboard input", selection: $settings.keyboardMode) {
-				ForEach(KeyboardMode.allCases) { mode in
-					Text(mode.label).tag(mode)
-				}
-			}
-			.disabled(settings.isPerkinsLockedByMode)
-
-			Picker("Touch pad", selection: $settings.touchPadMode) {
-				ForEach(TouchPadMode.allCases) { mode in
-					Text(mode.label).tag(mode)
-				}
-			}
-
-			Toggle(
-				"Braille submit mode (for displays and contracted input)",
-				isOn: $settings.brailleSubmitMode
-			)
+		.onChange(of: selectedVoiceId) { _ in
+			applySpeechSettings()
+		}
+		.onChange(of: speechRate) { _ in
+			applySpeechSettings()
 		}
 	}
 
-	// MARK: - Instructions Text
-
-	private var instructionsText: String {
-		if settings.isPerkinsLockedByMode {
-			return
-				"This game set expects Perkins input. " +
-				"Use the braille pad, Perkins home-row keys on a keyboard, " +
-				"or braille input. For braille displays or contracted input, " +
-				"enable submit mode."
-		}
-
-		if settings.effectiveKeyboardMode == .perkins {
-			return
-				"Keyboard is in Perkins mode. " +
-				"Use F D S and J K L as dots 1 through 6."
-		}
-
-		return
-			"Type the character using braille input or a keyboard. " +
-			"You can also enable the braille pad or Perkins keyboard mode."
+	private var availableVoices: [AVSpeechSynthesisVoice] {
+		AVSpeechSynthesisVoice.speechVoices()
+			.filter { $0.language.hasPrefix("en") }
+			.sorted { $0.name < $1.name }
 	}
 
-	// MARK: - Round Start Logic
-
-	private func startRoundFromSettings() {
-		let items: [BrailleItem]
-
-		switch settings.modeId {
-		case "grade1LettersNumbers":
-			items = BrailleRegistry.getItems(for: "grade1LettersNumbers")
-		case "grade2Symbols":
-			items = BrailleRegistry.getItems(for: "grade2Symbols")
-		case "grade2Words":
-			items = BrailleRegistry.getItems(for: "grade2Words")
-		case "everything":
-			items = BrailleRegistry.getItems(for: "everything")
-		default:
-			items = BrailleRegistry.getItems(for: "grade1LettersNumbers")
+	private func applySpeechSettings() {
+		if let voice = AVSpeechSynthesisVoice(identifier: selectedVoiceId) {
+			SpeechEngine.shared.setVoice(voice)
 		}
+		SpeechEngine.shared.setRate(speechRate)
+	}
 
-		let inputMode: InputMode =
-			settings.isPerkinsLockedByMode ? .perkins : .qwerty
+	private func startRound() {
+		applySpeechSettings()
 
-		viewModel.startRound(
-			modeId: settings.modeId,
-			durationSeconds: 30,
+		let items = BrailleRegistry.getItems(for: modeId)
+
+		// IMPORTANT:
+		// Call GameLoop directly because GameViewModel.startRound does not accept `difficulty:`.
+		viewModel.gameLoop.startRound(
+			modeId: modeId,
+			durationSeconds: roundDurationSeconds,
 			inputMode: inputMode,
-			items: items
+			difficulty: difficulty,
+			itemsForMode: items
 		)
 	}
 }

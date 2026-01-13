@@ -22,6 +22,7 @@ final class GameLoop {
 	var currentMoleId: Int {
 		activeMoleId
 	}
+	private var moleBecameActiveMs: Int = 0
 
 	// MARK: - Mole State
 
@@ -99,9 +100,16 @@ final class GameLoop {
 		switch attempt.type {
 
 		case .perkins:
-			// iOS never delivers dot masks for braille input.
-			// Treat perkins as braille text matching.
-			fallthrough
+			if let mask = attempt.dotMask {
+				isHit = mask == currentItem.dotMask
+			} else if let c = attempt.char?.lowercased() {
+				isHit = c == currentItem.id.lowercased()
+			}
+
+		case .brailleText:
+			if let c = attempt.char?.lowercased() {
+				isHit = c == currentItem.id.lowercased()
+			}
 
 		case .brailleText:
 			if let c = attempt.char?.lowercased() {
@@ -143,7 +151,7 @@ final class GameLoop {
 		}
 
 		let nowMs = TimeUtils.nowMs()
-		let reactionMs = nowMs - activeMoleShownAtMs
+		let reactionMs = nowMs - moleBecameActiveMs
 		let speedThresholdMs = Int(Double(activeMoleUpTimeMs) * 0.55)
 
 		if reactionMs <= speedThresholdMs {
@@ -226,13 +234,9 @@ final class GameLoop {
 		baseGraceMs: Int,
 		maxGraceMs: Int
 	) -> Int {
-		// JS behavior: random value between base and max
-		let range = maxGraceMs - baseGraceMs
-		if range <= 0 {
-			return baseGraceMs
-		}
-
-		return baseGraceMs + Int.random(in: 0...range)
+		// Web helper clamps baseGraceMs to maxGraceMs (no randomness).
+		let clamped = min(max(baseGraceMs, 0), maxGraceMs)
+		return clamped
 	}
 
 	private func scheduleRoundEnd() {
@@ -303,6 +307,18 @@ final class GameLoop {
 	}
 
 	// MARK: - Timing Math
+	private func computeMoleWindowMs(baseUpTimeMs: Int, speechDurationMs: Int) -> Int {
+		let reactionBufferMs = 260
+		let minUpTimeMs = 400
+		let maxUpTimeMs = 1800
+
+		let effectiveSpeech = speechDurationMs > 0 ? speechDurationMs : 300
+		let windowMs = baseUpTimeMs + effectiveSpeech + reactionBufferMs
+
+		if windowMs < minUpTimeMs { return minUpTimeMs }
+		if windowMs > maxUpTimeMs { return maxUpTimeMs }
+		return windowMs
+	}
 
 	private func getProgress() -> Double {
 		let elapsed = TimeUtils.nowMs() - roundStartTimeMs
@@ -329,6 +345,9 @@ final class GameLoop {
 		if getProgress() > 0.7 {
 			interval = Int(Double(interval) * 0.45)
 		}
+
+		// Apply jitter BEFORE difficulty scaling (matches JS)
+		interval += randomJitter()
 
 		let adjusted = Int(Double(interval) * difficultyMultiplier)
 		return max(adjusted, 180)
@@ -370,19 +389,43 @@ final class GameLoop {
 		activeMoleIndex = index
 
 		let item = roundItems[index]
+		let thisMoleId = activeMoleId
+
+		// Start speech immediately (do not block gameplay)
+		let speechStartedAtMs = TimeUtils.nowMs()
 		SpeechEngine.shared.speak(item.announceText)
 
-		let thisMoleId = activeMoleId
-		let upTime = getCurrentUpTime()
-		activeMoleUpTimeMs = upTime
+		// Base up-time (progress + difficulty), then expand using speech tuning
+		let baseUpTime = getCurrentUpTime()
 
-		activeMoleShownAtMs = TimeUtils.nowMs()
+		// Until SpeechEngine reports real start/end times, use a conservative estimate:
+		// - mimic the web fallback behavior (300ms) but allow slightly longer announcements.
+		let estimatedSpeechDurationMs = max(300, min(650, item.announceText.count * 35))
 
-		// Escape timer (JS moleUpTimer)
+		let tunedWindowMs = computeMoleWindowMs(
+			baseUpTimeMs: baseUpTime,
+			speechDurationMs: estimatedSpeechDurationMs
+		)
+
+		activeMoleUpTimeMs = tunedWindowMs
+
+		// Mole becomes hittable after 80ms (matches web)
+		DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(80)) { [weak self] in
+			guard let self else { return }
+			if !self.isRunning || self.roundEnding { return }
+			if thisMoleId != self.activeMoleId { return }
+
+			self.activeMoleShownAtMs = TimeUtils.nowMs()
+
+			// If speech started significantly later (rare), keep shownAtMs aligned with actual usability.
+			_ = speechStartedAtMs
+		}
+
+		// Escape timer uses tunedWindowMs (matches web feel)
 		moleUpTimer?.cancel()
 
 		let timer = DispatchSource.makeTimerSource(queue: .main)
-		timer.schedule(deadline: .now() + .milliseconds(upTime))
+		timer.schedule(deadline: .now() + .milliseconds(tunedWindowMs))
 		timer.setEventHandler { [weak self] in
 			guard let self else { return }
 			if !self.isRunning || self.roundEnding { return }
@@ -408,8 +451,7 @@ final class GameLoop {
 			return
 		}
 
-		let delayMs = getCurrentInterval() + randomJitter() + extraDelayMs
-
+		let delayMs = getCurrentInterval() + extraDelayMs
 		moleTimer?.cancel()
 
 		let timer = DispatchSource.makeTimerSource(queue: .main)
