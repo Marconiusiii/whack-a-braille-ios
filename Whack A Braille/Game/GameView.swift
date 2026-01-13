@@ -40,7 +40,7 @@ struct GameView: View {
 				.font(.body)
 
 			// Input sink (must exist but must not be focusable)
-			BrailleInputSinkView(gameLoop: viewModel.gameLoop)
+			BrailleTextInputSinkView(gameLoop: viewModel.gameLoop)
 				.frame(width: 1, height: 1)
 				.opacity(0.01)
 				.accessibilityHidden(true)

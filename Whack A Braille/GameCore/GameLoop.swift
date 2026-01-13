@@ -1,4 +1,5 @@
 import Foundation
+import Speech
 
 final class GameLoop {
 
@@ -91,9 +92,15 @@ final class GameLoop {
 		var isHit = false
 
 		switch attempt.type {
+
 		case .perkins:
-			if let mask = attempt.dotMask {
-				isHit = mask == currentItem.dotMask
+			// iOS never delivers dot masks for braille input.
+			// Treat perkins as braille text matching.
+			fallthrough
+
+		case .brailleText:
+			if let c = attempt.char?.lowercased() {
+				isHit = c == currentItem.id.lowercased()
 			}
 
 		case .qwerty:
@@ -102,11 +109,6 @@ final class GameLoop {
 				let b = currentItem.standardKey?.lowercased()
 			{
 				isHit = a == b
-			}
-
-		case .brailleText:
-			if let c = attempt.char?.lowercased() {
-				isHit = c == currentItem.id.lowercased()
 			}
 		}
 
@@ -124,6 +126,8 @@ final class GameLoop {
 	}
 
 	private func handleHit() {
+		SpeechEngine.shared.speak("Hit")
+
 		hitsThisRound += 1
 		hitStreak += 1
 		score += 10
@@ -157,6 +161,8 @@ final class GameLoop {
 	}
 
 	private func handleMiss() {
+		SpeechEngine.shared.speak("Miss")
+
 		missesThisRound += 1
 		hitStreak = 0
 		score = max(0, score - 2)
@@ -357,6 +363,9 @@ final class GameLoop {
 
 		let index = pickNextMoleIndex()
 		activeMoleIndex = index
+
+		let item = roundItems[index]
+		SpeechEngine.shared.speak(item.announceText)
 
 		let thisMoleId = activeMoleId
 		let upTime = getCurrentUpTime()
