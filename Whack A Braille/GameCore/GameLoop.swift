@@ -18,6 +18,9 @@ final class GameLoop {
 	private(set) var streakBonusCount: Int = 0
 	private(set) var speedHitCount: Int = 0
 	private(set) var speedBonusTickets: Int = 0
+	var currentMoleId: Int {
+		activeMoleId
+	}
 
 	// MARK: - Mole State
 

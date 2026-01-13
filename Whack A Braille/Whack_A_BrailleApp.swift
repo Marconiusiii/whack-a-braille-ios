@@ -11,7 +11,7 @@ import SwiftUI
 struct Whack_A_BrailleApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            GameView()
         }
     }
 }

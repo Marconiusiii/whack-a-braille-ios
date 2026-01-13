@@ -33,7 +33,7 @@ struct BrailleInputSinkView: UIViewRepresentable {
 		// Multiple characters can arrive at once
 		for scalar in text {
 			let attempt = Attempt(
-				moleId: gameLoop.activeMoleId,
+				moleId: gameLoop.currentMoleId,
 				type: .brailleText,
 				dotMask: nil,
 				key: nil,
@@ -47,7 +47,7 @@ struct BrailleInputSinkView: UIViewRepresentable {
 	private func handleKeyCommand(_ command: UIKeyCommand) {
 		if let input = command.input {
 			let attempt = Attempt(
-				moleId: gameLoop.activeMoleId,
+				moleId: gameLoop.currentMoleId,
 				type: .qwerty,
 				dotMask: nil,
 				key: input,
