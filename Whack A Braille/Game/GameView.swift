@@ -16,113 +16,123 @@ struct GameView: View {
 	@State private var speechRate: Float = AVSpeechUtteranceDefaultSpeechRate
 	@State private var selectedVoiceId: String = "com.apple.ttsbundle.Samantha-compact"
 
-	@AccessibilityFocusState private var isBraillePadFocused: Bool
+	@AccessibilityFocusState private var isPadFocused: Bool
+
+	private var isTouchGameplayActive: Bool {
+		viewModel.isRunning && touchPadMode != .off
+	}
 
 	var body: some View {
 		VStack(alignment: .leading, spacing: 16) {
 
-			Text("Whack A Braille")
-				.font(.title)
-				.accessibilityAddTraits(.isHeader)
-				.accessibilityHidden(viewModel.isRunning)
+			// MARK: - NON-GAMEPLAY UI
+			// Entire block is hidden from VoiceOver during touch gameplay
 
-			VStack(alignment: .leading, spacing: 6) {
-				Text("Score: \(viewModel.score)")
-				Text("Streak: \(viewModel.hitStreak)")
-				Text(viewModel.isRunning ? "Round in progress" : "Round not running")
-			}
-			.accessibilityHidden(viewModel.isRunning)
+			VStack(alignment: .leading, spacing: 16) {
 
-			VStack(alignment: .leading, spacing: 12) {
+				Text("Whack A Braille")
+					.font(.title)
+					.accessibilityAddTraits(.isHeader)
 
-				Picker("Game set", selection: $modeId) {
-					Text("Grade 1: Letters and Numbers").tag("grade1LettersNumbers")
-					Text("Grade 2: Symbols").tag("grade2Symbols")
-					Text("Grade 2: Word signs").tag("grade2Words")
-					Text("Everything").tag("everything")
+				VStack(alignment: .leading, spacing: 6) {
+					Text("Score: \(viewModel.score)")
+					Text("Streak: \(viewModel.hitStreak)")
+					Text(viewModel.isRunning ? "Round in progress" : "Round not running")
 				}
 
-				Picker("Difficulty", selection: $difficulty) {
-					Text("Beginner").tag(Difficulty.beginner)
-					Text("Normal").tag(Difficulty.normal)
-					Text("Supreme Mole Whacker").tag(Difficulty.supreme)
-				}
+				VStack(alignment: .leading, spacing: 12) {
 
-				Picker("Round length", selection: $roundDurationSeconds) {
-					Text("15 seconds").tag(15)
-					Text("30 seconds").tag(30)
-					Text("45 seconds").tag(45)
-					Text("60 seconds").tag(60)
-				}
-
-				Picker("Keyboard input", selection: $inputMode) {
-					Text("Standard QWERTY").tag(InputMode.qwerty)
-					Text("Perkins (home row)").tag(InputMode.perkins)
-				}
-
-				Picker("Touch pad", selection: $touchPadMode) {
-					ForEach(TouchPadMode.allCases) { mode in
-						Text(mode.label).tag(mode)
+					Picker("Game set", selection: $modeId) {
+						Text("Grade 1: Letters and Numbers").tag("grade1LettersNumbers")
+						Text("Grade 2: Symbols").tag("grade2Symbols")
+						Text("Grade 2: Word signs").tag("grade2Words")
+						Text("Everything").tag("everything")
 					}
-				}
 
-				Toggle(
-					"Braille submit mode (for displays and contracted input)",
-					isOn: $brailleSubmitMode
-				)
-			}
-			.accessibilityHidden(viewModel.isRunning)
+					Picker("Difficulty", selection: $difficulty) {
+						Text("Beginner").tag(Difficulty.beginner)
+						Text("Normal").tag(Difficulty.normal)
+						Text("Supreme Mole Whacker").tag(Difficulty.supreme)
+					}
 
-			Menu {
-				Section("Voice") {
-					Picker("Voice", selection: $selectedVoiceId) {
-						ForEach(availableVoices, id: \.identifier) { voice in
-							Text(voice.name).tag(voice.identifier)
+					Picker("Round length", selection: $roundDurationSeconds) {
+						Text("15 seconds").tag(15)
+						Text("30 seconds").tag(30)
+						Text("45 seconds").tag(45)
+						Text("60 seconds").tag(60)
+					}
+
+					Picker("Keyboard input", selection: $inputMode) {
+						Text("Standard keyboard").tag(InputMode.qwerty)
+						Text("Perkins home row").tag(InputMode.perkins)
+					}
+
+					Picker("Touch pad", selection: $touchPadMode) {
+						ForEach(TouchPadMode.allCases) { mode in
+							Text(mode.label).tag(mode)
 						}
 					}
-				}
 
-				Section("Rate") {
-					Slider(
-						value: $speechRate,
-						in: 0.4...0.6,
-						step: 0.02
+					Toggle(
+						"Braille submit mode (for displays and contracted input)",
+						isOn: $brailleSubmitMode
 					)
-					Text("Speech rate")
 				}
 
-				Button("Test speech") {
-					applySpeechSettings()
-					SpeechEngine.shared.speak("Whack A Braille speech test")
+				Menu {
+					Section("Voice") {
+						Picker("Voice", selection: $selectedVoiceId) {
+							ForEach(availableVoices, id: \.identifier) { voice in
+								Text(voice.name).tag(voice.identifier)
+							}
+						}
+					}
+
+					Section("Rate") {
+						Slider(
+							value: $speechRate,
+							in: 0.4...0.6,
+							step: 0.02
+						)
+						Text("Speech rate")
+					}
+
+					Button("Test speech") {
+						applySpeechSettings()
+						SpeechEngine.shared.speak("Whack A Braille speech test")
+					}
+				} label: {
+					Label("Speech & Audio", systemImage: "speaker.wave.2")
 				}
-			} label: {
-				Label("Speech & Audio", systemImage: "speaker.wave.2")
+
+				Button {
+					if viewModel.isRunning {
+						viewModel.stopRound()
+					} else {
+						startRound()
+					}
+				} label: {
+					Text(viewModel.isRunning ? "Stop round" : "Start round")
+				}
 			}
-			.accessibilityHidden(viewModel.isRunning)
+			.accessibilityHidden(isTouchGameplayActive)
 
-			Button {
-				if viewModel.isRunning {
-					viewModel.stopRound()
-				} else {
-					startRound()
-				}
-			} label: {
-				Text(viewModel.isRunning ? "Stop round" : "Start round")
+			// MARK: - INPUT SINKS (hidden, always active)
+
+			if !isTouchGameplayActive {
+				BrailleTextInputSinkView(
+					gameLoop: viewModel.gameLoop,
+					isEnabled: true,
+					submissionMode: brailleSubmitMode ? .submitKey : .immediate
+				)
+				.frame(width: 1, height: 1)
+				.opacity(0.01)
+				.accessibilityHidden(true)
 			}
-			.accessibilityHidden(
-				viewModel.isRunning && touchPadMode != .off
-			)
 
-			BrailleTextInputSinkView(
-				gameLoop: viewModel.gameLoop,
-				isEnabled: true,
-				submissionMode: brailleSubmitMode ? .submitKey : .immediate
-			)
-			.frame(width: 1, height: 1)
-			.opacity(0.01)
-			.accessibilityHidden(true)
+			// MARK: - DIRECT TOUCH BRAILLE PAD
 
-			if viewModel.isRunning && touchPadMode != .off {
+			if isTouchGameplayActive {
 				let orientation: BraillePadOrientation =
 					(touchPadMode == .tabletop) ? .tabletop : .screenAway
 
@@ -137,17 +147,25 @@ struct GameView: View {
 						.stroke(Color.secondary, lineWidth: 2)
 				)
 				.accessibilityElement(children: .ignore)
-				.accessibilityLabel("Braille pad")
-				.accessibilityHint("Direct touch area for Perkins chording.")
+				.accessibilityLabel("Braille input area")
 				.accessibilityAddTraits(.allowsDirectInteraction)
-				.accessibilityFocused($isBraillePadFocused)
+				.accessibilityFocused($isPadFocused)
 			}
 		}
 		.padding()
-		.onChange(of: viewModel.isRunning) { running in
-			if running && touchPadMode != .off {
+		.onAppear {
+			UIApplication.shared.sendAction(
+				#selector(UIResponder.resignFirstResponder),
+				to: nil,
+				from: nil,
+				for: nil
+			)
+		}
+
+		.onChange(of: isTouchGameplayActive) { active in
+			if active {
 				DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-					isBraillePadFocused = true
+					isPadFocused = true
 				}
 			}
 		}
@@ -158,6 +176,8 @@ struct GameView: View {
 			applySpeechSettings()
 		}
 	}
+
+	// MARK: - Helpers
 
 	private var availableVoices: [AVSpeechSynthesisVoice] {
 		AVSpeechSynthesisVoice.speechVoices()
@@ -177,8 +197,6 @@ struct GameView: View {
 
 		let items = BrailleRegistry.getItems(for: modeId)
 
-		// IMPORTANT:
-		// Call GameLoop directly because GameViewModel.startRound does not accept `difficulty:`.
 		viewModel.gameLoop.startRound(
 			modeId: modeId,
 			durationSeconds: roundDurationSeconds,
