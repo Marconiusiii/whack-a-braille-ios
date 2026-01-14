@@ -1,5 +1,6 @@
 import SwiftUI
 import AVFoundation
+import UIKit
 
 struct GameView: View {
 
@@ -25,9 +26,7 @@ struct GameView: View {
 	var body: some View {
 		VStack(alignment: .leading, spacing: 16) {
 
-			// MARK: - NON-GAMEPLAY UI
-			// Entire block is hidden from VoiceOver during touch gameplay
-
+			// Settings + controls (hidden from VO when pad is active)
 			VStack(alignment: .leading, spacing: 16) {
 
 				Text("Whack A Braille")
@@ -117,8 +116,7 @@ struct GameView: View {
 			}
 			.accessibilityHidden(isTouchGameplayActive)
 
-			// MARK: - INPUT SINKS (hidden, always active)
-
+			// Keep text sink only when NOT using direct touch (prevents interference)
 			if !isTouchGameplayActive {
 				BrailleTextInputSinkView(
 					gameLoop: viewModel.gameLoop,
@@ -130,8 +128,7 @@ struct GameView: View {
 				.accessibilityHidden(true)
 			}
 
-			// MARK: - DIRECT TOUCH BRAILLE PAD
-
+			// Direct Touch pad
 			if isTouchGameplayActive {
 				let orientation: BraillePadOrientation =
 					(touchPadMode == .tabletop) ? .tabletop : .screenAway
@@ -153,15 +150,6 @@ struct GameView: View {
 			}
 		}
 		.padding()
-		.onAppear {
-			UIApplication.shared.sendAction(
-				#selector(UIResponder.resignFirstResponder),
-				to: nil,
-				from: nil,
-				for: nil
-			)
-		}
-
 		.onChange(of: isTouchGameplayActive) { active in
 			if active {
 				DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
@@ -175,9 +163,15 @@ struct GameView: View {
 		.onChange(of: speechRate) { _ in
 			applySpeechSettings()
 		}
+		.onAppear {
+			UIApplication.shared.sendAction(
+				#selector(UIResponder.resignFirstResponder),
+				to: nil,
+				from: nil,
+				for: nil
+			)
+		}
 	}
-
-	// MARK: - Helpers
 
 	private var availableVoices: [AVSpeechSynthesisVoice] {
 		AVSpeechSynthesisVoice.speechVoices()
@@ -194,10 +188,9 @@ struct GameView: View {
 
 	private func startRound() {
 		applySpeechSettings()
-
 		let items = BrailleRegistry.getItems(for: modeId)
 
-		viewModel.gameLoop.startRound(
+		viewModel.startRound(
 			modeId: modeId,
 			durationSeconds: roundDurationSeconds,
 			inputMode: inputMode,
