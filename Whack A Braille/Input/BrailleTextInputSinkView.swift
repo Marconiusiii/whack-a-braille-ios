@@ -37,6 +37,7 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 		textField.onTextInput = { [weak coordinator = context.coordinator] text in
 			coordinator?.handleTextInput(text)
 		}
+		textField.addTarget(context.coordinator, action: #selector(Coordinator.textDidChange(_:)), for: .editingChanged)
 
 		return textField
 	}
@@ -68,6 +69,13 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 		init(gameLoop: GameLoop, inputMode: InputMode) {
 			self.gameLoop = gameLoop
 			self.inputMode = inputMode
+		}
+
+		@objc
+		func textDidChange(_ textField: UITextField) {
+			guard let text = textField.text, !text.isEmpty else { return }
+			handleTextInput(text)
+			textField.text = ""
 		}
 
 		func emitPerkinsAttempt(dotMask: Int) {
@@ -233,6 +241,13 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 
 			if !handledPerkins {
 				super.pressesEnded(presses, with: event)
+
+				for press in presses {
+					guard let key = press.key else { continue }
+					let input = key.charactersIgnoringModifiers.lowercased()
+					guard input.count == 1 else { continue }
+					onTextInput?(input)
+				}
 			}
 		}
 

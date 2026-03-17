@@ -1,4 +1,5 @@
 import AVFoundation
+import AudioToolbox
 
 final class GameAudioEngine {
 
@@ -9,6 +10,10 @@ final class GameAudioEngine {
 	private var timerMusicEnabled = true
 	private var audioMode = "original"
 	private var activePlayers: [AVAudioPlayer] = []
+	private let hitSoundId: SystemSoundID = 1104
+	private let missSoundId: SystemSoundID = 1053
+	private let popSoundId: SystemSoundID = 1157
+	private let retreatSoundId: SystemSoundID = 1054
 
 	private init() {}
 
@@ -60,14 +65,17 @@ final class GameAudioEngine {
 
 	func playMiss(lane: Int) {
 		_ = lane
+		playSystemSound(missSoundId)
 	}
 
 	func playMolePop(lane: Int) {
 		_ = lane
+		playSystemSound(popSoundId)
 	}
 
 	func playRetreat(lane: Int) {
 		_ = lane
+		playSystemSound(retreatSoundId)
 	}
 
 	private func configureAudioSession() {
@@ -92,6 +100,11 @@ final class GameAudioEngine {
 		} catch {
 			// Keep gameplay running even if a bundled sound cannot be played.
 		}
+	}
+
+	private func playSystemSound(_ soundId: SystemSoundID) {
+		configureAudioSession()
+		AudioServicesPlaySystemSound(soundId)
 	}
 
 	private func bundledAudioURL(named name: String, fileExtension: String) -> URL? {
