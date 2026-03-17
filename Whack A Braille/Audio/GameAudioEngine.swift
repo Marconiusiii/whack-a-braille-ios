@@ -9,21 +9,54 @@ final class GameAudioEngine {
 	private let sampleRate = 44_100.0
 	private let molePanMap: [Float] = [-1.0, -0.5, 0.0, 0.5, 1.0]
 
-	private var beatGeneration: Int = 0
-	private var beatStep: Int = 0
+	private var beatGeneration = 0
+	private var beatStep = 0
 	private var progressProvider: (() -> Double)?
-	private var hasPlayedStartFlourish: Bool = false
+	private var timerMusicEnabled = true
+	private var audioMode = "original"
+
+	private var popBuffer: AVAudioPCMBuffer?
+	private var retreatBuffer: AVAudioPCMBuffer?
+	private var beatLowBuffer: AVAudioPCMBuffer?
+	private var beatHighBuffer: AVAudioPCMBuffer?
+	private var hitBuffers: [Int: AVAudioPCMBuffer] = [:]
+	private var missBuffers: [Int: AVAudioPCMBuffer] = [:]
+	private var startBuffers: [AVAudioPCMBuffer] = []
+	private var everythingBuffers: [AVAudioPCMBuffer] = []
+	private var sillyHitBuffer: AVAudioPCMBuffer?
+	private var fiftyPointBuffer: AVAudioPCMBuffer?
 
 	private init() {
+		configureAudioSession()
+		buildOriginalBuffers()
+		loadBundledAudio()
+		startEngineIfNeeded()
+	}
+
+	func prewarm() {
 		configureAudioSession()
 		startEngineIfNeeded()
 	}
 
-	func startRound(progressProvider: @escaping () -> Double) {
+	func configure(mode: String, timerMusicEnabled: Bool) {
+		self.audioMode = mode == "silly" ? "silly" : "original"
+		self.timerMusicEnabled = timerMusicEnabled
+		configureAudioSession()
+		startEngineIfNeeded()
+	}
+
+	func startRound(progressProvider: @escaping () -> Double, playEverythingIntro: Bool) {
 		self.progressProvider = progressProvider
-		hasPlayedStartFlourish = false
-		playStartFlourish()
-		startRoundBeat()
+
+		if playEverythingIntro {
+			playEverythingStingerIfNeeded()
+		} else {
+			playStartFlourish()
+		}
+
+		if timerMusicEnabled {
+			startRoundBeat()
+		}
 	}
 
 	func stopRound() {
@@ -33,76 +66,63 @@ final class GameAudioEngine {
 	}
 
 	func playHit(scoreBeforeHit: Int, lane: Int) {
-		startEngineIfNeeded()
-
-		let lanePan = pan(for: lane)
-		let frequency = 660.0 + Double(lane) * 35.0
-		let buffer = makeToneBuffer(
-			duration: 0.12,
-			attack: 0.002,
-			release: 0.10
-		) { time in
-			let shimmer = sin(2.0 * .pi * (frequency * 1.5) * time) * 0.18
-			let tone = triangleWave(frequency: frequency, time: time) * 0.72
-			return tone + shimmer
+		if audioMode == "silly", let sillyHitBuffer {
+			play(buffer: sillyHitBuffer, pan: pan(for: lane), volume: 0.85, rate: Float(0.9 + Double.random(in: 0...0.2)))
+			if scoreBeforeHit < 50, scoreBeforeHit + 10 >= 50, let fiftyPointBuffer {
+				play(buffer: fiftyPointBuffer, pan: 0, volume: 0.8)
+			}
+			return
 		}
 
-		play(buffer: buffer, pan: lanePan, volume: 0.95)
-
-		if scoreBeforeHit < 50 && scoreBeforeHit + 10 >= 50 {
-			playFiftyPointAccent()
+		if let buffer = hitBuffers[lane] ?? hitBuffers[0] {
+			play(buffer: buffer, pan: pan(for: lane), volume: 0.95)
 		}
 	}
 
 	func playMiss(lane: Int) {
-		startEngineIfNeeded()
-
-		let lanePan = pan(for: lane)
-		let buffer = makeToneBuffer(
-			duration: 0.18,
-			attack: 0.002,
-			release: 0.16
-		) { time in
-			let downward = max(180.0, 300.0 - (time * 520.0))
-			return sineWave(frequency: downward, time: time) * 0.6
+		if let buffer = missBuffers[lane] ?? missBuffers[0] {
+			play(buffer: buffer, pan: pan(for: lane), volume: 0.8)
 		}
-
-		play(buffer: buffer, pan: lanePan, volume: 0.7)
 	}
 
 	func playMolePop(lane: Int) {
-		startEngineIfNeeded()
-
-		let lanePan = pan(for: lane)
-		let buffer = makeToneBuffer(
-			duration: 0.08,
-			attack: 0.001,
-			release: 0.06
-		) { time in
-			let pop = sineWave(frequency: 220.0 + Double(lane) * 28.0, time: time) * 0.35
-			let click = noise(time: time) * 0.12
-			return pop + click
+		if let popBuffer {
+			play(buffer: popBuffer, pan: pan(for: lane), volume: 0.65)
 		}
-
-		play(buffer: buffer, pan: lanePan, volume: 0.55)
 	}
 
 	func playRetreat(lane: Int) {
-		startEngineIfNeeded()
+		if let retreatBuffer {
+			play(buffer: retreatBuffer, pan: pan(for: lane), volume: 0.55)
+		}
+	}
 
-		let lanePan = pan(for: lane)
-		let buffer = makeToneBuffer(
-			duration: 0.18,
-			attack: 0.001,
-			release: 0.17
-		) { time in
-			let fall = max(120.0, 320.0 - (time * 900.0))
-			let tone = sineWave(frequency: fall, time: time) * 0.34
-			let dust = noise(time: time) * 0.08
-			return tone + dust
+	private func playEverythingStingerIfNeeded() {
+		guard !everythingBuffers.isEmpty else {
+			playStartFlourish()
+			return
 		}
 
-		play(buffer: buffer, pan: lanePan, volume: 0.45)
+		for (index, buffer) in everythingBuffers.enumerated() {
+			play(buffer: buffer, pan: 0, volume: 0.35, delay: Double(index) * 0.12)
+		}
+	}
+
+	private func playStartFlourish() {
+		guard !startBuffers.isEmpty else { return }
+
+		for (index, buffer) in startBuffers.enumerated() {
+			let delay: Double
+			switch index {
+			case 0:
+				delay = 0
+			case 1:
+				delay = 0.19
+			default:
+				delay = 0.42
+			}
+			play(buffer: buffer, pan: 0, volume: 0.38, delay: delay)
+		}
 	}
 
 	private func startRoundBeat() {
@@ -127,6 +147,13 @@ final class GameAudioEngine {
 		}
 	}
 
+	private func playBeat(step: Int) {
+		let useHigh = step == 1 || step == 3
+		let buffer = useHigh ? beatHighBuffer : beatLowBuffer
+		guard let buffer else { return }
+		play(buffer: buffer, pan: 0, volume: 0.28)
+	}
+
 	private func currentBeatInterval() -> TimeInterval {
 		let progress = progressProvider?() ?? 0
 		let start = 0.68
@@ -134,97 +161,60 @@ final class GameAudioEngine {
 		return start + ((end - start) * progress)
 	}
 
-	private func playBeat(step: Int) {
-		startEngineIfNeeded()
-
-		let progress = progressProvider?() ?? 0
-		let root = 110.0 + (progress * 60.0)
-		let frequency: Double
-
-		switch step {
-		case 0:
-			frequency = root
-		case 1:
-			frequency = root * 1.25
-		case 2:
-			frequency = root * 1.5
-		default:
-			frequency = root * 1.25
-		}
-
-		let duration = max(0.08, currentBeatInterval() * 0.7)
-		let buffer = makeToneBuffer(
-			duration: duration,
-			attack: 0.002,
-			release: duration * 0.8
-		) { time in
-			let base = triangleWave(frequency: frequency, time: time) * 0.16
-			let overtone = sineWave(frequency: frequency * 2.0, time: time) * 0.04
-			return base + overtone
-		}
-
-		play(buffer: buffer, pan: 0.0, volume: 0.35)
-	}
-
-	private func playStartFlourish() {
-		guard !hasPlayedStartFlourish else { return }
-
-		hasPlayedStartFlourish = true
-		startEngineIfNeeded()
-
-		let chord = [261.63, 329.63, 392.0]
-		let resolve = [392.0, 493.88, 587.33]
-
-		playChord(chord, at: 0.0, duration: 0.18, volume: 0.36)
-		playChord(chord, at: 0.19, duration: 0.18, volume: 0.34)
-		playChord(resolve, at: 0.42, duration: 0.42, volume: 0.30)
-	}
-
-	private func playFiftyPointAccent() {
-		let frequencies = [523.25, 659.25, 783.99]
-		playChord(frequencies, at: 0.0, duration: 0.28, volume: 0.42)
-	}
-
-	private func playChord(_ frequencies: [Double], at delay: TimeInterval, duration: TimeInterval, volume: Float) {
-		for frequency in frequencies {
-			let buffer = makeToneBuffer(
-				duration: duration,
-				attack: 0.003,
-				release: duration * 0.82
-			) { time in
-				triangleWave(frequency: frequency, time: time) * 0.24
-			}
-
-			play(buffer: buffer, pan: 0.0, volume: volume, delay: delay)
-		}
+	private func pan(for lane: Int) -> Float {
+		guard molePanMap.indices.contains(lane) else { return 0 }
+		return molePanMap[lane]
 	}
 
 	private func play(
 		buffer: AVAudioPCMBuffer,
 		pan: Float,
 		volume: Float,
-		delay: TimeInterval = 0
+		delay: TimeInterval = 0,
+		rate: Float = 1.0
 	) {
 		let performPlay = { [weak self] in
 			guard let self else { return }
-
-			let node = AVAudioPlayerNode()
-			node.pan = pan
-			node.volume = volume
-
-			self.engine.attach(node)
-			self.engine.connect(node, to: self.engine.mainMixerNode, format: buffer.format)
+			self.configureAudioSession()
 			self.startEngineIfNeeded()
 
-			node.scheduleBuffer(buffer, at: nil, options: []) { [weak self, weak node] in
-				guard let self, let node else { return }
-				DispatchQueue.main.async {
-					node.stop()
-					self.engine.detach(node)
-				}
+			let player = AVAudioPlayerNode()
+			self.engine.attach(player)
+
+			let format = buffer.format
+
+			if rate == 1.0 {
+				self.engine.connect(player, to: self.engine.mainMixerNode, format: format)
+				player.pan = pan
+				player.volume = volume
+				player.scheduleBuffer(buffer, completionHandler: { [weak self, weak player] in
+					guard let self, let player else { return }
+					DispatchQueue.main.async {
+						player.stop()
+						self.engine.detach(player)
+					}
+				})
+			} else {
+				let varispeed = AVAudioUnitVarispeed()
+				varispeed.rate = rate
+				self.engine.attach(varispeed)
+				self.engine.connect(player, to: varispeed, format: format)
+				self.engine.connect(varispeed, to: self.engine.mainMixerNode, format: format)
+				player.pan = pan
+				player.volume = volume
+				player.scheduleBuffer(buffer, completionHandler: { [weak self, weak player, weak varispeed] in
+					guard let self, let player else { return }
+					DispatchQueue.main.async {
+						player.stop()
+						self.engine.detach(player)
+						if let varispeed {
+							self.engine.detach(varispeed)
+						}
+					}
+				})
 			}
 
-			node.play()
+			player.play()
 		}
 
 		if delay > 0 {
@@ -236,10 +226,10 @@ final class GameAudioEngine {
 
 	private func configureAudioSession() {
 		do {
-			try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
+			try session.setCategory(.playback, mode: .default, options: [.duckOthers])
 			try session.setActive(true)
 		} catch {
-			// Keep the game playable even if session setup is denied.
+			// Keep gameplay running even if the session update fails.
 		}
 	}
 
@@ -249,13 +239,89 @@ final class GameAudioEngine {
 		do {
 			try engine.start()
 		} catch {
-			// If startup fails, stop trying to schedule audio for this action.
+			// Audio will fail silently if the engine cannot start.
 		}
 	}
 
-	private func pan(for lane: Int) -> Float {
-		guard molePanMap.indices.contains(lane) else { return 0 }
-		return molePanMap[lane]
+	private func loadBundledAudio() {
+		sillyHitBuffer = loadBuffer(named: "ChanceyBonk_6", extension: "m4a")
+		fiftyPointBuffer = loadBuffer(named: "50pts_2", extension: "m4a")
+	}
+
+	private func loadBuffer(named name: String, extension fileExtension: String) -> AVAudioPCMBuffer? {
+		let possibleURLs: [URL?] = [
+			Bundle.main.url(forResource: name, withExtension: fileExtension, subdirectory: "Resources/Audio"),
+			Bundle.main.url(forResource: name, withExtension: fileExtension, subdirectory: "Audio"),
+			Bundle.main.url(forResource: name, withExtension: fileExtension)
+		]
+
+		guard let url = possibleURLs.compactMap({ $0 }).first else { return nil }
+
+		do {
+			let file = try AVAudioFile(forReading: url)
+			let format = file.processingFormat
+			let frameCount = AVAudioFrameCount(file.length)
+			let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount)
+			try file.read(into: buffer!)
+			return buffer
+		} catch {
+			return nil
+		}
+	}
+
+	private func buildOriginalBuffers() {
+		popBuffer = makeToneBuffer(duration: 0.08, attack: 0.001, release: 0.05) { time in
+			let pop = self.sineWave(frequency: 260, time: time) * 0.35
+			let click = self.noise(time: time) * 0.08
+			return pop + click
+		}
+
+		retreatBuffer = makeToneBuffer(duration: 0.18, attack: 0.001, release: 0.16) { time in
+			let fall = max(120.0, 320.0 - (time * 900.0))
+			return self.sineWave(frequency: fall, time: time) * 0.34
+		}
+
+		beatLowBuffer = makeToneBuffer(duration: 0.12, attack: 0.002, release: 0.1) { time in
+			self.triangleWave(frequency: 126, time: time) * 0.2
+		}
+
+		beatHighBuffer = makeToneBuffer(duration: 0.09, attack: 0.002, release: 0.07) { time in
+			self.triangleWave(frequency: 170, time: time) * 0.16
+		}
+
+		for lane in 0..<5 {
+			let laneFrequency = 660.0 + Double(lane) * 35.0
+			hitBuffers[lane] = makeToneBuffer(duration: 0.12, attack: 0.002, release: 0.1) { time in
+				let shimmer = self.sineWave(frequency: laneFrequency * 1.5, time: time) * 0.18
+				let tone = self.triangleWave(frequency: laneFrequency, time: time) * 0.72
+				return tone + shimmer
+			}
+
+			missBuffers[lane] = makeToneBuffer(duration: 0.18, attack: 0.002, release: 0.16) { time in
+				let downward = max(180.0, 300.0 - (time * 520.0))
+				return self.sineWave(frequency: downward, time: time) * 0.55
+			}
+		}
+
+		startBuffers = [
+			makeChordBuffer([261.63, 329.63, 392.0], duration: 0.18),
+			makeChordBuffer([261.63, 329.63, 392.0], duration: 0.18),
+			makeChordBuffer([392.0, 493.88, 587.33], duration: 0.42)
+		].compactMap { $0 }
+
+		everythingBuffers = [
+			makeChordBuffer([220.0, 277.18, 329.63], duration: 0.20),
+			makeChordBuffer([293.66, 369.99, 440.0], duration: 0.22),
+			makeChordBuffer([392.0, 493.88, 587.33], duration: 0.36)
+		].compactMap { $0 }
+	}
+
+	private func makeChordBuffer(_ frequencies: [Double], duration: TimeInterval) -> AVAudioPCMBuffer? {
+		makeToneBuffer(duration: duration, attack: 0.003, release: duration * 0.82) { time in
+			frequencies.reduce(0.0) { partial, frequency in
+				partial + (self.triangleWave(frequency: frequency, time: time) * 0.18)
+			}
+		}
 	}
 
 	private func makeToneBuffer(
@@ -263,13 +329,16 @@ final class GameAudioEngine {
 		attack: TimeInterval,
 		release: TimeInterval,
 		sample: (Double) -> Double
-	) -> AVAudioPCMBuffer {
+	) -> AVAudioPCMBuffer? {
 		let frameCount = max(1, AVAudioFrameCount(duration * sampleRate))
-		let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
-		let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount)!
-		buffer.frameLength = frameCount
+		guard let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1),
+			  let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount),
+			  let samples = buffer.floatChannelData?[0]
+		else {
+			return nil
+		}
 
-		let samples = buffer.floatChannelData![0]
+		buffer.frameLength = frameCount
 
 		for frame in 0..<Int(frameCount) {
 			let time = Double(frame) / sampleRate

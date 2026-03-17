@@ -4,34 +4,27 @@ struct GameplayView: View {
 
 	@ObservedObject var viewModel: GameViewModel
 	let inputMode: InputMode
-	let brailleSubmitMode: Bool
 	let stopRound: () -> Void
 
-	@AccessibilityFocusState private var focusedElement: FocusTarget?
-
-	private enum FocusTarget: Hashable {
-		case heading
-		case input
-	}
-
 	var body: some View {
-		List {
-			Section {
-				Text("Whack Session")
-					.font(.largeTitle.bold())
-					.accessibilityAddTraits(.isHeader)
-					.accessibilityFocused($focusedElement, equals: .heading)
+		ScrollView {
+			VStack(alignment: .leading, spacing: 24) {
+				VStack(alignment: .leading, spacing: 12) {
+					Text("Whack the Braille!")
+						.font(.largeTitle.bold())
+						.accessibilityAddTraits(.isHeader)
 
-				Text("Listen for the target and enter the matching key or braille cell as quickly as you can.")
-			}
+					Text("Type or chord the target as soon as you hear it.")
+				}
 
-			Section("Status") {
-				Text("Score: \(viewModel.score)")
-				Text("Streak: \(viewModel.hitStreak)")
-				Text("Current target: \(viewModel.activeTargetLabel)")
-			}
+				VStack(alignment: .leading, spacing: 10) {
+					Text("Score: \(viewModel.score)")
+					Text("Streak: \(viewModel.hitStreak)")
+					Text("Current target: \(viewModel.activeTargetLabel)")
+				}
+				.accessibilityElement(children: .contain)
+				.accessibilityLabel("Round status")
 
-			Section("Game Board") {
 				HStack(spacing: 12) {
 					ForEach(0..<5, id: \.self) { lane in
 						RoundedRectangle(cornerRadius: 18)
@@ -40,35 +33,28 @@ struct GameplayView: View {
 							.overlay {
 								Text(viewModel.activeLane == lane ? viewModel.activeTargetLabel : "")
 									.font(.headline)
-									foregroundStyle(.white)
+									.foregroundStyle(.white)
 							}
 							.accessibilityHidden(true)
 					}
 				}
-			}
+				.accessibilityHidden(true)
 
-			Section("Input") {
 				BrailleTextInputSinkView(
 					gameLoop: viewModel.gameLoop,
 					inputMode: inputMode,
 					isEnabled: viewModel.isRunning,
-					submissionMode: brailleSubmitMode ? .submitKey : .immediate
+					autoFocus: viewModel.isRunning
 				)
-				.frame(height: 44)
-				.accessibilityLabel("Game input field")
-				.accessibilityHint("Use Braille Screen Input, a keyboard, or a braille display while the round is active.")
-				.accessibilityFocused($focusedElement, equals: .input)
-			}
+				.frame(height: 48)
 
-			Section {
+				Button("Repeat Current Target") {
+					viewModel.repeatCurrentTarget()
+				}
+
 				Button("Stop Round", action: stopRound)
 			}
-		}
-		.listStyle(.insetGrouped)
-		.onAppear {
-			DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-				focusedElement = .input
-			}
+			.padding(20)
 		}
 	}
 }

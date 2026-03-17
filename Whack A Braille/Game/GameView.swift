@@ -5,14 +5,19 @@ struct GameView: View {
 
 	@StateObject private var viewModel = GameViewModel()
 
-	@State private var modeId: String = "grade1LettersNumbers"
-	@State private var difficulty: Difficulty = .normal
-	@State private var roundDurationSeconds: Int = 30
-	@State private var inputMode: InputMode = .qwerty
-	@State private var brailleSubmitMode: Bool = false
-	@State private var speechRate: Float = AVSpeechUtteranceDefaultSpeechRate
-	@State private var selectedVoiceId: String = AVSpeechSynthesisVoice(language: "en-US")?.identifier ?? ""
-	@State private var isShowingSettings: Bool = false
+	@AppStorage("whackABraille.modeId") private var modeId = "grade1Letters"
+	@AppStorage("whackABraille.difficulty") private var difficultyRawValue = Difficulty.normal.rawValue
+	@AppStorage("whackABraille.roundDurationSeconds") private var roundDurationSeconds = 30
+	@AppStorage("whackABraille.inputMode") private var inputModeRawValue = InputMode.qwerty.rawValue
+	@AppStorage("whackABraille.audioMode") private var audioMode = "original"
+	@AppStorage("whackABraille.timerMusicEnabled") private var timerMusicEnabled = true
+	@AppStorage("whackABraille.spatialMoleMappingEnabled") private var spatialMoleMappingEnabled = true
+	@AppStorage("whackABraille.speakBrailleDots") private var speakBrailleDots = false
+	@AppStorage("whackABraille.characterEcho") private var characterEcho = false
+	@AppStorage("whackABraille.speechRatePercent") private var speechRatePercent = 35
+	@AppStorage("whackABraille.selectedVoiceId") private var selectedVoiceId = ""
+
+	@State private var isShowingSettings = false
 
 	var body: some View {
 		Group {
@@ -28,8 +33,7 @@ struct GameView: View {
 			case .gameplay:
 				GameplayView(
 					viewModel: viewModel,
-					inputMode: inputMode,
-					brailleSubmitMode: brailleSubmitMode,
+					inputMode: effectiveInputMode,
 					stopRound: viewModel.stopRound
 				)
 			case .roundResults:
@@ -44,41 +48,85 @@ struct GameView: View {
 		.sheet(isPresented: $isShowingSettings) {
 			GameSettingsSheet(
 				modeId: $modeId,
-				difficulty: $difficulty,
+				difficulty: difficultyBinding,
 				roundDurationSeconds: $roundDurationSeconds,
-				inputMode: $inputMode,
-				brailleSubmitMode: $brailleSubmitMode,
-				speechRate: $speechRate,
+				inputMode: inputModeBinding,
+				audioMode: $audioMode,
+				timerMusicEnabled: $timerMusicEnabled,
+				spatialMoleMappingEnabled: $spatialMoleMappingEnabled,
+				speakBrailleDots: $speakBrailleDots,
+				characterEcho: $characterEcho,
+				speechRatePercent: $speechRatePercent,
 				selectedVoiceId: $selectedVoiceId
 			)
 		}
 		.onAppear {
+			SpeechEngine.shared.prewarm()
+			GameAudioEngine.shared.prewarm()
 			applySpeechSettings()
 		}
 		.onChange(of: selectedVoiceId) {
 			applySpeechSettings()
 		}
-		.onChange(of: speechRate) {
+		.onChange(of: speechRatePercent) {
 			applySpeechSettings()
 		}
 	}
 
+	private var difficulty: Difficulty {
+		Difficulty(rawValue: difficultyRawValue) ?? .normal
+	}
+
+	private var configuredInputMode: InputMode {
+		InputMode(rawValue: inputModeRawValue) ?? .qwerty
+	}
+
+	private var effectiveInputMode: InputMode {
+		modeId == "everything" ? .perkins : configuredInputMode
+	}
+
+	private var difficultyBinding: Binding<Difficulty> {
+		Binding(
+			get: { difficulty },
+			set: { difficultyRawValue = $0.rawValue }
+		)
+	}
+
+	private var inputModeBinding: Binding<InputMode> {
+		Binding(
+			get: { configuredInputMode },
+			set: { inputModeRawValue = $0.rawValue }
+		)
+	}
+
 	private func applySpeechSettings() {
-		if !selectedVoiceId.isEmpty, let voice = AVSpeechSynthesisVoice(identifier: selectedVoiceId) {
-			SpeechEngine.shared.setVoice(voice)
-		}
-		SpeechEngine.shared.setRate(speechRate)
+		SpeechEngine.shared.configure(
+			voice: selectedVoiceId.isEmpty ? nil : AVSpeechSynthesisVoice(identifier: selectedVoiceId),
+			rate: speechRateForPercent(speechRatePercent)
+		)
 	}
 
 	private func startRound() {
 		applySpeechSettings()
 
 		viewModel.startRound(
-			modeId: modeId,
-			durationSeconds: roundDurationSeconds,
-			inputMode: inputMode,
-			difficulty: difficulty,
-			itemsForMode: BrailleRegistry.getItems(for: modeId)
+			options: GameLoop.Options(
+				modeId: modeId,
+				durationSeconds: difficulty.isTimed ? roundDurationSeconds : 30,
+				inputMode: effectiveInputMode,
+				difficulty: difficulty,
+				speakBrailleDots: speakBrailleDots,
+				characterEcho: characterEcho,
+				timerMusicEnabled: timerMusicEnabled,
+				spatialMoleMappingEnabled: spatialMoleMappingEnabled,
+				audioMode: audioMode
+			)
 		)
+	}
+
+	private func speechRateForPercent(_ percent: Int) -> Float {
+		let clamped = min(max(percent, 1), 100)
+		let progress = Float(clamped - 1) / 99.0
+		return AVSpeechUtteranceMinimumSpeechRate + ((AVSpeechUtteranceMaximumSpeechRate - AVSpeechUtteranceMinimumSpeechRate) * progress)
 	}
 }

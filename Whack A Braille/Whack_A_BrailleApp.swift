@@ -9,9 +9,9 @@ import SwiftUI
 
 @main
 struct Whack_A_BrailleApp: App {
-    var body: some Scene {
-        WindowGroup {
-            GameView()
-        }
-    }
+	var body: some Scene {
+		WindowGroup {
+			GameView()
+		}
+	}
 }

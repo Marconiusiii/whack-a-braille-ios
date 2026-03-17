@@ -2,6 +2,8 @@ struct RoundResult {
 	let modeId: String
 	let inputMode: InputMode
 	let durationSeconds: Int
+	let isTraining: Bool
+	let trainingMolesCompleted: Int
 
 	let score: Int
 	let hits: Int

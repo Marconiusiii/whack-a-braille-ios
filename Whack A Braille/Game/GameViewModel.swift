@@ -17,22 +17,14 @@ final class GameViewModel: ObservableObject {
 	let gameLoop: GameLoop
 
 	@Published private(set) var phase: Phase = .home
-	@Published private(set) var isRunning: Bool = false
-	@Published private(set) var score: Int = 0
-	@Published private(set) var hitStreak: Int = 0
+	@Published private(set) var isRunning = false
+	@Published private(set) var score = 0
+	@Published private(set) var hitStreak = 0
 	@Published private(set) var activeLane: Int?
-	@Published private(set) var activeTargetLabel: String = "Waiting to start"
+	@Published private(set) var activeTargetLabel = "Waiting to start"
 	@Published private(set) var lastRoundResult: RoundResult?
 	@Published private(set) var totalAccruedTickets: Int
 	@Published private(set) var homeNotice: String?
-
-	var prizeShelfSummary: String {
-		if totalAccruedTickets == 0 {
-			return "Prize shelf is empty for now. Keep whacking to earn tickets."
-		}
-
-		return "You currently have \(totalAccruedTickets) tickets saved toward future prizes."
-	}
 
 	init(gameLoop: GameLoop? = nil) {
 		let gameLoop = gameLoop ?? GameLoop()
@@ -41,34 +33,31 @@ final class GameViewModel: ObservableObject {
 
 		self.gameLoop.onScoreUpdated = { [weak self] score, streak in
 			guard let self else { return }
-			Task { @MainActor in
-				self.score = score
-				self.hitStreak = streak
-			}
+			self.score = score
+			self.hitStreak = streak
 		}
 
 		self.gameLoop.onActiveMoleChanged = { [weak self] lane, item in
 			guard let self else { return }
-			Task { @MainActor in
-				self.activeLane = lane
-				self.activeTargetLabel = item?.announceText ?? "Listen for the next mole"
-			}
+			self.activeLane = lane
+			self.activeTargetLabel = item?.announceText ?? "Listen for the next mole"
 		}
 
 		self.gameLoop.onRoundEnded = { [weak self] result in
 			guard let self else { return }
-			Task { @MainActor in
-				self.isRunning = false
-				self.activeLane = nil
-				self.activeTargetLabel = result.canceled ? "Round stopped" : "Round finished"
+			self.isRunning = false
+			self.activeLane = nil
+			self.activeTargetLabel = result.canceled ? "Round stopped" : "Round finished"
 
-				if result.canceled {
-					self.phase = .home
-					self.lastRoundResult = nil
-					self.homeNotice = "Round stopped."
-				} else {
-					self.phase = .roundResults
-					self.lastRoundResult = result
+			if result.canceled {
+				self.phase = .home
+				self.lastRoundResult = nil
+				self.homeNotice = "Round stopped."
+			} else {
+				self.lastRoundResult = result
+				self.phase = .roundResults
+
+				if !result.isTraining {
 					self.totalAccruedTickets += result.totalTickets
 					UserDefaults.standard.set(self.totalAccruedTickets, forKey: StorageKey.totalTickets)
 				}
@@ -76,13 +65,15 @@ final class GameViewModel: ObservableObject {
 		}
 	}
 
-	func startRound(
-		modeId: String,
-		durationSeconds: Int,
-		inputMode: InputMode,
-		difficulty: Difficulty,
-		itemsForMode: [BrailleItem]
-	) {
+	var prizeShelfSummary: String {
+		if totalAccruedTickets == 0 {
+			return "You haven't won any prizes yet."
+		}
+
+		return "You currently have \(totalAccruedTickets) tickets saved toward future prizes."
+	}
+
+	func startRound(options: GameLoop.Options) {
 		lastRoundResult = nil
 		homeNotice = nil
 		score = 0
@@ -92,22 +83,17 @@ final class GameViewModel: ObservableObject {
 		isRunning = true
 		phase = .gameplay
 
-		gameLoop.startRound(
-			modeId: modeId,
-			durationSeconds: durationSeconds,
-			inputMode: inputMode,
-			difficulty: difficulty,
-			itemsForMode: itemsForMode
-		)
+		DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) { [weak self] in
+			self?.gameLoop.startRound(options: options)
+		}
 	}
 
 	func stopRound() {
 		gameLoop.stopRound()
-		isRunning = false
-		activeLane = nil
-		activeTargetLabel = "Round stopped"
-		phase = .home
-		homeNotice = "Round stopped."
+	}
+
+	func repeatCurrentTarget() {
+		gameLoop.repeatCurrentTarget()
 	}
 
 	func cashInTickets() {

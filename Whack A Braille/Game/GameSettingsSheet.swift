@@ -7,8 +7,12 @@ struct GameSettingsSheet: View {
 	@Binding var difficulty: Difficulty
 	@Binding var roundDurationSeconds: Int
 	@Binding var inputMode: InputMode
-	@Binding var brailleSubmitMode: Bool
-	@Binding var speechRate: Float
+	@Binding var audioMode: String
+	@Binding var timerMusicEnabled: Bool
+	@Binding var spatialMoleMappingEnabled: Bool
+	@Binding var speakBrailleDots: Bool
+	@Binding var characterEcho: Bool
+	@Binding var speechRatePercent: Int
 	@Binding var selectedVoiceId: String
 
 	@Environment(\.dismiss) private var dismiss
@@ -16,57 +20,85 @@ struct GameSettingsSheet: View {
 	var body: some View {
 		NavigationStack {
 			Form {
-				Section("Game Set") {
-					Picker("Game set", selection: $modeId) {
-						Text("Grade 1: Letters and Numbers").tag("grade1LettersNumbers")
-						Text("Grade 2: Symbols").tag("grade2Symbols")
-						Text("Grade 2: Word signs").tag("grade2Words")
-						Text("Everything").tag("everything")
+				Section("Mole Chooser") {
+					Picker("Mole chooser", selection: $modeId) {
+						ForEach(BrailleRegistry.modeOptions, id: \.id) { option in
+							Text(option.label).tag(option.id)
+						}
 					}
-					.pickerStyle(.menu)
 				}
 
 				Section("Difficulty") {
 					Picker("Difficulty", selection: $difficulty) {
-						Text("Beginner").tag(Difficulty.beginner)
-						Text("Normal").tag(Difficulty.normal)
-						Text("Supreme Mole Whacker").tag(Difficulty.supreme)
+						ForEach(Difficulty.allCases) { level in
+							Text(level.label).tag(level)
+						}
 					}
-					.pickerStyle(.menu)
+				}
+
+				Section("Training Options") {
+					Toggle("Speak Braille Dots", isOn: $speakBrailleDots)
+						.disabled(difficulty != .training)
 				}
 
 				Section("Round Length") {
 					Picker("Round length", selection: $roundDurationSeconds) {
-						Text("15 seconds").tag(15)
 						Text("30 seconds").tag(30)
 						Text("45 seconds").tag(45)
 						Text("60 seconds").tag(60)
 					}
-					.pickerStyle(.menu)
+					.disabled(difficulty == .training)
 				}
 
-				Section("Input") {
-					Picker("Keyboard input", selection: $inputMode) {
-						Text("Standard keyboard").tag(InputMode.qwerty)
-						Text("Perkins home row").tag(InputMode.perkins)
+				Section("Keyboard Input Mode") {
+					Picker("Keyboard input mode", selection: $inputMode) {
+						Text("QWERTY").tag(InputMode.qwerty)
+						Text("Perkins Home Row").tag(InputMode.perkins)
 					}
-					.pickerStyle(.menu)
-
-					Toggle("Braille submit mode", isOn: $brailleSubmitMode)
+					.disabled(modeId == "everything")
 				}
 
-				Section("Speech") {
-					Picker("Voice", selection: $selectedVoiceId) {
-						Text("System Default").tag("")
+				Section("Game Audio") {
+					Picker("Game audio", selection: $audioMode) {
+						Text("Original").tag("original")
+						Text("Silly").tag("silly")
+					}
+				}
+
+				Section("Timer Music") {
+					Toggle("Enable timer music", isOn: $timerMusicEnabled)
+				}
+
+				Section("Spatial Mole Mapping") {
+					Toggle("Enable spatial mole mapping", isOn: $spatialMoleMappingEnabled)
+				}
+
+				Section("Voice Settings") {
+					Picker("System Voice", selection: $selectedVoiceId) {
+						Text("System default").tag("")
 
 						ForEach(availableVoices, id: \.identifier) { voice in
-							Text(voice.name).tag(voice.identifier)
+							Text("\(voice.name) (\(voice.language))").tag(voice.identifier)
 						}
 					}
-					.pickerStyle(.menu)
 
-					Slider(value: $speechRate, in: 0.38...0.6, step: 0.02)
-					Text("Speech rate")
+					Toggle("Character Echo", isOn: $characterEcho)
+
+					VStack(alignment: .leading, spacing: 8) {
+						Text("Speech Rate: \(speechRatePercent) percent")
+
+						Slider(
+							value: speechRateBinding,
+							in: 5...100,
+							step: 5
+						)
+						.accessibilityValue("\(speechRatePercent) percent")
+					}
+
+					Button("Play Voice Sample") {
+						let voice = selectedVoiceId.isEmpty ? nil : AVSpeechSynthesisVoice(identifier: selectedVoiceId)
+						SpeechEngine.shared.playVoiceSample(voice: voice, ratePercent: speechRatePercent)
+					}
 				}
 			}
 			.navigationTitle("Game Settings")
@@ -81,9 +113,17 @@ struct GameSettingsSheet: View {
 		}
 	}
 
+	private var speechRateBinding: Binding<Double> {
+		Binding(
+			get: { Double(speechRatePercent) },
+			set: { speechRatePercent = Int($0.rounded()) }
+		)
+	}
+
 	private var availableVoices: [AVSpeechSynthesisVoice] {
-		AVSpeechSynthesisVoice.speechVoices()
-			.filter { $0.language.hasPrefix("en") }
-			.sorted { $0.name < $1.name }
+		let localeLanguage = Locale.current.language.languageCode?.identifier ?? "en"
+		let filtered = AVSpeechSynthesisVoice.speechVoices().filter { $0.language.lowercased().hasPrefix(localeLanguage.lowercased()) }
+		let source = filtered.isEmpty ? AVSpeechSynthesisVoice.speechVoices() : filtered
+		return source.sorted { $0.name < $1.name }
 	}
 }

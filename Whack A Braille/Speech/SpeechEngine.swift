@@ -6,30 +6,46 @@ final class SpeechEngine {
 	static let shared = SpeechEngine()
 
 	private let synthesizer = AVSpeechSynthesizer()
-	private var currentVoice: AVSpeechSynthesisVoice? = AVSpeechSynthesisVoice(language: "en-US")
+	private var currentVoice: AVSpeechSynthesisVoice?
 	private var currentRate: Float = AVSpeechUtteranceDefaultSpeechRate
 
-	private init() {}
-
-	func setVoice(_ voice: AVSpeechSynthesisVoice) {
-		currentVoice = voice
+	private init() {
+		currentVoice = AVSpeechSynthesisVoice(language: Locale.current.identifier) ?? AVSpeechSynthesisVoice(language: "en-US")
 	}
 
-	func setRate(_ rate: Float) {
+	func prewarm() {
+		activateAudioSession()
+	}
+
+	func configure(voice: AVSpeechSynthesisVoice?, rate: Float) {
+		currentVoice = voice ?? AVSpeechSynthesisVoice(language: Locale.current.identifier) ?? AVSpeechSynthesisVoice(language: "en-US")
 		currentRate = rate
+		activateAudioSession()
 	}
 
-	func speak(_ text: String, interrupt: Bool = true) {
-		guard !text.isEmpty else { return }
+	func playVoiceSample(voice: AVSpeechSynthesisVoice?, ratePercent: Int) {
+		configure(voice: voice, rate: speechRateForPercent(ratePercent))
+		_ = speak("Welcome to Whack A Braille!", interrupt: true)
+	}
+
+	@discardableResult
+	func speak(_ text: String, interrupt: Bool = true) -> Int {
+		let normalized = text.trimmingCharacters(in: .whitespacesAndNewlines)
+		guard !normalized.isEmpty else { return 0 }
+
+		activateAudioSession()
 
 		if interrupt {
 			synthesizer.stopSpeaking(at: .immediate)
 		}
 
-		let utterance = AVSpeechUtterance(string: text)
+		let utterance = AVSpeechUtterance(string: normalized)
 		utterance.voice = currentVoice
 		utterance.rate = currentRate
+		utterance.prefersAssistiveTechnologySettings = false
 		synthesizer.speak(utterance)
+
+		return estimatedDurationMs(for: normalized)
 	}
 
 	func cancel() {
@@ -46,6 +62,23 @@ final class SpeechEngine {
 		let baseline = max(300.0, max(characterEstimate, wordEstimate))
 		let rateScale = Double(AVSpeechUtteranceDefaultSpeechRate / max(currentRate, 0.1))
 
-		return Int(min(max(baseline * rateScale, 300.0), 1800.0))
+		return Int(min(max(baseline * rateScale, 300.0), 1_800.0))
+	}
+
+	private func activateAudioSession() {
+		let session = AVAudioSession.sharedInstance()
+
+		do {
+			try session.setCategory(.playback, mode: .default, options: [.duckOthers])
+			try session.setActive(true, options: [])
+		} catch {
+			// Keep the game usable even if the audio session cannot be updated.
+		}
+	}
+
+	private func speechRateForPercent(_ percent: Int) -> Float {
+		let clamped = min(max(percent, 1), 100)
+		let progress = Float(clamped - 1) / 99.0
+		return AVSpeechUtteranceMinimumSpeechRate + ((AVSpeechUtteranceMaximumSpeechRate - AVSpeechUtteranceMinimumSpeechRate) * progress)
 	}
 }

@@ -7,53 +7,41 @@ struct RoundResultsView: View {
 	let keepWhacking: () -> Void
 	let cashInTickets: () -> Void
 
-	@AccessibilityFocusState private var focusedElement: FocusTarget?
-
-	private enum FocusTarget: Hashable {
-		case heading
-		case keepWhacking
-	}
-
 	var body: some View {
-		List {
-			Section {
-				Text("Round Results")
-					.font(.largeTitle.bold())
-					.accessibilityAddTraits(.isHeader)
-					.accessibilityFocused($focusedElement, equals: .heading)
+		ScrollView {
+			VStack(alignment: .leading, spacing: 24) {
+				if let result {
+					Text(result.isTraining ? "Training Complete! Great Work!" : "Results")
+						.font(.largeTitle.bold())
+						.accessibilityAddTraits(.isHeader)
 
-				Text("Here is how your last round went.")
-			}
+					VStack(alignment: .leading, spacing: 10) {
+						if !result.isTraining {
+							Text("Score: \(result.score)")
+							Text("Tickets this round: \(result.totalTickets)")
+							Text("Streak Bonus Tickets: \(result.streakBonusTickets)")
+							Text("Speed Bonus Tickets: \(result.speedBonusTickets)")
+							Text("Total tickets: \(totalTickets)")
+						} else {
+							Text("Training moles completed: \(result.trainingMolesCompleted)")
+						}
 
-			if let result {
-				Section("Summary") {
-					Text("Score: \(result.score)")
-					Text("Tickets this round: \(result.totalTickets)")
-					Text("Total tickets: \(totalTickets)")
+						Text("Hits: \(result.hits)")
+						Text("Misses: \(result.misses)")
+						Text("Escapes: \(result.escapes)")
+					}
+
+					VStack(alignment: .leading, spacing: 12) {
+						Button(result.isTraining ? "Keep Training!" : "Keep Whacking!", action: keepWhacking)
+							.buttonStyle(.borderedProminent)
+
+						if !result.isTraining {
+							Button("Cash In Tickets and Pick a Prize", action: cashInTickets)
+						}
+					}
 				}
-
-				Section("Bonuses") {
-					Text("Hits: \(result.hits)")
-					Text("Misses: \(result.misses)")
-					Text("Escapes: \(result.escapes)")
-					Text("Streak bonuses: \(result.streakBonusTickets)")
-					Text("Speed bonuses: \(result.speedBonusTickets)")
-				}
 			}
-
-			Section("Next") {
-				Button("Keep Whacking", action: keepWhacking)
-					.buttonStyle(.borderedProminent)
-					.accessibilityFocused($focusedElement, equals: .keepWhacking)
-
-				Button("Cash In Tickets", action: cashInTickets)
-			}
-		}
-		.listStyle(.insetGrouped)
-		.onAppear {
-			DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-				focusedElement = .keepWhacking
-			}
+			.padding(20)
 		}
 	}
 }

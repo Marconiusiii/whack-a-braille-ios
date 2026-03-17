@@ -3,15 +3,10 @@ import UIKit
 
 struct BrailleTextInputSinkView: UIViewRepresentable {
 
-	enum SubmissionMode {
-		case immediate
-		case submitKey
-	}
-
 	let gameLoop: GameLoop
 	let inputMode: InputMode
 	let isEnabled: Bool
-	let submissionMode: SubmissionMode
+	let autoFocus: Bool
 
 	func makeUIView(context: Context) -> GameInputTextField {
 		let textField = GameInputTextField()
@@ -26,8 +21,11 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 		textField.keyboardType = .default
 		textField.returnKeyType = .done
 		textField.enablesReturnKeyAutomatically = false
-		textField.placeholder = "Braille and keyboard input"
+		textField.placeholder = "Game input"
 		textField.backgroundColor = UIColor.secondarySystemBackground
+		textField.accessibilityTraits.insert(.allowsDirectInteraction)
+		textField.accessibilityLabel = "Game input"
+		textField.accessibilityHint = "Use Braille Screen Input, a keyboard, or a connected braille display."
 
 		textField.onPerkinsChord = { [weak coordinator = context.coordinator] dotMask in
 			coordinator?.emitPerkinsAttempt(dotMask: dotMask)
@@ -43,16 +41,15 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 	func updateUIView(_ uiView: GameInputTextField, context: Context) {
 		context.coordinator.gameLoop = gameLoop
 		context.coordinator.inputMode = inputMode
-		context.coordinator.submissionMode = submissionMode
 
 		uiView.inputModeSelection = inputMode
-		uiView.submissionMode = submissionMode
 		uiView.isEnabled = isEnabled
-		uiView.alpha = isEnabled ? 1.0 : 0.5
+		uiView.alpha = isEnabled ? 1.0 : 0.45
 
-		if isEnabled, uiView.window != nil, !uiView.isFirstResponder {
+		if isEnabled, autoFocus, uiView.window != nil, !uiView.isFirstResponder {
 			DispatchQueue.main.async {
 				uiView.becomeFirstResponder()
+				UIAccessibility.post(notification: .screenChanged, argument: uiView)
 			}
 		} else if !isEnabled, uiView.isFirstResponder {
 			uiView.resignFirstResponder()
@@ -60,25 +57,17 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 	}
 
 	func makeCoordinator() -> Coordinator {
-		Coordinator(
-			gameLoop: gameLoop,
-			inputMode: inputMode,
-			submissionMode: submissionMode
-		)
+		Coordinator(gameLoop: gameLoop, inputMode: inputMode)
 	}
 
 	final class Coordinator: NSObject, UITextFieldDelegate {
 
 		var gameLoop: GameLoop
 		var inputMode: InputMode
-		var submissionMode: SubmissionMode
 
-		private var bufferedText: String = ""
-
-		init(gameLoop: GameLoop, inputMode: InputMode, submissionMode: SubmissionMode) {
+		init(gameLoop: GameLoop, inputMode: InputMode) {
 			self.gameLoop = gameLoop
 			self.inputMode = inputMode
-			self.submissionMode = submissionMode
 		}
 
 		func textField(
@@ -87,24 +76,32 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 			replacementString string: String
 		) -> Bool {
 			if string.isEmpty {
-				if !bufferedText.isEmpty {
-					bufferedText.removeLast()
-				}
 				return false
 			}
 
 			if string == "\n" || string == "\r" {
-				submitBufferedText()
 				return false
 			}
 
 			if string == "`" {
 				gameLoop.repeatCurrentTarget()
+				textField.text = ""
 				return false
 			}
 
-			if submissionMode == .submitKey && string == " " {
-				submitBufferedText()
+			if string.count > 1 {
+				let normalized = string.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+				if !normalized.isEmpty {
+					let attempt = Attempt(
+						moleId: gameLoop.currentMoleId,
+						type: .brailleText,
+						dotMask: nil,
+						key: nil,
+						char: normalized
+					)
+					gameLoop.handleAttempt(attempt)
+				}
+				textField.text = ""
 				return false
 			}
 
@@ -116,13 +113,8 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 				return false
 			}
 
-			switch submissionMode {
-			case .immediate:
-				for token in tokens {
-					emitImmediateAttempt(token: token)
-				}
-			case .submitKey:
-				bufferedText.append(tokens.joined())
+			for token in tokens {
+				emitImmediateAttempt(token: token)
 			}
 
 			textField.text = ""
@@ -143,26 +135,10 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 		private func emitImmediateAttempt(token: String) {
 			let attempt = Attempt(
 				moleId: gameLoop.currentMoleId,
-				type: attemptTypeForCurrentMode(),
+				type: inputMode == .qwerty ? .qwerty : .brailleText,
 				dotMask: nil,
 				key: inputMode == .qwerty ? token : nil,
 				char: inputMode == .qwerty ? nil : token
-			)
-			gameLoop.handleAttempt(attempt)
-		}
-
-		private func submitBufferedText() {
-			let normalized = bufferedText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-			bufferedText = ""
-
-			guard !normalized.isEmpty else { return }
-
-			let attempt = Attempt(
-				moleId: gameLoop.currentMoleId,
-				type: .brailleText,
-				dotMask: nil,
-				key: nil,
-				char: normalized
 			)
 			gameLoop.handleAttempt(attempt)
 		}
@@ -172,16 +148,11 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 				.map { String($0).trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
 				.filter { !$0.isEmpty }
 		}
-
-		private func attemptTypeForCurrentMode() -> InputMode {
-			inputMode == .qwerty ? .qwerty : .brailleText
-		}
 	}
 
 	final class GameInputTextField: UITextField {
 
 		var inputModeSelection: InputMode = .qwerty
-		var submissionMode: SubmissionMode = .immediate
 		var onPerkinsChord: ((Int) -> Void)?
 		var onRepeatTarget: (() -> Void)?
 
@@ -199,14 +170,9 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 			return item
 		}
 
-		override func didMoveToWindow() {
-			super.didMoveToWindow()
-
-			if isEnabled, window != nil {
-				DispatchQueue.main.async {
-					self.becomeFirstResponder()
-				}
-			}
+		override func accessibilityActivate() -> Bool {
+			becomeFirstResponder()
+			return true
 		}
 
 		override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {

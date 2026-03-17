@@ -8,49 +8,47 @@ struct HomeView: View {
 	let openSettings: () -> Void
 	let startGame: () -> Void
 
-	@AccessibilityFocusState private var focusedElement: FocusTarget?
-
-	private enum FocusTarget: Hashable {
-		case heading
-		case startButton
-	}
+	@AccessibilityFocusState private var focusedHeading: Bool
 
 	var body: some View {
 		NavigationStack {
-			List {
-				Section {
-					Text("Whack A Braille")
-						.font(.largeTitle.bold())
-						.accessibilityAddTraits(.isHeader)
-						.accessibilityFocused($focusedElement, equals: .heading)
+			ScrollView {
+				VStack(alignment: .leading, spacing: 24) {
+					VStack(alignment: .leading, spacing: 12) {
+						Text("Whack A Braille")
+							.font(.largeTitle.bold())
+							.accessibilityAddTraits(.isHeader)
+							.accessibilityFocused($focusedHeading)
 
-					Text("Listen for the braille character, number, or contraction, then whack it before it disappears. Use Braille Screen Input, an external keyboard, or a connected braille display.")
-				}
+						Text("Listen for the target, then whack it before it disappears using Braille Screen Input, an external keyboard, or a connected braille display.")
+					}
 
-				if let homeNotice {
-					Section("Status") {
+					if let homeNotice {
 						Text(homeNotice)
+							accessibilityAddTraits(.isStaticText)
+					}
+
+					VStack(alignment: .leading, spacing: 12) {
+						Button("Game Settings", action: openSettings)
+						Button("Start Whacking", action: startGame)
+							.buttonStyle(.borderedProminent)
+					}
+
+					VStack(alignment: .leading, spacing: 8) {
+						Text("Prize Shelf")
+							.font(.title2.bold())
+							.accessibilityAddTraits(.isHeader)
+						Text("Saved tickets: \(totalTickets)")
+						Text(prizeShelfSummary)
 					}
 				}
-
-				Section("Start") {
-					Button("Game Settings", action: openSettings)
-
-					Button("Start Whacking", action: startGame)
-						.buttonStyle(.borderedProminent)
-						.accessibilityFocused($focusedElement, equals: .startButton)
-				}
-
-				Section("Prize Shelf") {
-					Text("Saved tickets: \(totalTickets)")
-					Text(prizeShelfSummary)
-				}
+				.padding(20)
 			}
 			.navigationBarTitleDisplayMode(.inline)
 		}
 		.onAppear {
 			DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-				focusedElement = .startButton
+				focusedHeading = true
 			}
 		}
 	}
