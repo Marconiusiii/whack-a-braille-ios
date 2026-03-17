@@ -21,10 +21,8 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 		textField.returnKeyType = .done
 		textField.enablesReturnKeyAutomatically = false
 		textField.textContentType = .none
-		textField.placeholder = "Braille Entry"
 		textField.backgroundColor = UIColor.secondarySystemBackground
 		textField.accessibilityLabel = "Braille Entry"
-		textField.accessibilityHint = "Use Braille Screen Input, a keyboard, or a connected braille display."
 
 		textField.onPerkinsChord = { [weak coordinator = context.coordinator] dotMask in
 			coordinator?.emitPerkinsAttempt(dotMask: dotMask)
