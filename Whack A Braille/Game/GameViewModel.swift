@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 
 @MainActor
@@ -12,7 +13,8 @@ final class GameViewModel: ObservableObject {
 	@Published private(set) var activeTargetLabel: String = "Waiting to start"
 	@Published private(set) var lastRoundResult: RoundResult?
 
-	init(gameLoop: GameLoop = GameLoop()) {
+	init(gameLoop: GameLoop? = nil) {
+		let gameLoop = gameLoop ?? GameLoop()
 		self.gameLoop = gameLoop
 
 		self.gameLoop.onScoreUpdated = { [weak self] score, streak in

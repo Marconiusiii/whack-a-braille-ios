@@ -42,7 +42,6 @@ final class GameLoop {
 	private var currentDurationSeconds: Int = 30
 	private var difficultyMultiplier: Double = 1.0
 
-	private var availableItems: [BrailleItem] = []
 	private var roundItems: [BrailleItem] = []
 
 	private var roundDurationMs: Int = 30_000
@@ -76,7 +75,6 @@ final class GameLoop {
 		difficultyMultiplier = difficultyMultipliers[difficulty] ?? 1.0
 		roundDurationMs = durationSeconds * 1000
 		roundStartTimeMs = TimeUtils.nowMs()
-		availableItems = itemsForMode
 		roundItems = buildRoundItems(from: itemsForMode)
 
 		score = 0

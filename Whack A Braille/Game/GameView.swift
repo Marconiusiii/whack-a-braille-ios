@@ -56,18 +56,18 @@ struct GameView: View {
 				.accessibilityLabel("Current target \(viewModel.activeTargetLabel)")
 
 			HStack(spacing: 12) {
-				ForEach(0..<5, id: \.self) { lane in
-					RoundedRectangle(cornerRadius: 18)
-						.fill(viewModel.activeLane == lane ? Color.accentColor : Color.secondary.opacity(0.2))
-						.frame(maxWidth: .infinity, minHeight: 80)
-						.overlay(
-							Text(viewModel.activeLane == lane ? viewModel.activeTargetLabel : "")
-								.font(.headline)
-								foregroundStyle(.white)
-						)
-						.accessibilityHidden(true)
+					ForEach(0..<5, id: \.self) { lane in
+						RoundedRectangle(cornerRadius: 18)
+							.fill(viewModel.activeLane == lane ? Color.accentColor : Color.secondary.opacity(0.2))
+							.frame(maxWidth: .infinity, minHeight: 80)
+							.overlay {
+								Text(viewModel.activeLane == lane ? viewModel.activeTargetLabel : "")
+									.font(.headline)
+									foregroundStyle(.white)
+							}
+							.accessibilityHidden(true)
+					}
 				}
-			}
 
 			Text("Focus the input field below for Braille Screen Input, external keyboards, or a connected braille display.")
 				.font(.footnote)
