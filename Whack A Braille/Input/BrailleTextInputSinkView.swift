@@ -36,7 +36,6 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 		textField.onTextInput = { [weak coordinator = context.coordinator] text in
 			coordinator?.handleTextInput(text)
 		}
-		textField.addTarget(context.coordinator, action: #selector(Coordinator.textDidChange(_:)), for: .editingChanged)
 
 		return textField
 	}
@@ -69,13 +68,6 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 		init(gameLoop: GameLoop, inputMode: InputMode) {
 			self.gameLoop = gameLoop
 			self.inputMode = inputMode
-		}
-
-		@objc
-		func textDidChange(_ textField: GameInputTextField) {
-			if textField.shouldSubmitBufferedTextFromEditingChange {
-				textField.submitBufferedText()
-			}
 		}
 
 		func emitPerkinsAttempt(dotMask: Int) {
@@ -149,7 +141,6 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 		private var usedPerkinsKeys: Set<String> = []
 		private var focusAttemptCount = 0
 		private var lastResetToken = -1
-		private(set) var shouldSubmitBufferedTextFromEditingChange = false
 
 		override var canBecomeFirstResponder: Bool {
 			true
@@ -186,13 +177,13 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 				return
 			}
 
-			if text.rangeOfCharacter(from: .whitespacesAndNewlines) != nil {
-				appendBufferedText(text)
-				submitBufferedText()
+			if inputModeSelection == .brailleText {
+				super.insertText(text)
 				return
 			}
 
-			super.insertText(text)
+			onTextInput?(text)
+			clearBufferedText()
 		}
 
 		override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
@@ -247,7 +238,7 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 			}
 
 			if !handledPerkins {
-				var handledDirectInput = false
+				super.pressesEnded(presses, with: event)
 
 				for press in presses {
 					guard let key = press.key else { continue }
@@ -255,17 +246,12 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 
 					if input == " " || input == "\n" || input == "\r" {
 						submitBufferedText()
-						handledDirectInput = true
 						continue
 					}
 
 					guard input.count == 1 else { continue }
 					onTextInput?(input)
-					handledDirectInput = true
-				}
-
-				if !handledDirectInput {
-					super.pressesEnded(presses, with: event)
+					clearBufferedText()
 				}
 			}
 		}
@@ -304,18 +290,6 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 			onTextInput?(submitted)
 		}
 
-		private func appendBufferedText(_ value: String) {
-			let sanitized = value.replacingOccurrences(
-				of: "\\s+",
-				with: " ",
-				options: .regularExpression
-			)
-
-			let existing = currentBufferedText()
-			text = existing + sanitized
-			shouldSubmitBufferedTextFromEditingChange = true
-		}
-
 		private func currentBufferedText() -> String {
 			if let fullRange = textRange(from: beginningOfDocument, to: endOfDocument),
 				let documentText = text(in: fullRange),
@@ -327,7 +301,6 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 		}
 
 		private func clearBufferedText() {
-			shouldSubmitBufferedTextFromEditingChange = false
 			unmarkText()
 
 			if let fullRange = textRange(from: beginningOfDocument, to: endOfDocument) {
