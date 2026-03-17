@@ -45,14 +45,20 @@ static let shared = GameAudioEngine()
 		startEngineIfNeeded()
 	}
 
-	func startRound(progressProvider: @escaping () -> Double, playEverythingIntro: Bool) {
-		self.progressProvider = progressProvider
+	func playOpeningCue(playEverythingIntro: Bool) {
+		configureAudioSession()
+		startEngineIfNeeded()
 
 		if playEverythingIntro {
 			playEverythingStingerIfNeeded()
 		} else {
 			playStartFlourish()
 		}
+	}
+
+	func startRoundAudio(progressProvider: @escaping () -> Double, timerMusicEnabled: Bool) {
+		self.progressProvider = progressProvider
+		self.timerMusicEnabled = timerMusicEnabled
 
 		if timerMusicEnabled {
 			startRoundBeat()

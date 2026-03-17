@@ -136,26 +136,20 @@ final class GameLoop {
 		onScoreUpdated?(score, hitStreak)
 		onActiveMoleChanged?(nil, nil)
 
-		GameAudioEngine.shared.configure(
-			mode: options.audioMode,
+		GameAudioEngine.shared.startRoundAudio(
+			progressProvider: { [weak self] in
+				self?.getProgress() ?? 0
+			},
 			timerMusicEnabled: options.timerMusicEnabled && options.difficulty != .training
 		)
-		GameAudioEngine.shared.startRound(
-			progressProvider: { [weak self] in
-			self?.getProgress() ?? 0
-			},
-			playEverythingIntro: options.modeId == "everything"
-		)
-
-		_ = SpeechEngine.shared.speak(options.modeId == "everything" ? "Incoming Mole Invasion!" : "Ready?", interrupt: true)
 
 		if options.difficulty == .training {
-			scheduleNextTrainingMole(extraDelayMs: 650)
+			scheduleNextTrainingMole(extraDelayMs: 0)
 			return
 		}
 
 		scheduleRoundEnd()
-		scheduleNextMole(extraDelayMs: 650)
+		scheduleNextMole(extraDelayMs: 0)
 	}
 
 	func stopRound() {

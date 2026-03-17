@@ -24,6 +24,7 @@ final class GameViewModel: ObservableObject {
 	@Published private(set) var activeLane: Int?
 	@Published private(set) var activeTargetLabel = "Waiting to start"
 	@Published private(set) var lastRoundResult: RoundResult?
+	@Published private(set) var lastRoundWasTraining = false
 	@Published private(set) var totalAccruedTickets: Int
 	@Published private(set) var prizeShelfItems: [String]
 	@Published private(set) var homeNotice: String?
@@ -55,9 +56,11 @@ final class GameViewModel: ObservableObject {
 			if result.canceled {
 				self.phase = .home
 				self.lastRoundResult = nil
+				self.lastRoundWasTraining = false
 				self.homeNotice = "Round stopped."
 			} else {
 				self.lastRoundResult = result
+				self.lastRoundWasTraining = result.isTraining
 				self.phase = .roundResults
 
 				if !result.isTraining {
@@ -70,6 +73,7 @@ final class GameViewModel: ObservableObject {
 
 	func startRound(options: GameLoop.Options) {
 		lastRoundResult = nil
+		lastRoundWasTraining = options.difficulty == .training
 		homeNotice = nil
 		score = 0
 		hitStreak = 0
@@ -77,10 +81,10 @@ final class GameViewModel: ObservableObject {
 		activeTargetLabel = "Get ready"
 		isRunning = true
 		phase = .gameplay
+	}
 
-		DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) { [weak self] in
-			self?.gameLoop.startRound(options: options)
-		}
+	func beginRound(options: GameLoop.Options) {
+		gameLoop.startRound(options: options)
 	}
 
 	func stopRound() {

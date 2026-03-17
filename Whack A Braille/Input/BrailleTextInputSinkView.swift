@@ -49,7 +49,6 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 		if isEnabled, autoFocus, uiView.window != nil, !uiView.isFirstResponder {
 			DispatchQueue.main.async {
 				uiView.becomeFirstResponder()
-				UIAccessibility.post(notification: .screenChanged, argument: uiView)
 			}
 		} else if !isEnabled, uiView.isFirstResponder {
 			uiView.resignFirstResponder()

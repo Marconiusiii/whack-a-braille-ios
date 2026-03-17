@@ -33,8 +33,7 @@ struct GameView: View {
 			case .gameplay:
 				GameplayView(
 					viewModel: viewModel,
-					inputMode: effectiveInputMode,
-					stopRound: viewModel.stopRound
+					inputMode: effectiveInputMode
 				)
 			case .roundResults:
 				RoundResultsView(
@@ -103,20 +102,32 @@ struct GameView: View {
 
 	private func startRound() {
 		applySpeechSettings()
-
-		viewModel.startRound(
-			options: GameLoop.Options(
-				modeId: modeId,
-				durationSeconds: difficulty.isTimed ? roundDurationSeconds : 30,
-				inputMode: effectiveInputMode,
-				difficulty: difficulty,
-				speakBrailleDots: speakBrailleDots,
-				characterEcho: characterEcho,
-				timerMusicEnabled: timerMusicEnabled,
-				spatialMoleMappingEnabled: spatialMoleMappingEnabled,
-				audioMode: audioMode
-			)
+		let options = GameLoop.Options(
+			modeId: modeId,
+			durationSeconds: difficulty.isTimed ? roundDurationSeconds : 30,
+			inputMode: effectiveInputMode,
+			difficulty: difficulty,
+			speakBrailleDots: speakBrailleDots,
+			characterEcho: characterEcho,
+			timerMusicEnabled: timerMusicEnabled,
+			spatialMoleMappingEnabled: spatialMoleMappingEnabled,
+			audioMode: audioMode
 		)
+
+		viewModel.startRound(options: options)
+		GameAudioEngine.shared.configure(
+			mode: audioMode,
+			timerMusicEnabled: timerMusicEnabled && difficulty != .training
+		)
+
+		DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+			GameAudioEngine.shared.playOpeningCue(playEverythingIntro: modeId == "everything")
+			_ = SpeechEngine.shared.speak(modeId == "everything" ? "Incoming Mole Invasion!" : "Ready?", interrupt: true)
+		}
+
+		DispatchQueue.main.asyncAfter(deadline: .now() + 0.65) {
+			viewModel.beginRound(options: options)
+		}
 	}
 
 	private func speechRateForPercent(_ percent: Int) -> Float {
