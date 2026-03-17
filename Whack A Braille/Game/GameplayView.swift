@@ -34,7 +34,8 @@ struct GameplayView: View {
 					gameLoop: viewModel.gameLoop,
 					inputMode: inputMode,
 					isEnabled: viewModel.isRunning,
-					autoFocus: viewModel.isRunning
+					autoFocus: viewModel.isRunning,
+					resetToken: viewModel.inputResetToken
 				)
 				.frame(height: 48)
 			}

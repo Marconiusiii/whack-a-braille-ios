@@ -28,6 +28,7 @@ final class GameViewModel: ObservableObject {
 	@Published private(set) var totalAccruedTickets: Int
 	@Published private(set) var prizeShelfItems: [String]
 	@Published private(set) var homeNotice: String?
+	@Published private(set) var inputResetToken = 0
 
 	init(gameLoop: GameLoop? = nil) {
 		let gameLoop = gameLoop ?? GameLoop()
@@ -47,6 +48,10 @@ final class GameViewModel: ObservableObject {
 			self.activeTargetLabel = item?.announceText ?? "Listen for the next mole"
 		}
 
+		self.gameLoop.onInputResetRequested = { [weak self] in
+			self?.inputResetToken += 1
+		}
+
 		self.gameLoop.onRoundEnded = { [weak self] result in
 			guard let self else { return }
 			self.isRunning = false
@@ -59,6 +64,7 @@ final class GameViewModel: ObservableObject {
 				self.lastRoundWasTraining = false
 				self.homeNotice = "Round stopped."
 			} else {
+				GameAudioEngine.shared.playEndCue()
 				self.lastRoundResult = result
 				self.lastRoundWasTraining = result.isTraining
 				self.phase = .roundResults
@@ -79,6 +85,7 @@ final class GameViewModel: ObservableObject {
 		hitStreak = 0
 		activeLane = nil
 		activeTargetLabel = "Get ready"
+		inputResetToken += 1
 		isRunning = true
 		phase = .gameplay
 	}

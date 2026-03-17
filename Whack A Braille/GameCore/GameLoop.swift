@@ -18,6 +18,7 @@ final class GameLoop {
 	var onRoundEnded: ((RoundResult) -> Void)?
 	var onScoreUpdated: ((Int, Int) -> Void)?
 	var onActiveMoleChanged: ((Int?, BrailleItem?) -> Void)?
+	var onInputResetRequested: (() -> Void)?
 
 	private(set) var isRunning: Bool = false
 	private(set) var roundEnding: Bool = false
@@ -246,6 +247,7 @@ final class GameLoop {
 
 		cancelTimers()
 		clearActiveMole()
+		onInputResetRequested?()
 		GameAudioEngine.shared.stopRound()
 
 		if canceled {
@@ -375,6 +377,7 @@ final class GameLoop {
 			self.escapesThisRound += 1
 			self.hitStreak = 0
 			self.onScoreUpdated?(self.score, self.hitStreak)
+			self.onInputResetRequested?()
 			GameAudioEngine.shared.playRetreat(lane: lane)
 
 			self.clearActiveMole()
@@ -393,6 +396,7 @@ final class GameLoop {
 			GameAudioEngine.shared.playHit(scoreBeforeHit: 0, lane: lane)
 			hitsThisRound += 1
 			trainingMolesCompleted += 1
+			onInputResetRequested?()
 			missRegisteredForMole = true
 			moleUpTimer?.cancel()
 			moleUpTimer = nil
@@ -422,6 +426,7 @@ final class GameLoop {
 		}
 
 		GameAudioEngine.shared.playHit(scoreBeforeHit: previousScore, lane: lane)
+		onInputResetRequested?()
 		missRegisteredForMole = true
 		moleUpTimer?.cancel()
 		moleUpTimer = nil
@@ -448,6 +453,7 @@ final class GameLoop {
 		score = max(0, score - 2)
 
 		GameAudioEngine.shared.playMiss(lane: lane)
+		onInputResetRequested?()
 		onScoreUpdated?(score, hitStreak)
 	}
 
