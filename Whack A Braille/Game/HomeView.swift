@@ -2,54 +2,53 @@ import SwiftUI
 
 struct HomeView: View {
 
-	let totalTickets: Int
-	let prizeShelfSummary: String
+	let prizeShelfItems: [String]
 	let homeNotice: String?
 	let openSettings: () -> Void
 	let startGame: () -> Void
+	let clearPrizeShelf: () -> Void
 
-	@AccessibilityFocusState private var focusedHeading: Bool
+	@State private var isPrizeShelfExpanded = false
 
 	var body: some View {
-		NavigationStack {
-			ScrollView {
-				VStack(alignment: .leading, spacing: 24) {
-					VStack(alignment: .leading, spacing: 12) {
-						Text("Whack A Braille")
-							.font(.largeTitle.bold())
-							.accessibilityAddTraits(.isHeader)
-							.accessibilityFocused($focusedHeading)
+		VStack(alignment: .leading, spacing: 20) {
+			Text("Whack A Braille")
+				.font(.largeTitle.bold())
+				.accessibilityAddTraits(.isHeader)
 
-						Text("Listen for the target, then whack it before it disappears using Braille Screen Input, an external keyboard, or a connected braille display.")
+			Text("Listen for the target, then whack it before it disappears using Braille Screen Input, an external keyboard, or a connected braille display.")
+
+			if let homeNotice {
+				Text(homeNotice)
+			}
+
+			Button("Game Settings", action: openSettings)
+				.buttonStyle(.bordered)
+
+			Button("Start Whacking", action: startGame)
+				.buttonStyle(.borderedProminent)
+
+			DisclosureGroup("Prize Shelf", isExpanded: $isPrizeShelfExpanded) {
+				VStack(alignment: .leading, spacing: 12) {
+					Text("Prize Shelf")
+						.font(.title2.bold())
+						.accessibilityAddTraits(.isHeader)
+
+					if prizeShelfItems.isEmpty {
+						Text("You haven't won any prizes yet!")
+					} else {
+						ForEach(prizeShelfItems, id: \.self) { item in
+							Text(item)
+						}
 					}
 
-					if let homeNotice {
-						Text(homeNotice)
-							accessibilityAddTraits(.isStaticText)
-					}
-
-					VStack(alignment: .leading, spacing: 12) {
-						Button("Game Settings", action: openSettings)
-						Button("Start Whacking", action: startGame)
-							.buttonStyle(.borderedProminent)
-					}
-
-					VStack(alignment: .leading, spacing: 8) {
-						Text("Prize Shelf")
-							.font(.title2.bold())
-							.accessibilityAddTraits(.isHeader)
-						Text("Saved tickets: \(totalTickets)")
-						Text(prizeShelfSummary)
-					}
+					Button("Clear Prize Shelf", action: clearPrizeShelf)
+						.buttonStyle(.bordered)
 				}
-				.padding(20)
-			}
-			.navigationBarTitleDisplayMode(.inline)
-		}
-		.onAppear {
-			DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-				focusedHeading = true
+				.padding(.top, 8)
 			}
 		}
+		.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+		.padding(24)
 	}
 }

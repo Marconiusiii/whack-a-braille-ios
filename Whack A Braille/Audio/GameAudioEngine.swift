@@ -2,7 +2,7 @@ import AVFoundation
 
 final class GameAudioEngine {
 
-	static let shared = GameAudioEngine()
+static let shared = GameAudioEngine()
 
 	private let engine = AVAudioEngine()
 	private let session = AVAudioSession.sharedInstance()

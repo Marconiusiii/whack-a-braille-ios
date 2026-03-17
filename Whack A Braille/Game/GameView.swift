@@ -24,11 +24,11 @@ struct GameView: View {
 			switch viewModel.phase {
 			case .home:
 				HomeView(
-					totalTickets: viewModel.totalAccruedTickets,
-					prizeShelfSummary: viewModel.prizeShelfSummary,
+					prizeShelfItems: viewModel.prizeShelfItems,
 					homeNotice: viewModel.homeNotice,
 					openSettings: { isShowingSettings = true },
-					startGame: startRound
+					startGame: startRound,
+					clearPrizeShelf: viewModel.clearPrizeShelf
 				)
 			case .gameplay:
 				GameplayView(
@@ -59,11 +59,6 @@ struct GameView: View {
 				speechRatePercent: $speechRatePercent,
 				selectedVoiceId: $selectedVoiceId
 			)
-		}
-		.onAppear {
-			SpeechEngine.shared.prewarm()
-			GameAudioEngine.shared.prewarm()
-			applySpeechSettings()
 		}
 		.onChange(of: selectedVoiceId) {
 			applySpeechSettings()

@@ -12,6 +12,7 @@ final class GameViewModel: ObservableObject {
 
 	private enum StorageKey {
 		static let totalTickets = "whackABraille.totalTickets"
+		static let prizeShelf = "whackABraille.prizeShelf"
 	}
 
 	let gameLoop: GameLoop
@@ -24,12 +25,14 @@ final class GameViewModel: ObservableObject {
 	@Published private(set) var activeTargetLabel = "Waiting to start"
 	@Published private(set) var lastRoundResult: RoundResult?
 	@Published private(set) var totalAccruedTickets: Int
+	@Published private(set) var prizeShelfItems: [String]
 	@Published private(set) var homeNotice: String?
 
 	init(gameLoop: GameLoop? = nil) {
 		let gameLoop = gameLoop ?? GameLoop()
 		self.gameLoop = gameLoop
 		self.totalAccruedTickets = UserDefaults.standard.integer(forKey: StorageKey.totalTickets)
+		self.prizeShelfItems = UserDefaults.standard.stringArray(forKey: StorageKey.prizeShelf) ?? []
 
 		self.gameLoop.onScoreUpdated = { [weak self] score, streak in
 			guard let self else { return }
@@ -65,14 +68,6 @@ final class GameViewModel: ObservableObject {
 		}
 	}
 
-	var prizeShelfSummary: String {
-		if totalAccruedTickets == 0 {
-			return "You haven't won any prizes yet."
-		}
-
-		return "You currently have \(totalAccruedTickets) tickets saved toward future prizes."
-	}
-
 	func startRound(options: GameLoop.Options) {
 		lastRoundResult = nil
 		homeNotice = nil
@@ -99,5 +94,10 @@ final class GameViewModel: ObservableObject {
 	func cashInTickets() {
 		phase = .home
 		homeNotice = "Prize cash-in is coming soon. Your tickets are still saved."
+	}
+
+	func clearPrizeShelf() {
+		prizeShelfItems = []
+		UserDefaults.standard.removeObject(forKey: StorageKey.prizeShelf)
 	}
 }
