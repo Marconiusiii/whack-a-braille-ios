@@ -180,9 +180,9 @@ final class GameLoop {
 		case .perkins:
 			hit = attempt.dotMask == currentItem.dotMask
 		case .qwerty:
-			hit = normalize(attempt.key) == normalize(currentItem.standardKey)
+			hit = matchesInput(normalize(attempt.key), item: currentItem)
 		case .brailleText:
-			hit = normalize(attempt.char) == normalize(currentItem.id)
+			hit = matchesInput(normalize(attempt.char), item: currentItem)
 		}
 
 		if hit {
@@ -647,5 +647,10 @@ final class GameLoop {
 
 	private func normalize(_ value: String?) -> String {
 		String(value ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+	}
+
+	private func matchesInput(_ input: String, item: BrailleItem) -> Bool {
+		guard !input.isEmpty else { return false }
+		return item.acceptedTextInputs.contains(input)
 	}
 }

@@ -28,9 +28,16 @@ enum BrailleRegistry {
 		dots: [Int],
 		modes: [String],
 		standardKey: String? = nil,
+		acceptedInputs: [String] = [],
 		nato: String? = nil
 	) -> BrailleItem {
-		BrailleItem(
+		var acceptedTextInputs = [id]
+		if let standardKey {
+			acceptedTextInputs.append(standardKey)
+		}
+		acceptedTextInputs.append(contentsOf: acceptedInputs)
+
+		return BrailleItem(
 			id: id,
 			displayLabel: id,
 			announceText: announce,
@@ -38,6 +45,7 @@ enum BrailleRegistry {
 			dotMask: dotsToMask(dots),
 			perkinsKeys: dotsToPerkinsKeys(dots),
 			standardKey: standardKey,
+			acceptedTextInputs: dedupeInputs(acceptedTextInputs),
 			modeTags: Set(modes),
 			nato: nato
 		)
@@ -56,9 +64,23 @@ enum BrailleRegistry {
 			dotMask: 0,
 			perkinsKeys: [],
 			standardKey: key,
+			acceptedTextInputs: [key],
 			modeTags: Set(modes),
 			nato: nil
 		)
+	}
+
+	private static func dedupeInputs(_ inputs: [String]) -> [String] {
+		var seen = Set<String>()
+		var result: [String] = []
+
+		for input in inputs.map({ $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }) where !input.isEmpty {
+			if seen.insert(input).inserted {
+				result.append(input)
+			}
+		}
+
+		return result
 	}
 
 	static let grade1Letters: [BrailleItem] = [
@@ -104,53 +126,53 @@ enum BrailleRegistry {
 	]
 
 	static let grade2Symbols: [BrailleItem] = [
-		makeItem(id: "er", announce: "E R", dots: [1, 2, 4, 5, 6], modes: ["grade2Symbols"]),
-		makeItem(id: "ed", announce: "E D", dots: [1, 2, 4, 6], modes: ["grade2Symbols"]),
-		makeItem(id: "gh", announce: "G H", dots: [1, 2, 6], modes: ["grade2Symbols"]),
-		makeItem(id: "ar", announce: "A R", dots: [3, 4, 5], modes: ["grade2Symbols"]),
-		makeItem(id: "ow", announce: "O W", dots: [2, 4, 6], modes: ["grade2Symbols"]),
-		makeItem(id: "ou", announce: "O U", dots: [1, 2, 5, 6], modes: ["grade2Symbols"]),
-		makeItem(id: "st", announce: "S T", dots: [3, 4], modes: ["grade2Symbols"]),
-		makeItem(id: "ch", announce: "C H", dots: [1, 6], modes: ["grade2Symbols"]),
-		makeItem(id: "wh", announce: "W H", dots: [1, 5, 6], modes: ["grade2Symbols"]),
-		makeItem(id: "ing", announce: "I N G", dots: [3, 4, 6], modes: ["grade2Symbols"]),
-		makeItem(id: "dis", announce: "dis", dots: [2, 5, 6], modes: ["grade2Symbols"]),
-		makeItem(id: "con", announce: "con", dots: [2, 5], modes: ["grade2Symbols"]),
-		makeItem(id: "of", announce: "Of", dots: [1, 2, 3, 5, 6], modes: ["grade2Symbols"]),
-		makeItem(id: "with", announce: "with", dots: [2, 3, 4, 5, 6], modes: ["grade2Symbols"]),
-		makeItem(id: "and", announce: "and", dots: [1, 2, 3, 4, 6], modes: ["grade2Symbols"]),
-		makeItem(id: "for", announce: "for", dots: [1, 2, 3, 4, 5, 6], modes: ["grade2Symbols"]),
-		makeItem(id: "the", announce: "The", dots: [2, 3, 4, 6], modes: ["grade2Symbols"])
+		makeItem(id: "er", announce: "E R", dots: [1, 2, 4, 5, 6], modes: ["grade2Symbols"], acceptedInputs: ["]"]),
+		makeItem(id: "ed", announce: "E D", dots: [1, 2, 4, 6], modes: ["grade2Symbols"], acceptedInputs: ["$"]),
+		makeItem(id: "gh", announce: "G H", dots: [1, 2, 6], modes: ["grade2Symbols"], acceptedInputs: ["<"]),
+		makeItem(id: "ar", announce: "A R", dots: [3, 4, 5], modes: ["grade2Symbols"], acceptedInputs: [">"]),
+		makeItem(id: "ow", announce: "O W", dots: [2, 4, 6], modes: ["grade2Symbols"], acceptedInputs: ["["]),
+		makeItem(id: "ou", announce: "O U", dots: [1, 2, 5, 6], modes: ["grade2Symbols"], acceptedInputs: ["\\"]),
+		makeItem(id: "st", announce: "S T", dots: [3, 4], modes: ["grade2Symbols"], acceptedInputs: ["/"]),
+		makeItem(id: "ch", announce: "C H", dots: [1, 6], modes: ["grade2Symbols"], acceptedInputs: ["*"]),
+		makeItem(id: "wh", announce: "W H", dots: [1, 5, 6], modes: ["grade2Symbols"], acceptedInputs: [":"]),
+		makeItem(id: "ing", announce: "I N G", dots: [3, 4, 6], modes: ["grade2Symbols"], acceptedInputs: ["+"]),
+		makeItem(id: "dis", announce: "dis", dots: [2, 5, 6], modes: ["grade2Symbols"], acceptedInputs: ["."]),
+		makeItem(id: "con", announce: "con", dots: [2, 5], modes: ["grade2Symbols"], acceptedInputs: ["-"]),
+		makeItem(id: "of", announce: "Of", dots: [1, 2, 3, 5, 6], modes: ["grade2Symbols"], acceptedInputs: ["("]),
+		makeItem(id: "with", announce: "with", dots: [2, 3, 4, 5, 6], modes: ["grade2Symbols"], acceptedInputs: [")"]),
+		makeItem(id: "and", announce: "and", dots: [1, 2, 3, 4, 6], modes: ["grade2Symbols"], acceptedInputs: ["&"]),
+		makeItem(id: "for", announce: "for", dots: [1, 2, 3, 4, 5, 6], modes: ["grade2Symbols"], acceptedInputs: ["="]),
+		makeItem(id: "the", announce: "The", dots: [2, 3, 4, 6], modes: ["grade2Symbols"], acceptedInputs: ["!"])
 	]
 
 	static let grade2Words: [BrailleItem] = [
-		makeItem(id: "but", announce: "But", dots: [1, 2], modes: ["grade2Words"]),
-		makeItem(id: "can", announce: "Can", dots: [1, 4], modes: ["grade2Words"]),
-		makeItem(id: "do", announce: "Do", dots: [1, 4, 5], modes: ["grade2Words"]),
-		makeItem(id: "every", announce: "Every", dots: [1, 5], modes: ["grade2Words"]),
-		makeItem(id: "from", announce: "From", dots: [1, 2, 4], modes: ["grade2Words"]),
-		makeItem(id: "go", announce: "Go", dots: [1, 2, 4, 5], modes: ["grade2Words"]),
-		makeItem(id: "have", announce: "Have", dots: [1, 2, 5], modes: ["grade2Words"]),
-		makeItem(id: "just", announce: "Just", dots: [2, 4, 5], modes: ["grade2Words"]),
-		makeItem(id: "knowledge", announce: "Knowledge", dots: [1, 3], modes: ["grade2Words"]),
-		makeItem(id: "like", announce: "Like", dots: [1, 2, 3], modes: ["grade2Words"]),
-		makeItem(id: "more", announce: "More", dots: [1, 3, 4], modes: ["grade2Words"]),
-		makeItem(id: "not", announce: "Not", dots: [1, 3, 4, 5], modes: ["grade2Words"]),
-		makeItem(id: "people", announce: "People", dots: [1, 2, 3, 4], modes: ["grade2Words"]),
-		makeItem(id: "quite", announce: "Quite", dots: [1, 2, 3, 4, 5], modes: ["grade2Words"]),
-		makeItem(id: "rather", announce: "Rather", dots: [1, 2, 3, 5], modes: ["grade2Words"]),
-		makeItem(id: "so", announce: "So", dots: [2, 3, 4], modes: ["grade2Words"]),
-		makeItem(id: "that", announce: "That", dots: [2, 3, 4, 5], modes: ["grade2Words"]),
-		makeItem(id: "us", announce: "Us", dots: [1, 3, 6], modes: ["grade2Words"]),
-		makeItem(id: "very", announce: "Very", dots: [1, 2, 3, 6], modes: ["grade2Words"]),
-		makeItem(id: "will", announce: "Will", dots: [2, 4, 5, 6], modes: ["grade2Words"]),
-		makeItem(id: "it", announce: "It", dots: [1, 3, 4, 6], modes: ["grade2Words"]),
-		makeItem(id: "you", announce: "You", dots: [1, 3, 4, 5, 6], modes: ["grade2Words"]),
-		makeItem(id: "as", announce: "As", dots: [1, 3, 5, 6], modes: ["grade2Words"]),
-		makeItem(id: "this", announce: "This", dots: [1, 4, 5, 6], modes: ["grade2Words"]),
-		makeItem(id: "which", announce: "Which", dots: [1, 5, 6], modes: ["grade2Words"]),
-		makeItem(id: "child", announce: "Child", dots: [1, 6], modes: ["grade2Words"]),
-		makeItem(id: "shall", announce: "Shall", dots: [1, 4, 6], modes: ["grade2Words"])
+		makeItem(id: "but", announce: "But", dots: [1, 2], modes: ["grade2Words"], acceptedInputs: ["b"]),
+		makeItem(id: "can", announce: "Can", dots: [1, 4], modes: ["grade2Words"], acceptedInputs: ["c"]),
+		makeItem(id: "do", announce: "Do", dots: [1, 4, 5], modes: ["grade2Words"], acceptedInputs: ["d"]),
+		makeItem(id: "every", announce: "Every", dots: [1, 5], modes: ["grade2Words"], acceptedInputs: ["e"]),
+		makeItem(id: "from", announce: "From", dots: [1, 2, 4], modes: ["grade2Words"], acceptedInputs: ["f"]),
+		makeItem(id: "go", announce: "Go", dots: [1, 2, 4, 5], modes: ["grade2Words"], acceptedInputs: ["g"]),
+		makeItem(id: "have", announce: "Have", dots: [1, 2, 5], modes: ["grade2Words"], acceptedInputs: ["h"]),
+		makeItem(id: "just", announce: "Just", dots: [2, 4, 5], modes: ["grade2Words"], acceptedInputs: ["j"]),
+		makeItem(id: "knowledge", announce: "Knowledge", dots: [1, 3], modes: ["grade2Words"], acceptedInputs: ["k"]),
+		makeItem(id: "like", announce: "Like", dots: [1, 2, 3], modes: ["grade2Words"], acceptedInputs: ["l"]),
+		makeItem(id: "more", announce: "More", dots: [1, 3, 4], modes: ["grade2Words"], acceptedInputs: ["m"]),
+		makeItem(id: "not", announce: "Not", dots: [1, 3, 4, 5], modes: ["grade2Words"], acceptedInputs: ["n"]),
+		makeItem(id: "people", announce: "People", dots: [1, 2, 3, 4], modes: ["grade2Words"], acceptedInputs: ["p"]),
+		makeItem(id: "quite", announce: "Quite", dots: [1, 2, 3, 4, 5], modes: ["grade2Words"], acceptedInputs: ["q"]),
+		makeItem(id: "rather", announce: "Rather", dots: [1, 2, 3, 5], modes: ["grade2Words"], acceptedInputs: ["r"]),
+		makeItem(id: "so", announce: "So", dots: [2, 3, 4], modes: ["grade2Words"], acceptedInputs: ["s"]),
+		makeItem(id: "that", announce: "That", dots: [2, 3, 4, 5], modes: ["grade2Words"], acceptedInputs: ["t"]),
+		makeItem(id: "us", announce: "Us", dots: [1, 3, 6], modes: ["grade2Words"], acceptedInputs: ["u"]),
+		makeItem(id: "very", announce: "Very", dots: [1, 2, 3, 6], modes: ["grade2Words"], acceptedInputs: ["v"]),
+		makeItem(id: "will", announce: "Will", dots: [2, 4, 5, 6], modes: ["grade2Words"], acceptedInputs: ["w"]),
+		makeItem(id: "it", announce: "It", dots: [1, 3, 4, 6], modes: ["grade2Words"], acceptedInputs: ["x"]),
+		makeItem(id: "you", announce: "You", dots: [1, 3, 4, 5, 6], modes: ["grade2Words"], acceptedInputs: ["y"]),
+		makeItem(id: "as", announce: "As", dots: [1, 3, 5, 6], modes: ["grade2Words"], acceptedInputs: ["z"]),
+		makeItem(id: "this", announce: "This", dots: [1, 4, 5, 6], modes: ["grade2Words"], acceptedInputs: ["?"]),
+		makeItem(id: "which", announce: "Which", dots: [1, 5, 6], modes: ["grade2Words"], acceptedInputs: ["w", ":"]),
+		makeItem(id: "child", announce: "Child", dots: [1, 6], modes: ["grade2Words"], acceptedInputs: ["c", "*"]),
+		makeItem(id: "shall", announce: "Shall", dots: [1, 4, 6], modes: ["grade2Words"], acceptedInputs: ["s", "%"])
 	]
 
 	static let typingSimpleHomeRowItems: [BrailleItem] = [

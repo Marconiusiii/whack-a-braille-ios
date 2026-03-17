@@ -8,6 +8,7 @@ struct BrailleItem {
 	let dotMask: Int
 	let perkinsKeys: [String]
 	let standardKey: String?
+	let acceptedTextInputs: [String]
 	let modeTags: Set<String>
 	let nato: String?
 }
