@@ -11,8 +11,8 @@ struct HomeView: View {
 	@State private var isPrizeShelfExpanded = false
 
 	var body: some View {
-		List {
-			Section {
+		ScrollView {
+			VStack(alignment: .leading, spacing: 20) {
 				Text("Whack A Braille")
 					.font(.largeTitle.bold())
 					.accessibilityAddTraits(.isHeader)
@@ -22,17 +22,13 @@ struct HomeView: View {
 				if let homeNotice {
 					Text(homeNotice)
 				}
-			}
-
-			Section {
+ 
 				Button("Game Settings", action: openSettings)
 					.buttonStyle(.bordered)
 
 				Button("Start Whacking", action: startGame)
 					.buttonStyle(.borderedProminent)
-			}
 
-			Section {
 				DisclosureGroup("Prize Shelf", isExpanded: $isPrizeShelfExpanded) {
 					VStack(alignment: .leading, spacing: 12) {
 						if prizeShelfItems.isEmpty {
@@ -49,7 +45,9 @@ struct HomeView: View {
 					.padding(.top, 8)
 				}
 			}
+			.frame(maxWidth: .infinity, alignment: .topLeading)
+			.padding(24)
 		}
-		.listStyle(.insetGrouped)
+		.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 	}
 }

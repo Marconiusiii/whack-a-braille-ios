@@ -18,7 +18,7 @@ struct GameView: View {
 	@AppStorage("whackABraille.selectedVoiceId") private var selectedVoiceId = ""
 
 	@State private var isShowingSettings = false
-	@State private var isPreparingRound = false
+	@State private var pendingRoundStartID = UUID()
 
 	var body: some View {
 		Group {
@@ -34,8 +34,7 @@ struct GameView: View {
 			case .gameplay:
 				GameplayView(
 					viewModel: viewModel,
-					inputMode: effectiveInputMode,
-					isPreparingRound: isPreparingRound
+					inputMode: effectiveInputMode
 				)
 			case .roundResults:
 				RoundResultsView(
@@ -99,7 +98,6 @@ struct GameView: View {
 	}
 
 	private func startRound() {
-		guard !isPreparingRound else { return }
 		applySpeechSettings()
 		let options = GameLoop.Options(
 			modeId: modeId,
@@ -113,23 +111,40 @@ struct GameView: View {
 			audioMode: audioMode
 		)
 
-		isPreparingRound = true
+		let startID = UUID()
+		pendingRoundStartID = startID
 		viewModel.startRound(options: options)
-		GameAudioEngine.shared.prepareForGameplay(
+		GameAudioEngine.shared.configure(
 			mode: audioMode,
 			timerMusicEnabled: timerMusicEnabled && difficulty != .training
-		) {
-			SpeechEngine.shared.prewarm()
+		)
+		GameAudioEngine.shared.prewarm()
+		SpeechEngine.shared.prewarm()
 
+		waitForRoundReadiness(startID: startID, options: options, startedAt: Date.timeIntervalSinceReferenceDate)
+	}
+
+	private func waitForRoundReadiness(startID: UUID, options: GameLoop.Options, startedAt: TimeInterval) {
+		guard pendingRoundStartID == startID else { return }
+
+		let elapsed = Date.timeIntervalSinceReferenceDate - startedAt
+		let isReady = GameAudioEngine.shared.isReadyForGameplay || elapsed >= 2.5
+
+		guard isReady else {
 			DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-				GameAudioEngine.shared.playOpeningCue(playEverythingIntro: modeId == "everything")
-				_ = SpeechEngine.shared.speak(modeId == "everything" ? "Incoming Mole Invasion!" : "Ready?", interrupt: true)
+				waitForRoundReadiness(startID: startID, options: options, startedAt: startedAt)
 			}
+			return
+		}
 
-			DispatchQueue.main.asyncAfter(deadline: .now() + 0.95) {
-				isPreparingRound = false
-				viewModel.beginRound(options: options)
-			}
+		let introText = modeId == "everything" ? "Incoming Mole Invasion!" : "Ready?"
+		GameAudioEngine.shared.playOpeningCue(playEverythingIntro: modeId == "everything")
+		let speechDurationMs = SpeechEngine.shared.speak(introText, interrupt: true)
+		let startDelayMs = max(700, min(2_400, speechDurationMs + 180))
+
+		DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(startDelayMs)) {
+			guard pendingRoundStartID == startID else { return }
+			viewModel.beginRound(options: options)
 		}
 	}
 

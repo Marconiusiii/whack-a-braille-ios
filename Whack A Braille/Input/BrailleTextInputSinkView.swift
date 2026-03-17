@@ -306,10 +306,25 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 
 		@objc
 		func handleEditingChanged() {
-			guard inputModeSelection == .brailleText else { return }
 			let buffered = currentBufferedText()
-			guard buffered.contains(where: \.isWhitespace) else { return }
-			submitBufferedText()
+
+			if inputModeSelection == .brailleText {
+				guard buffered.contains(where: \.isWhitespace) else { return }
+				submitBufferedText()
+				return
+			}
+
+			let normalized = buffered.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+			guard let token = normalized.last.map(String.init), !token.isEmpty else { return }
+
+			let now = Date.timeIntervalSinceReferenceDate
+			if suppressedInsertText == token, now <= suppressInsertTextUntil {
+				clearBufferedText()
+				return
+			}
+
+			onTextInput?(token)
+			clearBufferedText()
 		}
 
 		func submitBufferedText() {

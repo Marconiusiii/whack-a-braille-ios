@@ -4,7 +4,6 @@ struct GameplayView: View {
 
 	@ObservedObject var viewModel: GameViewModel
 	let inputMode: InputMode
-	let isPreparingRound: Bool
 
 	var body: some View {
 		VStack(alignment: .leading, spacing: 24) {
@@ -34,18 +33,11 @@ struct GameplayView: View {
 				BrailleTextInputSinkView(
 					gameLoop: viewModel.gameLoop,
 					inputMode: inputMode,
-					isEnabled: viewModel.isRunning && !isPreparingRound,
-					autoFocus: viewModel.isRunning && !isPreparingRound,
+					isEnabled: viewModel.isRunning,
+					autoFocus: viewModel.isRunning,
 					resetToken: viewModel.inputResetToken
 				)
 				.frame(height: 48)
-			}
-
-			if isPreparingRound {
-				HStack(spacing: 12) {
-					ProgressView()
-					Text("Loading...")
-				}
 			}
 		}
 		.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
