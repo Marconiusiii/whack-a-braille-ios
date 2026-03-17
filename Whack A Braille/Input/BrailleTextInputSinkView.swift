@@ -10,7 +10,6 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 
 	func makeUIView(context: Context) -> GameInputTextField {
 		let textField = GameInputTextField()
-		textField.delegate = context.coordinator
 		textField.borderStyle = .roundedRect
 		textField.clearButtonMode = .never
 		textField.autocorrectionType = .no
@@ -21,10 +20,10 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 		textField.keyboardType = .default
 		textField.returnKeyType = .done
 		textField.enablesReturnKeyAutomatically = false
-		textField.placeholder = "Game input"
+		textField.textContentType = .none
+		textField.placeholder = "Braille Entry"
 		textField.backgroundColor = UIColor.secondarySystemBackground
-		textField.accessibilityTraits.insert(.allowsDirectInteraction)
-		textField.accessibilityLabel = "Game input"
+		textField.accessibilityLabel = "Braille Entry"
 		textField.accessibilityHint = "Use Braille Screen Input, a keyboard, or a connected braille display."
 
 		textField.onPerkinsChord = { [weak coordinator = context.coordinator] dotMask in
@@ -33,6 +32,10 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 
 		textField.onRepeatTarget = { [weak coordinator = context.coordinator] in
 			coordinator?.gameLoop.repeatCurrentTarget()
+		}
+
+		textField.onTextInput = { [weak coordinator = context.coordinator] text in
+			coordinator?.handleTextInput(text)
 		}
 
 		return textField
@@ -45,12 +48,10 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 		uiView.inputModeSelection = inputMode
 		uiView.isEnabled = isEnabled
 		uiView.alpha = isEnabled ? 1.0 : 0.45
+		uiView.shouldAutoFocus = isEnabled && autoFocus
+		uiView.attemptFocusIfNeeded()
 
-		if isEnabled, autoFocus, uiView.window != nil, !uiView.isFirstResponder {
-			DispatchQueue.main.async {
-				uiView.becomeFirstResponder()
-			}
-		} else if !isEnabled, uiView.isFirstResponder {
+		if !isEnabled, uiView.isFirstResponder {
 			uiView.resignFirstResponder()
 		}
 	}
@@ -59,7 +60,7 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 		Coordinator(gameLoop: gameLoop, inputMode: inputMode)
 	}
 
-	final class Coordinator: NSObject, UITextFieldDelegate {
+	final class Coordinator: NSObject {
 
 		var gameLoop: GameLoop
 		var inputMode: InputMode
@@ -67,57 +68,6 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 		init(gameLoop: GameLoop, inputMode: InputMode) {
 			self.gameLoop = gameLoop
 			self.inputMode = inputMode
-		}
-
-		func textField(
-			_ textField: UITextField,
-			shouldChangeCharactersIn range: NSRange,
-			replacementString string: String
-		) -> Bool {
-			if string.isEmpty {
-				return false
-			}
-
-			if string == "\n" || string == "\r" {
-				return false
-			}
-
-			if string == "`" {
-				gameLoop.repeatCurrentTarget()
-				textField.text = ""
-				return false
-			}
-
-			if string.count > 1 {
-				let normalized = string.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-				if !normalized.isEmpty {
-					let attempt = Attempt(
-						moleId: gameLoop.currentMoleId,
-						type: .brailleText,
-						dotMask: nil,
-						key: nil,
-						char: normalized
-					)
-					gameLoop.handleAttempt(attempt)
-				}
-				textField.text = ""
-				return false
-			}
-
-			let tokens = tokenize(string)
-			guard !tokens.isEmpty else { return false }
-
-			if inputMode == .perkins, tokens.allSatisfy({ PerkinsKeyMapper.dot(forKey: $0) != nil }) {
-				textField.text = ""
-				return false
-			}
-
-			for token in tokens {
-				emitImmediateAttempt(token: token)
-			}
-
-			textField.text = ""
-			return false
 		}
 
 		func emitPerkinsAttempt(dotMask: Int) {
@@ -129,6 +79,36 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 				char: nil
 			)
 			gameLoop.handleAttempt(attempt)
+		}
+
+		func handleTextInput(_ text: String) {
+			let normalized = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+			guard !normalized.isEmpty else { return }
+
+			if normalized == "`" {
+				gameLoop.repeatCurrentTarget()
+				return
+			}
+
+			if inputMode == .perkins && normalized.count == 1, PerkinsKeyMapper.dot(forKey: normalized) != nil {
+				return
+			}
+
+			if normalized.count > 1 {
+				let attempt = Attempt(
+					moleId: gameLoop.currentMoleId,
+					type: .brailleText,
+					dotMask: nil,
+					key: nil,
+					char: normalized
+				)
+				gameLoop.handleAttempt(attempt)
+				return
+			}
+
+			for token in tokenize(normalized) {
+				emitImmediateAttempt(token: token)
+			}
 		}
 
 		private func emitImmediateAttempt(token: String) {
@@ -152,11 +132,14 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 	final class GameInputTextField: UITextField {
 
 		var inputModeSelection: InputMode = .qwerty
+		var shouldAutoFocus = false
 		var onPerkinsChord: ((Int) -> Void)?
 		var onRepeatTarget: (() -> Void)?
+		var onTextInput: ((String) -> Void)?
 
 		private var activePerkinsKeys: Set<String> = []
 		private var usedPerkinsKeys: Set<String> = []
+		private var focusAttemptCount = 0
 
 		override var canBecomeFirstResponder: Bool {
 			true
@@ -172,6 +155,29 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 		override func accessibilityActivate() -> Bool {
 			becomeFirstResponder()
 			return true
+		}
+
+		override func didMoveToWindow() {
+			super.didMoveToWindow()
+			attemptFocusIfNeeded()
+		}
+
+		override func becomeFirstResponder() -> Bool {
+			let becameFirstResponder = super.becomeFirstResponder()
+			if becameFirstResponder {
+				focusAttemptCount = 0
+			}
+			return becameFirstResponder
+		}
+
+		override func insertText(_ text: String) {
+			if text == "\n" || text == "\r" {
+				self.text = ""
+				return
+			}
+
+			onTextInput?(text)
+			self.text = ""
 		}
 
 		override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
@@ -234,6 +240,20 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 			activePerkinsKeys.removeAll()
 			usedPerkinsKeys.removeAll()
 			super.pressesCancelled(presses, with: event)
+		}
+
+		func attemptFocusIfNeeded() {
+			guard shouldAutoFocus, window != nil, !isFirstResponder else { return }
+			guard focusAttemptCount < 8 else { return }
+
+			focusAttemptCount += 1
+
+			DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+				guard let self else { return }
+				guard self.shouldAutoFocus, self.window != nil, !self.isFirstResponder else { return }
+				_ = self.becomeFirstResponder()
+				self.attemptFocusIfNeeded()
+			}
 		}
 	}
 }
