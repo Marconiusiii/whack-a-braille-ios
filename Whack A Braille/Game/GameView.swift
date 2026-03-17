@@ -65,6 +65,11 @@ struct GameView: View {
 		.onChange(of: speechRatePercent) {
 			applySpeechSettings()
 		}
+		.task {
+			applySpeechSettings()
+			GameAudioEngine.shared.prewarm()
+			SpeechEngine.shared.prewarm()
+		}
 	}
 
 	private var difficulty: Difficulty {
@@ -120,12 +125,12 @@ struct GameView: View {
 			timerMusicEnabled: timerMusicEnabled && difficulty != .training
 		)
 
-		DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+		DispatchQueue.main.asyncAfter(deadline: .now() + 0.03) {
 			GameAudioEngine.shared.playOpeningCue(playEverythingIntro: modeId == "everything")
 			_ = SpeechEngine.shared.speak(modeId == "everything" ? "Incoming Mole Invasion!" : "Ready?", interrupt: true)
 		}
 
-		DispatchQueue.main.asyncAfter(deadline: .now() + 0.65) {
+		DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
 			viewModel.beginRound(options: options)
 		}
 	}

@@ -20,7 +20,6 @@ final class SpeechEngine {
 	func configure(voice: AVSpeechSynthesisVoice?, rate: Float) {
 		currentVoice = voice ?? AVSpeechSynthesisVoice(language: Locale.current.identifier) ?? AVSpeechSynthesisVoice(language: "en-US")
 		currentRate = rate
-		activateAudioSession()
 	}
 
 	func playVoiceSample(voice: AVSpeechSynthesisVoice?, ratePercent: Int) {

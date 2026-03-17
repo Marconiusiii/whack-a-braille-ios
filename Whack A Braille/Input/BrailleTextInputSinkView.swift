@@ -24,6 +24,7 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 		textField.textContentType = .none
 		textField.backgroundColor = UIColor.secondarySystemBackground
 		textField.accessibilityLabel = "Braille Entry"
+		textField.addTarget(textField, action: #selector(GameInputTextField.handleEditingChanged), for: .editingChanged)
 
 		textField.onPerkinsChord = { [weak coordinator = context.coordinator] dotMask in
 			coordinator?.emitPerkinsAttempt(dotMask: dotMask)
@@ -34,6 +35,9 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 		}
 
 		textField.onTextInput = { [weak coordinator = context.coordinator] text in
+			coordinator?.handleTextInput(text)
+		}
+		textField.onBufferedSubmit = { [weak coordinator = context.coordinator] text in
 			coordinator?.handleTextInput(text)
 		}
 
@@ -136,6 +140,7 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 		var onPerkinsChord: ((Int) -> Void)?
 		var onRepeatTarget: (() -> Void)?
 		var onTextInput: ((String) -> Void)?
+		var onBufferedSubmit: ((String) -> Void)?
 
 		private var activePerkinsKeys: Set<String> = []
 		private var usedPerkinsKeys: Set<String> = []
@@ -250,14 +255,6 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 						}
 						continue
 					}
-
-					if input == " " || input == "\n" || input == "\r" {
-						continue
-					}
-
-					guard input.count == 1 else { continue }
-					onTextInput?(input)
-					clearBufferedText()
 				}
 			}
 		}
@@ -288,12 +285,20 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 			clearBufferedText()
 		}
 
+		@objc
+		func handleEditingChanged() {
+			guard inputModeSelection == .brailleText else { return }
+			let buffered = currentBufferedText()
+			guard buffered.contains(where: \.isWhitespace) else { return }
+			submitBufferedText()
+		}
+
 		func submitBufferedText() {
 			let submitted = currentBufferedText().trimmingCharacters(in: .whitespacesAndNewlines)
 			clearBufferedText()
 
 			guard !submitted.isEmpty else { return }
-			onTextInput?(submitted)
+			onBufferedSubmit?(submitted)
 		}
 
 		private func currentBufferedText() -> String {
@@ -315,8 +320,6 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 
 			text = ""
 			selectedTextRange = textRange(from: beginningOfDocument, to: beginningOfDocument)
-			setMarkedText("", selectedRange: NSRange(location: 0, length: 0))
-			unmarkText()
 		}
 	}
 }

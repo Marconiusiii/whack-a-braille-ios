@@ -11,6 +11,7 @@ final class GameAudioEngine {
 	private var timerMusicEnabled = true
 	private var audioMode = "original"
 	private var activePlayers: [AVAudioPlayer] = []
+	private var hasStartedPrewarm = false
 
 	private lazy var popSoundData: Data? = makePopSoundData()
 	private lazy var hitSoundData: Data? = makeHitSoundData()
@@ -24,17 +25,28 @@ final class GameAudioEngine {
 
 	func prewarm() {
 		configureAudioSession()
+		guard !hasStartedPrewarm else { return }
+		hasStartedPrewarm = true
+
+		DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+			guard let self else { return }
+			_ = self.popSoundData
+			_ = self.hitSoundData
+			_ = self.missSoundData
+			_ = self.retreatSoundData
+			_ = self.openingCueData
+			_ = self.everythingCueData
+			_ = self.endCueData
+		}
 	}
 
 	func configure(mode: String, timerMusicEnabled: Bool) {
 		audioMode = mode == "silly" ? "silly" : "original"
 		self.timerMusicEnabled = timerMusicEnabled
-		configureAudioSession()
+		prewarm()
 	}
 
 	func playOpeningCue(playEverythingIntro: Bool) {
-		configureAudioSession()
-
 		if audioMode == "silly" {
 			if playEverythingIntro {
 				playBundledSound(named: "ChanceyBonk_6", fileExtension: "m4a", volume: 0.7, pan: 0)
@@ -127,7 +139,6 @@ final class GameAudioEngine {
 
 	private func playGeneratedSound(_ data: Data?, volume: Float, pan: Float) {
 		guard let data else { return }
-		configureAudioSession()
 
 		do {
 			let player = try AVAudioPlayer(data: data)
