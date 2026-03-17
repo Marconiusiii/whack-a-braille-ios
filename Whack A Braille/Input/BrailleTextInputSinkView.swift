@@ -244,8 +244,14 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 					guard let key = press.key else { continue }
 					let input = key.charactersIgnoringModifiers.lowercased()
 
+					if inputModeSelection == .brailleText {
+						if input == " " || input == "\n" || input == "\r" {
+							submitBufferedText()
+						}
+						continue
+					}
+
 					if input == " " || input == "\n" || input == "\r" {
-						submitBufferedText()
 						continue
 					}
 
@@ -308,6 +314,9 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 			}
 
 			text = ""
+			selectedTextRange = textRange(from: beginningOfDocument, to: beginningOfDocument)
+			setMarkedText("", selectedRange: NSRange(location: 0, length: 0))
+			unmarkText()
 		}
 	}
 }
