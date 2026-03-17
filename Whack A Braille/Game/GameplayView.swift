@@ -4,6 +4,7 @@ struct GameplayView: View {
 
 	@ObservedObject var viewModel: GameViewModel
 	let inputMode: InputMode
+	let exitGame: () -> Void
 
 	var body: some View {
 		VStack(alignment: .leading, spacing: 24) {
@@ -39,6 +40,9 @@ struct GameplayView: View {
 				)
 				.frame(height: 48)
 			}
+
+			Button("Exit Game", action: exitGame)
+				.buttonStyle(.bordered)
 		}
 		.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 		.padding(20)

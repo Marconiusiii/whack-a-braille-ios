@@ -34,7 +34,8 @@ struct GameView: View {
 			case .gameplay:
 				GameplayView(
 					viewModel: viewModel,
-					inputMode: effectiveInputMode
+					inputMode: effectiveInputMode,
+					exitGame: viewModel.exitRoundToResults
 				)
 			case .roundResults:
 				RoundResultsView(
@@ -42,6 +43,15 @@ struct GameView: View {
 					totalTickets: viewModel.totalAccruedTickets,
 					keepWhacking: startRound,
 					cashInTickets: viewModel.cashInTickets
+				)
+			case .cashOut:
+				CashOutView(
+					totalTickets: viewModel.totalAccruedTickets,
+					prizes: viewModel.cashOutPrizes,
+					selectedPrizeID: viewModel.selectedCashOutPrizeID,
+					selectPrize: viewModel.selectCashOutPrize,
+					claimPrize: viewModel.claimSelectedPrize,
+					keepWhacking: viewModel.cancelCashOut
 				)
 			}
 		}

@@ -101,11 +101,11 @@ final class GameAudioEngine {
 			return
 		}
 
-		playGeneratedSound(hitSoundData, volume: 1.0, pan: pan)
+		playGeneratedSound(hitSoundData, volume: 1.18, pan: pan)
 	}
 
 	func playMiss(lane: Int) {
-		playGeneratedSound(missSoundData, volume: 1.0, pan: pan(for: lane))
+		playGeneratedSound(missSoundData, volume: 0.72, pan: pan(for: lane))
 	}
 
 	func playMolePop(lane: Int) {
@@ -210,13 +210,13 @@ final class GameAudioEngine {
 	}
 
 	private func makeMissSoundData() -> Data? {
-		let duration = 0.4
+		let duration = 0.32
 		return makeWaveFile(duration: duration) { time in
 			let progress = min(max(time / duration, 0), 1)
-			let noise = filteredNoise(seed: 7_331, time: time, carrier: lerp(start: 900, end: 450, progress: progress))
-			let air = triangle(lerp(start: 780, end: 420, progress: progress), time) * 0.12
-			let env = envelope(time, attack: 0.14, release: duration, peak: 0.72)
-			return clampSample((noise * 0.52 + air) * env * 0.65)
+			let noise = filteredNoise(seed: 7_331, time: time, carrier: lerp(start: 620, end: 280, progress: progress))
+			let air = triangle(lerp(start: 520, end: 260, progress: progress), time) * 0.08
+			let env = envelope(time, attack: 0.03, release: duration, peak: 0.55)
+			return clampSample((noise * 0.26 + air) * env * 0.58)
 		}
 	}
 
@@ -328,8 +328,8 @@ final class GameAudioEngine {
 						duration: stepDuration,
 						frequencies: chord,
 						peak: 0.9,
-						vibratoRate: index == progression.count - 1 ? 5.5 : nil,
-						vibratoDepth: index == progression.count - 1 ? 6.0 : nil
+						vibratoRate: index == progression.count - 1 ? 3.8 : nil,
+						vibratoDepth: index == progression.count - 1 ? 2.2 : nil
 					)
 
 					let local = time - cursor

@@ -8,11 +8,13 @@ final class GameViewModel: ObservableObject {
 		case home
 		case gameplay
 		case roundResults
+		case cashOut
 	}
 
 	private enum StorageKey {
 		static let totalTickets = "whackABraille.totalTickets"
 		static let prizeShelf = "whackABraille.prizeShelf"
+		static let prizeShelfEntries = "whackABraille.prizeShelfEntries"
 	}
 
 	let gameLoop: GameLoop
@@ -29,12 +31,17 @@ final class GameViewModel: ObservableObject {
 	@Published private(set) var prizeShelfItems: [String]
 	@Published private(set) var homeNotice: String?
 	@Published private(set) var inputResetToken = 0
+	@Published private(set) var cashOutPrizes: [Prize] = []
+	@Published var selectedCashOutPrizeID: String?
+
+	private var prizeShelfEntries: [PrizeShelfEntry]
 
 	init(gameLoop: GameLoop? = nil) {
 		let gameLoop = gameLoop ?? GameLoop()
 		self.gameLoop = gameLoop
 		self.totalAccruedTickets = UserDefaults.standard.integer(forKey: StorageKey.totalTickets)
-		self.prizeShelfItems = UserDefaults.standard.stringArray(forKey: StorageKey.prizeShelf) ?? []
+		self.prizeShelfEntries = Self.loadPrizeShelfEntries()
+		self.prizeShelfItems = Self.displayItems(from: self.prizeShelfEntries)
 
 		self.gameLoop.onScoreUpdated = { [weak self] score, streak in
 			guard let self else { return }
@@ -98,17 +105,95 @@ final class GameViewModel: ObservableObject {
 		gameLoop.stopRound()
 	}
 
+	func exitRoundToResults() {
+		gameLoop.finishRoundEarly()
+	}
+
 	func repeatCurrentTarget() {
 		gameLoop.repeatCurrentTarget()
 	}
 
 	func cashInTickets() {
+		guard totalAccruedTickets >= 0 else { return }
+		cashOutPrizes = Self.pickRandomPrizes(from: PrizeCatalog.eligible(for: totalAccruedTickets), count: 3)
+		selectedCashOutPrizeID = nil
+		phase = .cashOut
+	}
+
+	func selectCashOutPrize(_ prizeID: String) {
+		selectedCashOutPrizeID = prizeID
+	}
+
+	func claimSelectedPrize() {
+		guard let selectedCashOutPrizeID,
+			let prize = cashOutPrizes.first(where: { $0.id == selectedCashOutPrizeID }) else { return }
+
+		addPrizeToShelf(prize.label)
+		totalAccruedTickets = 0
+		UserDefaults.standard.set(totalAccruedTickets, forKey: StorageKey.totalTickets)
+		cashOutPrizes = []
+		self.selectedCashOutPrizeID = nil
 		phase = .home
-		homeNotice = "Prize cash-in is coming soon. Your tickets are still saved."
+		homeNotice = "You claimed \(prize.label)."
+	}
+
+	func cancelCashOut() {
+		phase = .roundResults
 	}
 
 	func clearPrizeShelf() {
+		prizeShelfEntries = []
 		prizeShelfItems = []
+		UserDefaults.standard.removeObject(forKey: StorageKey.prizeShelfEntries)
 		UserDefaults.standard.removeObject(forKey: StorageKey.prizeShelf)
+		homeNotice = "Prize Shelf Cleared."
+	}
+
+	private func addPrizeToShelf(_ label: String) {
+		if let index = prizeShelfEntries.firstIndex(where: { $0.label == label }) {
+			prizeShelfEntries[index].quantity += 1
+		} else {
+			prizeShelfEntries.append(PrizeShelfEntry(label: label, quantity: 1))
+		}
+
+		savePrizeShelfEntries()
+		prizeShelfItems = Self.displayItems(from: prizeShelfEntries)
+	}
+
+	private func savePrizeShelfEntries() {
+		let encoder = JSONEncoder()
+		if let data = try? encoder.encode(prizeShelfEntries) {
+			UserDefaults.standard.set(data, forKey: StorageKey.prizeShelfEntries)
+		}
+	}
+
+	private static func loadPrizeShelfEntries() -> [PrizeShelfEntry] {
+		let decoder = JSONDecoder()
+
+		if let data = UserDefaults.standard.data(forKey: StorageKey.prizeShelfEntries),
+			let entries = try? decoder.decode([PrizeShelfEntry].self, from: data) {
+			return entries
+		}
+
+		let legacyItems = UserDefaults.standard.stringArray(forKey: StorageKey.prizeShelf) ?? []
+		var counts: [String: Int] = [:]
+		for item in legacyItems {
+			counts[item, default: 0] += 1
+		}
+
+		return counts.keys.sorted().map { key in
+			PrizeShelfEntry(label: key, quantity: counts[key] ?? 1)
+		}
+	}
+
+	private static func displayItems(from entries: [PrizeShelfEntry]) -> [String] {
+		entries.map { entry in
+			entry.quantity > 1 ? "\(entry.label) x\(entry.quantity)" : entry.label
+		}
+	}
+
+	private static func pickRandomPrizes(from prizes: [Prize], count: Int) -> [Prize] {
+		guard !prizes.isEmpty else { return [] }
+		return Array(prizes.shuffled().prefix(max(0, count)))
 	}
 }

@@ -157,6 +157,10 @@ final class GameLoop {
 		endRoundNow(canceled: true)
 	}
 
+	func finishRoundEarly() {
+		endRoundNow(canceled: false)
+	}
+
 	func repeatCurrentTarget() {
 		guard let item = currentItem else { return }
 		SpeechEngine.shared.speak(buildAnnounceText(for: item), interrupt: true)
