@@ -1,5 +1,4 @@
 import Foundation
-import Combine
 
 @MainActor
 final class GameViewModel: ObservableObject {
@@ -9,11 +8,13 @@ final class GameViewModel: ObservableObject {
 	@Published private(set) var isRunning: Bool = false
 	@Published private(set) var score: Int = 0
 	@Published private(set) var hitStreak: Int = 0
+	@Published private(set) var activeLane: Int?
+	@Published private(set) var activeTargetLabel: String = "Waiting to start"
+	@Published private(set) var lastRoundResult: RoundResult?
 
 	init(gameLoop: GameLoop = GameLoop()) {
 		self.gameLoop = gameLoop
 
-		// Keep UI in sync with GameLoop callbacks.
 		self.gameLoop.onScoreUpdated = { [weak self] score, streak in
 			guard let self else { return }
 			Task { @MainActor in
@@ -22,10 +23,21 @@ final class GameViewModel: ObservableObject {
 			}
 		}
 
-		self.gameLoop.onRoundEnded = { [weak self] _ in
+		self.gameLoop.onActiveMoleChanged = { [weak self] lane, item in
+			guard let self else { return }
+			Task { @MainActor in
+				self.activeLane = lane
+				self.activeTargetLabel = item?.id.uppercased() ?? (self.isRunning ? "Listen for the next mole" : "Waiting to start")
+			}
+		}
+
+		self.gameLoop.onRoundEnded = { [weak self] result in
 			guard let self else { return }
 			Task { @MainActor in
 				self.isRunning = false
+				self.activeLane = nil
+				self.activeTargetLabel = "Round finished"
+				self.lastRoundResult = result
 			}
 		}
 	}
@@ -37,7 +49,9 @@ final class GameViewModel: ObservableObject {
 		difficulty: Difficulty,
 		itemsForMode: [BrailleItem]
 	) {
-		// Flip published state FIRST so SwiftUI can render the pad immediately.
+		lastRoundResult = nil
+		activeLane = nil
+		activeTargetLabel = "Get ready"
 		isRunning = true
 
 		gameLoop.startRound(
@@ -52,6 +66,7 @@ final class GameViewModel: ObservableObject {
 	func stopRound() {
 		gameLoop.stopRound()
 		isRunning = false
+		activeLane = nil
+		activeTargetLabel = "Round stopped"
 	}
 }
-

@@ -1,15 +1,14 @@
 import Foundation
-import Speech
 
+@MainActor
 final class GameLoop {
 
-	// MARK: - State
+	var onRoundEnded: ((RoundResult) -> Void)?
+	var onScoreUpdated: ((Int, Int) -> Void)?
+	var onActiveMoleChanged: ((Int?, BrailleItem?) -> Void)?
 
 	private(set) var isRunning: Bool = false
 	private(set) var roundEnding: Bool = false
-
-	private var roundDurationMs: Int = 30_000
-	private var roundStartTimeMs: Int = 0
 
 	private(set) var score: Int = 0
 	private(set) var hitStreak: Int = 0
@@ -19,26 +18,13 @@ final class GameLoop {
 	private(set) var streakBonusCount: Int = 0
 	private(set) var speedHitCount: Int = 0
 	private(set) var speedBonusTickets: Int = 0
+
 	var currentMoleId: Int {
 		activeMoleId
 	}
-	private var moleBecameActiveMs: Int = 0
 
-	// MARK: - Mole State
-
-	private var activeMoleIndex: Int? = nil
-	private var activeMoleId: Int = 0
-	private var missRegisteredForMole: Bool = false
-	private var activeMoleShownAtMs: Int = 0
-	private var activeMoleUpTimeMs: Int = 0
-
-	// MARK: - Timers
-
-	private var roundTimer: DispatchSourceTimer?
-	private var moleTimer: DispatchSourceTimer?
-	private var moleUpTimer: DispatchSourceTimer?
-
-	// MARK: - Configuration
+	private let laneCount = 5
+	private let maxSameLaneInRow = 2
 
 	private let startIntervalMs: Int = 900
 	private let endIntervalMs: Int = 300
@@ -51,137 +37,29 @@ final class GameLoop {
 		.supreme: 0.5
 	]
 
+	private var currentModeId: String = ""
+	private var currentInputMode: InputMode = .qwerty
+	private var currentDurationSeconds: Int = 30
 	private var difficultyMultiplier: Double = 1.0
-
-	// MARK: - Data
 
 	private var availableItems: [BrailleItem] = []
 	private var roundItems: [BrailleItem] = []
 
-	private var currentModeId: String = ""
-	private var currentInputMode: InputMode = .qwerty
-	private var currentDurationSeconds: Int = 30
+	private var roundDurationMs: Int = 30_000
+	private var roundStartTimeMs: Int = 0
 
-	// MARK: - Callbacks
+	private var activeMoleIndex: Int?
+	private var activeMoleId: Int = 0
+	private var missRegisteredForMole: Bool = false
+	private var moleBecameActiveMs: Int = 0
+	private var activeMoleUpTimeMs: Int = 0
 
-	var onRoundEnded: ((RoundResult) -> Void)?
-	var onScoreUpdated: ((Int, Int) -> Void)?
+	private var lastLaneIndex: Int?
+	private var sameLaneRunCount: Int = 0
 
-	init() {}
-	
-	// MARK: - Round Control
-
-	func handleAttempt(_ attempt: Attempt) {
-		if !isRunning || roundEnding {
-			return
-		}
-
-		guard let activeIndex = activeMoleIndex else {
-			return
-		}
-
-		if attempt.moleId != activeMoleId {
-			return
-		}
-
-		// Perkins mode ignores standard keyboard attempts
-		if currentInputMode == .perkins && attempt.type == .qwerty {
-			return
-		}
-
-		guard let activeIndex = activeMoleIndex else {
-			return
-		}
-
-		let currentItem = roundItems[activeIndex]
-
-		var isHit = false
-
-		switch attempt.type {
-
-		case .perkins:
-			if let mask = attempt.dotMask {
-				isHit = mask == currentItem.dotMask
-			} else if let c = attempt.char?.lowercased() {
-				isHit = c == currentItem.id.lowercased()
-			}
-
-		case .brailleText:
-			if let c = attempt.char?.lowercased() {
-				isHit = c == currentItem.id.lowercased()
-			}
-
-		case .brailleText:
-			if let c = attempt.char?.lowercased() {
-				isHit = c == currentItem.id.lowercased()
-			}
-
-		case .qwerty:
-			if
-				let a = attempt.key?.lowercased(),
-				let b = currentItem.standardKey?.lowercased()
-			{
-				isHit = a == b
-			}
-		}
-
-		if isHit {
-			handleHit()
-			return
-		}
-
-		if missRegisteredForMole {
-			return
-		}
-
-		missRegisteredForMole = true
-		handleMiss()
-	}
-
-	private func handleHit() {
-		SpeechEngine.shared.speak("Hit")
-
-		hitsThisRound += 1
-		hitStreak += 1
-		score += 10
-
-		if hitStreak % 5 == 0 {
-			score += 10
-			streakBonusCount += 1
-		}
-
-		let nowMs = TimeUtils.nowMs()
-		let reactionMs = nowMs - moleBecameActiveMs
-		let speedThresholdMs = Int(Double(activeMoleUpTimeMs) * 0.55)
-
-		if reactionMs <= speedThresholdMs {
-			speedHitCount += 1
-
-			if speedHitCount % 3 == 0 && speedBonusTickets < 5 {
-				speedBonusTickets += 1
-			}
-		}
-
-		moleUpTimer?.cancel()
-		moleUpTimer = nil
-
-		missRegisteredForMole = true
-
-		clearActiveMole()
-		scheduleNextMole(extraDelayMs: 0)
-
-		onScoreUpdated?(score, hitStreak)
-	}
-
-	private func handleMiss() {
-		SpeechEngine.shared.speak("Miss")
-
-		missesThisRound += 1
-		hitStreak = 0
-		score = max(0, score - 2)
-
-		onScoreUpdated?(score, hitStreak)
-	}
+	private var roundTimer: DispatchSourceTimer?
+	private var moleTimer: DispatchSourceTimer?
+	private var moleUpTimer: DispatchSourceTimer?
 
 	func startRound(
 		modeId: String,
@@ -190,9 +68,16 @@ final class GameLoop {
 		difficulty: Difficulty = .normal,
 		itemsForMode: [BrailleItem]
 	) {
-		if isRunning {
-			return
-		}
+		guard !isRunning else { return }
+
+		currentModeId = modeId
+		currentDurationSeconds = durationSeconds
+		currentInputMode = modeId == "everything" ? .perkins : inputMode
+		difficultyMultiplier = difficultyMultipliers[difficulty] ?? 1.0
+		roundDurationMs = durationSeconds * 1000
+		roundStartTimeMs = TimeUtils.nowMs()
+		availableItems = itemsForMode
+		roundItems = buildRoundItems(from: itemsForMode)
 
 		score = 0
 		hitStreak = 0
@@ -203,40 +88,128 @@ final class GameLoop {
 		speedHitCount = 0
 		speedBonusTickets = 0
 
-		currentModeId = modeId
-		currentDurationSeconds = durationSeconds
-		currentInputMode = modeId == "everything" ? .perkins : inputMode
-		difficultyMultiplier = difficultyMultipliers[difficulty] ?? 1.0
-
-		roundDurationMs = durationSeconds * 1000
-		availableItems = itemsForMode
-		roundItems = pickFiveItems(from: availableItems)
+		activeMoleIndex = nil
+		activeMoleId = 0
+		missRegisteredForMole = false
+		moleBecameActiveMs = 0
+		activeMoleUpTimeMs = 0
+		lastLaneIndex = nil
+		sameLaneRunCount = 0
 
 		isRunning = true
 		roundEnding = false
 
-		roundStartTimeMs = TimeUtils.nowMs()
-
-		activeMoleIndex = nil
-		activeMoleId = 0
-		missRegisteredForMole = false
-
 		cancelTimers()
+		onScoreUpdated?(score, hitStreak)
+		onActiveMoleChanged?(nil, nil)
+
+		GameAudioEngine.shared.startRound(progressProvider: { [weak self] in
+			self?.getProgress() ?? 0
+		})
+
 		scheduleRoundEnd()
-		scheduleNextMole(extraDelayMs: 0)
+		scheduleNextMole(extraDelayMs: 180)
 	}
 
 	func stopRound() {
 		endRoundNow(canceled: true)
 	}
 
-	private func computeRoundEndGraceMs(
-		baseGraceMs: Int,
-		maxGraceMs: Int
-	) -> Int {
-		// Web helper clamps baseGraceMs to maxGraceMs (no randomness).
-		let clamped = min(max(baseGraceMs, 0), maxGraceMs)
-		return clamped
+	func repeatCurrentTarget() {
+		guard
+			isRunning,
+			let activeMoleIndex,
+			activeMoleIndex < roundItems.count
+		else {
+			return
+		}
+
+		SpeechEngine.shared.speak(roundItems[activeMoleIndex].announceText)
+	}
+
+	func handleAttempt(_ attempt: Attempt) {
+		guard isRunning, !roundEnding else { return }
+		guard let activeMoleIndex, activeMoleIndex < roundItems.count else { return }
+		guard attempt.moleId == activeMoleId else { return }
+		guard attempt.key != "`" else {
+			repeatCurrentTarget()
+			return
+		}
+
+		if currentInputMode == .perkins && attempt.type == .qwerty {
+			return
+		}
+
+		let currentItem = roundItems[activeMoleIndex]
+		let isHit: Bool
+
+		switch attempt.type {
+		case .perkins:
+			if let dotMask = attempt.dotMask {
+				isHit = dotMask == currentItem.dotMask
+			} else {
+				isHit = normalize(attempt.char) == normalize(currentItem.id)
+			}
+		case .brailleText:
+			isHit = normalize(attempt.char) == normalize(currentItem.id)
+		case .qwerty:
+			isHit = normalize(attempt.key) == normalize(currentItem.standardKey)
+		}
+
+		if isHit {
+			handleHit()
+			return
+		}
+
+		guard !missRegisteredForMole else { return }
+		missRegisteredForMole = true
+		handleMiss()
+	}
+
+	private func handleHit() {
+		guard let lane = activeMoleIndex else { return }
+
+		let previousScore = score
+
+		hitsThisRound += 1
+		hitStreak += 1
+		score += 10
+
+		if hitStreak % 5 == 0 {
+			score += 10
+			streakBonusCount += 1
+		}
+
+		let reactionMs = TimeUtils.nowMs() - moleBecameActiveMs
+		let speedThresholdMs = Int(Double(activeMoleUpTimeMs) * 0.55)
+
+		if reactionMs > 0, reactionMs <= speedThresholdMs {
+			speedHitCount += 1
+			if speedHitCount % 3 == 0 && speedBonusTickets < 5 {
+				speedBonusTickets += 1
+			}
+		}
+
+		GameAudioEngine.shared.playHit(scoreBeforeHit: previousScore, lane: lane)
+
+		missRegisteredForMole = true
+		moleUpTimer?.cancel()
+		moleUpTimer = nil
+
+		clearActiveMole()
+		onScoreUpdated?(score, hitStreak)
+		scheduleNextMole(extraDelayMs: 0)
+	}
+
+	private func handleMiss() {
+		guard let lane = activeMoleIndex else { return }
+
+		missesThisRound += 1
+		hitStreak = 0
+		score = max(0, score - 2)
+
+		GameAudioEngine.shared.playMiss(lane: lane)
+		onScoreUpdated?(score, hitStreak)
 	}
 
 	private func scheduleRoundEnd() {
@@ -250,43 +223,33 @@ final class GameLoop {
 	}
 
 	private func requestRoundEnd() {
-		if !isRunning {
-			return
-		}
+		guard isRunning else { return }
 
 		roundEnding = true
-
 		moleTimer?.cancel()
 		moleTimer = nil
 
-		let graceMs = computeRoundEndGraceMs(
-			baseGraceMs: 350,
-			maxGraceMs: 750
-		)
-
-		roundTimer?.cancel()
-
 		let timer = DispatchSource.makeTimerSource(queue: .main)
-		timer.schedule(deadline: .now() + .milliseconds(graceMs))
+		timer.schedule(deadline: .now() + .milliseconds(computeRoundEndGraceMs(baseGraceMs: 350, maxGraceMs: 750)))
 		timer.setEventHandler { [weak self] in
 			self?.endRoundNow(canceled: false)
 		}
 		timer.resume()
+
+		roundTimer?.cancel()
 		roundTimer = timer
 	}
 
 	private func endRoundNow(canceled: Bool) {
-		if !isRunning {
-			return
-		}
+		guard isRunning else { return }
 
 		isRunning = false
 		roundEnding = false
 
 		cancelTimers()
 		clearActiveMole()
-
-		let baseTickets = scoreToTickets(score)
+		GameAudioEngine.shared.stopRound()
+		SpeechEngine.shared.cancel()
 
 		let result = RoundResult(
 			modeId: currentModeId,
@@ -298,7 +261,7 @@ final class GameLoop {
 			escapes: escapesThisRound,
 			streakBonusCount: streakBonusCount,
 			canceled: canceled,
-			baseTickets: baseTickets,
+			baseTickets: scoreToTickets(score),
 			streakBonusTickets: streakBonusCount,
 			speedBonusTickets: speedBonusTickets
 		)
@@ -306,23 +269,25 @@ final class GameLoop {
 		onRoundEnded?(result)
 	}
 
-	// MARK: - Timing Math
+	private func computeRoundEndGraceMs(baseGraceMs: Int, maxGraceMs: Int) -> Int {
+		min(max(baseGraceMs, 0), maxGraceMs)
+	}
+
 	private func computeMoleWindowMs(baseUpTimeMs: Int, speechDurationMs: Int) -> Int {
 		let reactionBufferMs = 260
 		let minUpTimeMs = 400
 		let maxUpTimeMs = 1800
+		let effectiveSpeechDurationMs = max(300, speechDurationMs)
 
-		let effectiveSpeech = speechDurationMs > 0 ? speechDurationMs : 300
-		let windowMs = baseUpTimeMs + effectiveSpeech + reactionBufferMs
-
-		if windowMs < minUpTimeMs { return minUpTimeMs }
-		if windowMs > maxUpTimeMs { return maxUpTimeMs }
-		return windowMs
+		return min(
+			max(baseUpTimeMs + effectiveSpeechDurationMs + reactionBufferMs, minUpTimeMs),
+			maxUpTimeMs
+		)
 	}
 
 	private func getProgress() -> Double {
-		let elapsed = TimeUtils.nowMs() - roundStartTimeMs
-		var progress = min(Double(elapsed) / Double(roundDurationMs), 1.0)
+		let elapsedMs = TimeUtils.nowMs() - roundStartTimeMs
+		var progress = min(Double(elapsedMs) / Double(roundDurationMs), 1.0)
 
 		if roundDurationMs >= 45_000 {
 			if progress > 0.3 && progress < 0.7 {
@@ -336,140 +301,139 @@ final class GameLoop {
 	}
 
 	private func getCurrentInterval() -> Int {
-		var interval = TimeUtils.lerp(
-			start: startIntervalMs,
-			end: endIntervalMs,
-			t: getProgress()
-		)
+		var intervalMs = TimeUtils.lerp(start: startIntervalMs, end: endIntervalMs, t: getProgress())
 
 		if getProgress() > 0.7 {
-			interval = Int(Double(interval) * 0.45)
+			intervalMs = Int(Double(intervalMs) * 0.45)
 		}
 
-		// Apply jitter BEFORE difficulty scaling (matches JS)
-		interval += randomJitter()
+		intervalMs += Int.random(in: 0..<120)
 
-		let adjusted = Int(Double(interval) * difficultyMultiplier)
-		return max(adjusted, 180)
+		return max(Int(Double(intervalMs) * difficultyMultiplier), 180)
 	}
 
 	private func getCurrentUpTime() -> Int {
-		let base = TimeUtils.lerp(
-			start: startUpTimeMs,
-			end: endUpTimeMs,
-			t: getProgress()
-		)
-		return Int(Double(base) * difficultyMultiplier)
+		let baseUpTimeMs = TimeUtils.lerp(start: startUpTimeMs, end: endUpTimeMs, t: getProgress())
+		return Int(Double(baseUpTimeMs) * difficultyMultiplier)
 	}
 
-	private func pickNextMoleIndex() -> Int {
-		guard !roundItems.isEmpty else {
-			return 0
+	private func scheduleNextMole(extraDelayMs: Int) {
+		guard isRunning, !roundEnding else { return }
+
+		let timer = DispatchSource.makeTimerSource(queue: .main)
+		timer.schedule(deadline: .now() + .milliseconds(getCurrentInterval() + extraDelayMs))
+		timer.setEventHandler { [weak self] in
+			self?.showRandomMole()
 		}
+		timer.resume()
 
-		var index: Int
-		repeat {
-			index = Int.random(in: 0..<roundItems.count)
-		} while index == activeMoleIndex
-
-		return index
+		moleTimer?.cancel()
+		moleTimer = timer
 	}
 
 	private func showRandomMole() {
-		if !isRunning || roundEnding {
-			return
-		}
+		guard isRunning, !roundEnding else { return }
+		guard !roundItems.isEmpty else { return }
 
 		clearActiveMole()
 
 		activeMoleId += 1
 		missRegisteredForMole = false
 
-		let index = pickNextMoleIndex()
-		activeMoleIndex = index
+		let lane = pickNextMoleIndex()
+		let item = roundItems[lane]
+		let moleId = activeMoleId
+		let speechDurationMs = SpeechEngine.shared.estimatedDurationMs(for: item.announceText)
 
-		let item = roundItems[index]
-		let thisMoleId = activeMoleId
-
-		// Start speech immediately (do not block gameplay)
-		let speechStartedAtMs = TimeUtils.nowMs()
-		SpeechEngine.shared.speak(item.announceText)
-
-		// Base up-time (progress + difficulty), then expand using speech tuning
-		let baseUpTime = getCurrentUpTime()
-
-		// Until SpeechEngine reports real start/end times, use a conservative estimate:
-		// - mimic the web fallback behavior (300ms) but allow slightly longer announcements.
-		let estimatedSpeechDurationMs = max(300, min(650, item.announceText.count * 35))
-
-		let tunedWindowMs = computeMoleWindowMs(
-			baseUpTimeMs: baseUpTime,
-			speechDurationMs: estimatedSpeechDurationMs
+		activeMoleIndex = lane
+		activeMoleUpTimeMs = computeMoleWindowMs(
+			baseUpTimeMs: getCurrentUpTime(),
+			speechDurationMs: speechDurationMs
 		)
 
-		activeMoleUpTimeMs = tunedWindowMs
+		SpeechEngine.shared.speak(item.announceText)
 
-		// Mole becomes hittable after 80ms (matches web)
 		DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(80)) { [weak self] in
 			guard let self else { return }
-			if !self.isRunning || self.roundEnding { return }
-			if thisMoleId != self.activeMoleId { return }
+			guard self.isRunning, !self.roundEnding else { return }
+			guard self.activeMoleId == moleId, self.activeMoleIndex == lane else { return }
 
-			self.activeMoleShownAtMs = TimeUtils.nowMs()
-
-			// If speech started significantly later (rare), keep shownAtMs aligned with actual usability.
-			_ = speechStartedAtMs
+			self.moleBecameActiveMs = TimeUtils.nowMs()
+			self.onActiveMoleChanged?(lane, item)
+			GameAudioEngine.shared.playMolePop(lane: lane)
 		}
 
-		// Escape timer uses tunedWindowMs (matches web feel)
-		moleUpTimer?.cancel()
-
 		let timer = DispatchSource.makeTimerSource(queue: .main)
-		timer.schedule(deadline: .now() + .milliseconds(tunedWindowMs))
+		timer.schedule(deadline: .now() + .milliseconds(activeMoleUpTimeMs))
 		timer.setEventHandler { [weak self] in
 			guard let self else { return }
-			if !self.isRunning || self.roundEnding { return }
-			if thisMoleId != self.activeMoleId { return }
+			guard self.isRunning, !self.roundEnding else { return }
+			guard self.activeMoleId == moleId, self.activeMoleIndex == lane else { return }
 
 			self.escapesThisRound += 1
 			self.hitStreak = 0
+			self.onScoreUpdated?(self.score, self.hitStreak)
+			GameAudioEngine.shared.playRetreat(lane: lane)
 
 			self.clearActiveMole()
 			self.scheduleNextMole(extraDelayMs: 0)
 		}
 		timer.resume()
 
+		moleUpTimer?.cancel()
 		moleUpTimer = timer
 	}
 
-	private func randomJitter() -> Int {
-		Int.random(in: 0..<120)
-	}
+	private func pickNextMoleIndex() -> Int {
+		guard !roundItems.isEmpty else { return 0 }
+		guard roundItems.count > 1 else { return 0 }
 
-	private func scheduleNextMole(extraDelayMs: Int) {
-		if !isRunning || roundEnding {
-			return
+		var candidates = Array(roundItems.indices).filter { $0 != activeMoleIndex }
+
+		if let lastLaneIndex, sameLaneRunCount >= maxSameLaneInRow {
+			let nonRepeatingCandidates = candidates.filter { $0 != lastLaneIndex }
+			if !nonRepeatingCandidates.isEmpty {
+				candidates = nonRepeatingCandidates
+			}
 		}
 
-		let delayMs = getCurrentInterval() + extraDelayMs
-		moleTimer?.cancel()
+		let lane = candidates.randomElement() ?? 0
 
-		let timer = DispatchSource.makeTimerSource(queue: .main)
-		timer.schedule(deadline: .now() + .milliseconds(delayMs))
-		timer.setEventHandler { [weak self] in
-			self?.showRandomMole()
+		if lane == lastLaneIndex {
+			sameLaneRunCount += 1
+		} else {
+			lastLaneIndex = lane
+			sameLaneRunCount = 1
 		}
-		timer.resume()
 
-		moleTimer = timer
+		return lane
 	}
 
-	// MARK: - Utilities
+	private func buildRoundItems(from pool: [BrailleItem]) -> [BrailleItem] {
+		guard !pool.isEmpty else { return [] }
 
-	private func pickFiveItems(from pool: [BrailleItem]) -> [BrailleItem] {
 		var copy = pool
 		copy.shuffle()
-		return Array(copy.prefix(5))
+
+		if copy.count >= laneCount {
+			return Array(copy.prefix(laneCount))
+		}
+
+		var padded = copy
+		var index = 0
+
+		while padded.count < laneCount {
+			padded.append(copy[index % copy.count])
+			index += 1
+		}
+
+		return padded
+	}
+
+	private func clearActiveMole() {
+		activeMoleIndex = nil
+		moleBecameActiveMs = 0
+		onActiveMoleChanged?(nil, nil)
 	}
 
 	private func scoreToTickets(_ score: Int) -> Int {
@@ -489,8 +453,8 @@ final class GameLoop {
 		moleTimer = nil
 		moleUpTimer = nil
 	}
-	private func clearActiveMole() {
-		activeMoleIndex = nil
-	}
 
+	private func normalize(_ string: String?) -> String {
+		String(string ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+	}
 }
