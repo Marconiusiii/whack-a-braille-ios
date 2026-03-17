@@ -36,6 +36,7 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 		textField.onTextInput = { [weak coordinator = context.coordinator] text in
 			coordinator?.handleTextInput(text)
 		}
+		textField.addTarget(context.coordinator, action: #selector(Coordinator.textDidChange(_:)), for: .editingChanged)
 
 		return textField
 	}
@@ -68,6 +69,13 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 		init(gameLoop: GameLoop, inputMode: InputMode) {
 			self.gameLoop = gameLoop
 			self.inputMode = inputMode
+		}
+
+		@objc
+		func textDidChange(_ textField: GameInputTextField) {
+			if textField.shouldSubmitBufferedTextFromEditingChange {
+				textField.submitBufferedText()
+			}
 		}
 
 		func emitPerkinsAttempt(dotMask: Int) {
@@ -141,6 +149,7 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 		private var usedPerkinsKeys: Set<String> = []
 		private var focusAttemptCount = 0
 		private var lastResetToken = -1
+		private(set) var shouldSubmitBufferedTextFromEditingChange = false
 
 		override var canBecomeFirstResponder: Bool {
 			true
@@ -173,6 +182,12 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 
 		override func insertText(_ text: String) {
 			if text == "\n" || text == "\r" || text == " " {
+				submitBufferedText()
+				return
+			}
+
+			if text.rangeOfCharacter(from: .whitespacesAndNewlines) != nil {
+				appendBufferedText(text)
 				submitBufferedText()
 				return
 			}
@@ -278,15 +293,48 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 		func applyResetToken(_ token: Int) {
 			guard token != lastResetToken else { return }
 			lastResetToken = token
-			text = ""
+			clearBufferedText()
 		}
 
-		private func submitBufferedText() {
-			let submitted = text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-			text = ""
+		func submitBufferedText() {
+			let submitted = currentBufferedText().trimmingCharacters(in: .whitespacesAndNewlines)
+			clearBufferedText()
 
 			guard !submitted.isEmpty else { return }
 			onTextInput?(submitted)
+		}
+
+		private func appendBufferedText(_ value: String) {
+			let sanitized = value.replacingOccurrences(
+				of: "\\s+",
+				with: " ",
+				options: .regularExpression
+			)
+
+			let existing = currentBufferedText()
+			text = existing + sanitized
+			shouldSubmitBufferedTextFromEditingChange = true
+		}
+
+		private func currentBufferedText() -> String {
+			if let fullRange = textRange(from: beginningOfDocument, to: endOfDocument),
+				let documentText = text(in: fullRange),
+				!documentText.isEmpty {
+				return documentText
+			}
+
+			return text ?? ""
+		}
+
+		private func clearBufferedText() {
+			shouldSubmitBufferedTextFromEditingChange = false
+			unmarkText()
+
+			if let fullRange = textRange(from: beginningOfDocument, to: endOfDocument) {
+				replace(fullRange, withText: "")
+			}
+
+			text = ""
 		}
 	}
 }
