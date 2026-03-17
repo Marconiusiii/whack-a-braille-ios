@@ -18,6 +18,7 @@ struct GameView: View {
 	@AppStorage("whackABraille.selectedVoiceId") private var selectedVoiceId = ""
 
 	@State private var isShowingSettings = false
+	@State private var isPreparingRound = false
 
 	var body: some View {
 		Group {
@@ -33,7 +34,8 @@ struct GameView: View {
 			case .gameplay:
 				GameplayView(
 					viewModel: viewModel,
-					inputMode: effectiveInputMode
+					inputMode: effectiveInputMode,
+					isPreparingRound: isPreparingRound
 				)
 			case .roundResults:
 				RoundResultsView(
@@ -59,17 +61,8 @@ struct GameView: View {
 				selectedVoiceId: $selectedVoiceId
 			)
 		}
-		.onChange(of: selectedVoiceId) {
-			applySpeechSettings()
-		}
-		.onChange(of: speechRatePercent) {
-			applySpeechSettings()
-		}
-		.task {
-			applySpeechSettings()
-			GameAudioEngine.shared.prewarm()
-			SpeechEngine.shared.prewarm()
-		}
+		.onChange(of: selectedVoiceId) { applySpeechSettings() }
+		.onChange(of: speechRatePercent) { applySpeechSettings() }
 	}
 
 	private var difficulty: Difficulty {
@@ -106,6 +99,7 @@ struct GameView: View {
 	}
 
 	private func startRound() {
+		guard !isPreparingRound else { return }
 		applySpeechSettings()
 		let options = GameLoop.Options(
 			modeId: modeId,
@@ -119,19 +113,23 @@ struct GameView: View {
 			audioMode: audioMode
 		)
 
+		isPreparingRound = true
 		viewModel.startRound(options: options)
-		GameAudioEngine.shared.configure(
+		GameAudioEngine.shared.prepareForGameplay(
 			mode: audioMode,
 			timerMusicEnabled: timerMusicEnabled && difficulty != .training
-		)
+		) {
+			SpeechEngine.shared.prewarm()
 
-		DispatchQueue.main.asyncAfter(deadline: .now() + 0.03) {
-			GameAudioEngine.shared.playOpeningCue(playEverythingIntro: modeId == "everything")
-			_ = SpeechEngine.shared.speak(modeId == "everything" ? "Incoming Mole Invasion!" : "Ready?", interrupt: true)
-		}
+			DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+				GameAudioEngine.shared.playOpeningCue(playEverythingIntro: modeId == "everything")
+				_ = SpeechEngine.shared.speak(modeId == "everything" ? "Incoming Mole Invasion!" : "Ready?", interrupt: true)
+			}
 
-		DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-			viewModel.beginRound(options: options)
+			DispatchQueue.main.asyncAfter(deadline: .now() + 0.95) {
+				isPreparingRound = false
+				viewModel.beginRound(options: options)
+			}
 		}
 	}
 

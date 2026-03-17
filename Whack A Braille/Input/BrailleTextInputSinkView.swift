@@ -146,6 +146,8 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 		private var usedPerkinsKeys: Set<String> = []
 		private var focusAttemptCount = 0
 		private var lastResetToken = -1
+		private var suppressedInsertText: String?
+		private var suppressInsertTextUntil = 0.0
 
 		override var canBecomeFirstResponder: Bool {
 			true
@@ -184,6 +186,11 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 
 			if inputModeSelection == .brailleText {
 				super.insertText(text)
+				return
+			}
+
+			let now = Date.timeIntervalSinceReferenceDate
+			if suppressedInsertText == text.lowercased(), now <= suppressInsertTextUntil {
 				return
 			}
 
@@ -255,6 +262,16 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 						}
 						continue
 					}
+
+					if input == " " || input == "\n" || input == "\r" {
+						continue
+					}
+
+					guard input.count == 1 else { continue }
+					suppressedInsertText = input
+					suppressInsertTextUntil = Date.timeIntervalSinceReferenceDate + 0.2
+					onTextInput?(input)
+					clearBufferedText()
 				}
 			}
 		}
@@ -282,6 +299,8 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 		func applyResetToken(_ token: Int) {
 			guard token != lastResetToken else { return }
 			lastResetToken = token
+			suppressedInsertText = nil
+			suppressInsertTextUntil = 0
 			clearBufferedText()
 		}
 

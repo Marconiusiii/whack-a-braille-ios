@@ -12,6 +12,8 @@ final class GameAudioEngine {
 	private var audioMode = "original"
 	private var activePlayers: [AVAudioPlayer] = []
 	private var hasStartedPrewarm = false
+	private var isPrewarming = false
+	private var pendingReadyHandlers: [() -> Void] = []
 
 	private lazy var popSoundData: Data? = makePopSoundData()
 	private lazy var hitSoundData: Data? = makeHitSoundData()
@@ -40,10 +42,46 @@ final class GameAudioEngine {
 		}
 	}
 
+	func prepareForGameplay(mode: String, timerMusicEnabled: Bool, completion: @escaping () -> Void) {
+		audioMode = mode == "silly" ? "silly" : "original"
+		self.timerMusicEnabled = timerMusicEnabled
+		configureAudioSession()
+
+		if hasStartedPrewarm {
+			DispatchQueue.main.async(execute: completion)
+			return
+		}
+
+		pendingReadyHandlers.append(completion)
+		guard !isPrewarming else { return }
+		isPrewarming = true
+
+		DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+			guard let self else { return }
+			_ = self.popSoundData
+			_ = self.hitSoundData
+			_ = self.missSoundData
+			_ = self.retreatSoundData
+			_ = self.openingCueData
+			_ = self.everythingCueData
+			_ = self.endCueData
+
+			DispatchQueue.main.async {
+				self.hasStartedPrewarm = true
+				self.isPrewarming = false
+				let handlers = self.pendingReadyHandlers
+				self.pendingReadyHandlers.removeAll()
+				for handler in handlers {
+					handler()
+				}
+			}
+		}
+	}
+
 	func configure(mode: String, timerMusicEnabled: Bool) {
 		audioMode = mode == "silly" ? "silly" : "original"
 		self.timerMusicEnabled = timerMusicEnabled
-		prewarm()
+		configureAudioSession()
 	}
 
 	func playOpeningCue(playEverythingIntro: Bool) {
