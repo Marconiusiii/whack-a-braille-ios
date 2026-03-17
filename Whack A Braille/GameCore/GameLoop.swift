@@ -29,10 +29,10 @@ final class GameLoop {
 	private let maxSameLaneInRow = 2
 	private let trainingMoleCap = 15
 
-	private let startIntervalMs = 900
-	private let endIntervalMs = 300
-	private let startUpTimeMs = 650
-	private let endUpTimeMs = 250
+	private let startIntervalMs = 1_000
+	private let endIntervalMs = 360
+	private let startUpTimeMs = 760
+	private let endUpTimeMs = 340
 
 	private let difficultyMultipliers: [Difficulty: Double] = [
 		.beginner: 1.5,
@@ -598,11 +598,11 @@ final class GameLoop {
 		var interval = TimeUtils.lerp(start: startIntervalMs, end: endIntervalMs, t: getProgress())
 
 		if getProgress() > 0.7 {
-			interval = Int(Double(interval) * 0.45)
+			interval = Int(Double(interval) * 0.6)
 		}
 
 		let multiplier = difficultyMultipliers[currentOptions.difficulty] ?? 1.0
-		return max(Int(Double(interval) * multiplier), 180)
+		return max(Int(Double(interval) * multiplier), 240)
 	}
 
 	private func getCurrentUpTime() -> Int {
@@ -612,9 +612,9 @@ final class GameLoop {
 	}
 
 	private func computeMoleWindowMs(baseUpTimeMs: Int, speechDurationMs: Int) -> Int {
-		let reactionBufferMs = 260
-		let minUpTimeMs = 400
-		let maxUpTimeMs = 1_800
+		let reactionBufferMs = 380
+		let minUpTimeMs = 550
+		let maxUpTimeMs = 2_200
 		let effectiveSpeechDurationMs = max(300, speechDurationMs)
 
 		return min(
