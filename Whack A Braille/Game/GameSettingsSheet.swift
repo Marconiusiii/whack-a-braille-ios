@@ -52,8 +52,9 @@ struct GameSettingsSheet: View {
 
 				Section("Keyboard Input Mode") {
 					Picker("Keyboard input mode", selection: $inputMode) {
-						Text("QWERTY").tag(InputMode.qwerty)
-						Text("Perkins Home Row").tag(InputMode.perkins)
+						ForEach(InputMode.allCases) { mode in
+							Text(mode.label).tag(mode)
+						}
 					}
 					.disabled(modeId == "everything")
 				}
