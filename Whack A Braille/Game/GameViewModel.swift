@@ -115,9 +115,10 @@ final class GameViewModel: ObservableObject {
 
 	func cashInTickets() {
 		guard totalAccruedTickets >= 0 else { return }
-		cashOutPrizes = Self.pickRandomPrizes(from: PrizeCatalog.eligible(for: totalAccruedTickets), count: 3)
-		selectedCashOutPrizeID = nil
-		phase = .cashOut
+		let prizes = Self.pickRandomPrizes(from: PrizeCatalog.eligible(for: totalAccruedTickets), count: 3)
+		cashOutPrizes = prizes
+		selectedCashOutPrizeID = prizes.first?.id
+		transitionPhase(to: .cashOut)
 	}
 
 	func selectCashOutPrize(_ prizeID: String) {
@@ -133,12 +134,12 @@ final class GameViewModel: ObservableObject {
 		UserDefaults.standard.set(totalAccruedTickets, forKey: StorageKey.totalTickets)
 		cashOutPrizes = []
 		self.selectedCashOutPrizeID = nil
-		phase = .home
 		homeNotice = "You claimed \(prize.label)."
+		transitionPhase(to: .home)
 	}
 
 	func cancelCashOut() {
-		phase = .roundResults
+		transitionPhase(to: .roundResults)
 	}
 
 	func clearPrizeShelf() {
@@ -195,5 +196,11 @@ final class GameViewModel: ObservableObject {
 	private static func pickRandomPrizes(from prizes: [Prize], count: Int) -> [Prize] {
 		guard !prizes.isEmpty else { return [] }
 		return Array(prizes.shuffled().prefix(max(0, count)))
+	}
+
+	private func transitionPhase(to nextPhase: Phase) {
+		DispatchQueue.main.async { [weak self] in
+			self?.phase = nextPhase
+		}
 	}
 }

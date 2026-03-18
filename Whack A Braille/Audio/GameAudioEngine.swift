@@ -109,7 +109,7 @@ final class GameAudioEngine {
 	}
 
 	func playMolePop(lane: Int) {
-		playGeneratedSound(popSoundData, volume: 1.0, pan: pan(for: lane))
+		playGeneratedSound(popSoundData, volume: 0.45, pan: pan(for: lane))
 	}
 
 	func playRetreat(lane: Int) {
@@ -147,10 +147,11 @@ final class GameAudioEngine {
 	}
 
 	private func playGeneratedSound(_ data: Data?, volume: Float, pan: Float) {
-		guard let data else { return }
+		guard let data, data.count > 44 else { return }
 
 		do {
 			let player = try AVAudioPlayer(data: data)
+			guard player.duration > 0 else { return }
 			player.volume = volume
 			player.pan = pan
 			player.prepareToPlay()
@@ -223,12 +224,13 @@ final class GameAudioEngine {
 	private func makePopSoundData() -> Data? {
 		let duration = 0.3
 		return makeWaveFile(duration: duration) { time in
-			let progress = min(max(time / 0.24, 0), 1)
-			let vibrato = sin(2 * .pi * 6.8 * time) * 20
-			let freq = lerpExp(start: 170, end: 760, progress: progress) + vibrato
+			let progress = min(max(time / 0.22, 0), 1)
+			let vibrato = sin(2 * .pi * 5.2 * time) * 10
+			let freq = lerpExp(start: 155, end: 520, progress: progress) + vibrato
 			let body = sine(freq, time)
-			let env = linearEnvelope(time, attack: 0.018, release: 0.28, peak: 0.65)
-			return clampSample(body * env * 0.38)
+			let support = triangle(max(freq * 0.5, 1), time) * 0.18
+			let env = linearEnvelope(time, attack: 0.022, release: 0.27, peak: 0.48)
+			return clampSample((body * 0.26 + support) * env)
 		}
 	}
 
@@ -361,6 +363,7 @@ final class GameAudioEngine {
 	}
 
 	private func makeWaveFile(fromPCM pcm: Data, sampleRate: Int, channelCount: Int, bitsPerSample: Int) -> Data {
+		guard !pcm.isEmpty else { return Data() }
 		let byteRate = sampleRate * channelCount * bitsPerSample / 8
 		let blockAlign = channelCount * bitsPerSample / 8
 		let chunkSize = 36 + pcm.count
