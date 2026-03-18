@@ -1,5 +1,6 @@
 import AVFoundation
 import SwiftUI
+import UIKit
 
 struct GameView: View {
 
@@ -42,7 +43,8 @@ struct GameView: View {
 					result: viewModel.lastRoundResult,
 					totalTickets: viewModel.totalAccruedTickets,
 					keepWhacking: startRound,
-					cashInTickets: viewModel.cashInTickets
+					cashInTickets: cashInTickets,
+					onAppearAction: handleResultsAppear
 				)
 			case .cashOut:
 				CashOutView(
@@ -120,6 +122,7 @@ struct GameView: View {
 	}
 
 	private func startRound() {
+		pendingRoundStartID = UUID()
 		applySpeechSettings()
 		let options = GameLoop.Options(
 			modeId: modeId,
@@ -144,6 +147,24 @@ struct GameView: View {
 		SpeechEngine.shared.prewarm()
 
 		waitForRoundReadiness(startID: startID, options: options, startedAt: Date.timeIntervalSinceReferenceDate)
+	}
+
+	private func cashInTickets() {
+		pendingRoundStartID = UUID()
+		NotificationCenter.default.post(name: .dismissGameplayInput, object: nil)
+		UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+		SpeechEngine.shared.cancel()
+		GameAudioEngine.shared.stopRound()
+		DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+			viewModel.cashInTickets()
+		}
+	}
+
+	private func handleResultsAppear() {
+		pendingRoundStartID = UUID()
+		NotificationCenter.default.post(name: .dismissGameplayInput, object: nil)
+		UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+		GameAudioEngine.shared.playEndCue()
 	}
 
 	private func waitForRoundReadiness(startID: UUID, options: GameLoop.Options, startedAt: TimeInterval) {

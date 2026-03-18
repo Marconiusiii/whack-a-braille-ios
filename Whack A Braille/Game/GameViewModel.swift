@@ -64,6 +64,8 @@ final class GameViewModel: ObservableObject {
 			self.activeLane = nil
 			self.activeTargetLabel = result.canceled ? "Round stopped" : "Round finished"
 			self.dismissGameplayInput()
+			SpeechEngine.shared.cancel()
+			GameAudioEngine.shared.stopRound()
 
 			if result.canceled {
 				self.lastRoundResult = nil
@@ -71,7 +73,6 @@ final class GameViewModel: ObservableObject {
 				self.homeNotice = "Round stopped."
 				self.transitionPhase(to: .home)
 			} else {
-				GameAudioEngine.shared.playEndCue()
 				self.lastRoundResult = result
 				self.lastRoundWasTraining = result.isTraining
 
