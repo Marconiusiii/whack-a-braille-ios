@@ -18,6 +18,7 @@ struct GameView: View {
 	@AppStorage("whackABraille.selectedVoiceId") private var selectedVoiceId = ""
 
 	@State private var isShowingSettings = false
+	@State private var isShowingCashOut = false
 	@State private var pendingRoundStartID = UUID()
 
 	var body: some View {
@@ -44,13 +45,6 @@ struct GameView: View {
 					keepWhacking: startRound,
 					cashInTickets: cashInTickets
 				)
-			case .cashOut:
-				CashOutView(
-					totalTickets: viewModel.totalAccruedTickets,
-					prizes: viewModel.cashOutPrizes,
-					claimPrize: viewModel.claimPrize,
-					keepWhacking: viewModel.cancelCashOut
-				)
 			}
 		}
 		.id(viewIdentity)
@@ -66,6 +60,20 @@ struct GameView: View {
 				characterEcho: $characterEcho,
 				speechRatePercent: $speechRatePercent,
 				selectedVoiceId: $selectedVoiceId
+			)
+		}
+		.fullScreenCover(isPresented: $isShowingCashOut, onDismiss: viewModel.cancelCashOut) {
+			CashOutView(
+				totalTickets: viewModel.totalAccruedTickets,
+				prizes: viewModel.cashOutPrizes,
+				claimPrize: { prizeID in
+					isShowingCashOut = false
+					viewModel.claimPrize(prizeID)
+				},
+				keepWhacking: {
+					isShowingCashOut = false
+					viewModel.cancelCashOut()
+				}
 			)
 		}
 		.onChange(of: viewModel.phase, initial: true) { _, newPhase in
@@ -87,8 +95,6 @@ struct GameView: View {
 			return "gameplay"
 		case .roundResults:
 			return "roundResults"
-		case .cashOut:
-			return "cashOut"
 		}
 	}
 
@@ -153,26 +159,24 @@ struct GameView: View {
 		SpeechEngine.shared.cancel()
 		GameAudioEngine.shared.stopRound()
 		DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-			viewModel.cashInTickets()
+			viewModel.prepareCashOut()
+			isShowingCashOut = true
 		}
 	}
 
 	private func handlePhaseChange(_ phase: GameViewModel.Phase) {
-		pendingRoundStartID = UUID()
 		switch phase {
 		case .home:
+			pendingRoundStartID = UUID()
 			break
 		case .gameplay:
 			break
 		case .roundResults:
+			pendingRoundStartID = UUID()
 			dismissTextInputSystem()
 			SpeechEngine.shared.cancel()
 			GameAudioEngine.shared.stopRound()
 			GameAudioEngine.shared.playEndCue()
-		case .cashOut:
-			dismissTextInputSystem()
-			SpeechEngine.shared.cancel()
-			GameAudioEngine.shared.stopRound()
 		}
 	}
 

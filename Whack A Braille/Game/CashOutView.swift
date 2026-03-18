@@ -4,10 +4,10 @@ struct CashOutView: View {
 
 	let totalTickets: Int
 	let prizes: [Prize]
-	let claimPrize: (String?) -> Void
+	let claimPrize: (String) -> Void
 	let keepWhacking: () -> Void
 
-	@State private var selectedPrizeID: String?
+	@AccessibilityFocusState private var isHeadingFocused: Bool
 
 	var body: some View {
 		ScrollView {
@@ -15,6 +15,7 @@ struct CashOutView: View {
 				Text("Pick a Prize!")
 					.font(.largeTitle.bold())
 					.accessibilityAddTraits(.isHeader)
+					.accessibilityFocused($isHeadingFocused)
 
 				VStack(alignment: .leading, spacing: 10) {
 					Text("You have \(totalTickets) tickets.")
@@ -24,29 +25,14 @@ struct CashOutView: View {
 				VStack(alignment: .leading, spacing: 12) {
 					Text("Available prizes")
 						.font(.headline)
+						.accessibilityHidden(true)
 
 					ForEach(prizes) { prize in
-						Button {
-							selectedPrizeID = prize.id
-						} label: {
-							HStack(alignment: .top, spacing: 12) {
-								Image(systemName: selectedPrizeID == prize.id ? "largecircle.fill.circle" : "circle")
-								Text(prize.label)
-									frame(maxWidth: .infinity, alignment: .leading)
-							}
+						Button("Claim \(prize.label)") {
+							claimPrize(prize.id)
 						}
-						.buttonStyle(.plain)
-						.accessibilityLabel(prize.label)
-						.accessibilityValue(selectedPrizeID == prize.id ? "Selected" : "Not selected")
-					}
-				}
-
-				VStack(alignment: .leading, spacing: 12) {
-					Button("Claim Selected Prize") {
-						claimPrize(selectedPrizeID)
-					}
 						.buttonStyle(.borderedProminent)
-						.disabled(selectedPrizeID == nil)
+					}
 
 					Button("Keep Whacking!", action: keepWhacking)
 						.buttonStyle(.bordered)
@@ -55,8 +41,8 @@ struct CashOutView: View {
 			.padding(20)
 		}
 		.onAppear {
-			if selectedPrizeID == nil {
-				selectedPrizeID = prizes.first?.id
+			DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+				isHeadingFocused = true
 			}
 		}
 	}

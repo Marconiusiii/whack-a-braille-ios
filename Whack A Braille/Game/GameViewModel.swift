@@ -8,7 +8,6 @@ final class GameViewModel: ObservableObject {
 		case home
 		case gameplay
 		case roundResults
-		case cashOut
 	}
 
 	private enum StorageKey {
@@ -115,15 +114,13 @@ final class GameViewModel: ObservableObject {
 		gameLoop.repeatCurrentTarget()
 	}
 
-	func cashInTickets() {
+	func prepareCashOut() {
 		guard totalAccruedTickets >= 0 else { return }
 		cashOutPrizes = Self.pickRandomPrizes(from: PrizeCatalog.eligible(for: totalAccruedTickets), count: 3)
-		transitionPhase(to: .cashOut)
 	}
 
-	func claimPrize(_ prizeID: String?) {
-		guard let prizeID,
-			let prize = cashOutPrizes.first(where: { $0.id == prizeID }) else { return }
+	func claimPrize(_ prizeID: String) {
+		guard let prize = cashOutPrizes.first(where: { $0.id == prizeID }) else { return }
 
 		addPrizeToShelf(prize.label)
 		totalAccruedTickets = 0
@@ -134,8 +131,7 @@ final class GameViewModel: ObservableObject {
 	}
 
 	func cancelCashOut() {
-		dismissGameplayInput()
-		transitionPhase(to: .roundResults)
+		cashOutPrizes = []
 	}
 
 	func clearPrizeShelf() {
