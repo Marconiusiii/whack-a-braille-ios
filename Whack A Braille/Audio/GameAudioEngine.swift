@@ -13,6 +13,8 @@ final class GameAudioEngine {
 	private var activePlayers: [AVAudioPlayer] = []
 	private var hasStartedPrewarm = false
 	private var hasFinishedPrewarm = false
+	private var pendingPrewarmHandlers: [() -> Void] = []
+	private var sessionObservers: [NSObjectProtocol] = []
 
 	private lazy var popSoundData: Data? = makePopSoundData()
 	private lazy var hitSoundData: Data? = makeHitSoundData()
@@ -22,10 +24,28 @@ final class GameAudioEngine {
 	private lazy var everythingCueData: Data? = makeEverythingStingerData()
 	private lazy var endCueData: Data? = makeEndCueData()
 
-	private init() {}
+	private init() {
+		observeAudioSession()
+	}
 
-	func prewarm() {
+	deinit {
+		for observer in sessionObservers {
+			NotificationCenter.default.removeObserver(observer)
+		}
+	}
+
+	func prewarm(completion: (() -> Void)? = nil) {
 		configureAudioSession()
+
+		if hasFinishedPrewarm {
+			completion?()
+			return
+		}
+
+		if let completion {
+			pendingPrewarmHandlers.append(completion)
+		}
+
 		guard !hasStartedPrewarm else { return }
 		hasStartedPrewarm = true
 
@@ -41,6 +61,11 @@ final class GameAudioEngine {
 
 			DispatchQueue.main.async {
 				self.hasFinishedPrewarm = true
+				let handlers = self.pendingPrewarmHandlers
+				self.pendingPrewarmHandlers.removeAll()
+				for handler in handlers {
+					handler()
+				}
 			}
 		}
 	}
@@ -124,10 +149,44 @@ final class GameAudioEngine {
 	private func configureAudioSession() {
 		do {
 			try session.setCategory(.playback, mode: .default, options: [.duckOthers])
-			try session.setActive(true)
+			try session.setActive(true, options: [])
 		} catch {
 			// Keep gameplay running even if audio session activation fails.
 		}
+	}
+
+	private func observeAudioSession() {
+		let center = NotificationCenter.default
+
+		sessionObservers.append(
+			center.addObserver(
+				forName: AVAudioSession.routeChangeNotification,
+				object: session,
+				queue: .main
+			) { [weak self] _ in
+				self?.configureAudioSession()
+			}
+		)
+
+		sessionObservers.append(
+			center.addObserver(
+				forName: AVAudioSession.interruptionNotification,
+				object: session,
+				queue: .main
+			) { [weak self] notification in
+				guard
+					let userInfo = notification.userInfo,
+					let typeValue = userInfo[AVAudioSessionInterruptionTypeKey] as? UInt,
+					let type = AVAudioSession.InterruptionType(rawValue: typeValue)
+				else {
+					return
+				}
+
+				if type == .ended {
+					self?.configureAudioSession()
+				}
+			}
+		)
 	}
 
 	private func playBundledSound(named name: String, fileExtension: String, volume: Float, pan: Float) {

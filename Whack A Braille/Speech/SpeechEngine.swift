@@ -8,13 +8,21 @@ final class SpeechEngine {
 	private let synthesizer = AVSpeechSynthesizer()
 	private var currentVoice: AVSpeechSynthesisVoice?
 	private var currentRate: Float = AVSpeechUtteranceDefaultSpeechRate
+	private var sessionObservers: [NSObjectProtocol] = []
 
 	private init() {
 		currentVoice = AVSpeechSynthesisVoice(language: Locale.current.identifier) ?? AVSpeechSynthesisVoice(language: "en-US")
+		observeAudioSession()
 	}
 
 	func prewarm() {
 		activateAudioSession()
+	}
+
+	deinit {
+		for observer in sessionObservers {
+			NotificationCenter.default.removeObserver(observer)
+		}
 	}
 
 	func configure(voice: AVSpeechSynthesisVoice?, rate: Float) {
@@ -73,6 +81,41 @@ final class SpeechEngine {
 		} catch {
 			// Keep the game usable even if the audio session cannot be updated.
 		}
+	}
+
+	private func observeAudioSession() {
+		let session = AVAudioSession.sharedInstance()
+		let center = NotificationCenter.default
+
+		sessionObservers.append(
+			center.addObserver(
+				forName: AVAudioSession.routeChangeNotification,
+				object: session,
+				queue: .main
+			) { [weak self] _ in
+				self?.activateAudioSession()
+			}
+		)
+
+		sessionObservers.append(
+			center.addObserver(
+				forName: AVAudioSession.interruptionNotification,
+				object: session,
+				queue: .main
+			) { [weak self] notification in
+				guard
+					let userInfo = notification.userInfo,
+					let typeValue = userInfo[AVAudioSessionInterruptionTypeKey] as? UInt,
+					let type = AVAudioSession.InterruptionType(rawValue: typeValue)
+				else {
+					return
+				}
+
+				if type == .ended {
+					self?.activateAudioSession()
+				}
+			}
+		)
 	}
 
 	private func speechRateForPercent(_ percent: Int) -> Float {

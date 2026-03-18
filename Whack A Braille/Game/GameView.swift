@@ -145,10 +145,10 @@ struct GameView: View {
 			mode: audioMode,
 			timerMusicEnabled: timerMusicEnabled && difficulty != .training
 		)
-		GameAudioEngine.shared.prewarm()
 		SpeechEngine.shared.prewarm()
-
-		waitForRoundReadiness(startID: startID, options: options, startedAt: Date.timeIntervalSinceReferenceDate)
+		GameAudioEngine.shared.prewarm {
+			beginPreparedRound(startID: startID, options: options)
+		}
 	}
 
 	private func cashInTickets() {
@@ -191,23 +191,13 @@ struct GameView: View {
 		}
 	}
 
-	private func waitForRoundReadiness(startID: UUID, options: GameLoop.Options, startedAt: TimeInterval) {
+	private func beginPreparedRound(startID: UUID, options: GameLoop.Options) {
 		guard pendingRoundStartID == startID else { return }
-
-		let elapsed = Date.timeIntervalSinceReferenceDate - startedAt
-		let isReady = GameAudioEngine.shared.isReadyForGameplay || elapsed >= 2.5
-
-		guard isReady else {
-			DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-				waitForRoundReadiness(startID: startID, options: options, startedAt: startedAt)
-			}
-			return
-		}
 
 		let introText = modeId == "everything" ? "Incoming Mole Invasion!" : "Ready?"
 		GameAudioEngine.shared.playOpeningCue(playEverythingIntro: modeId == "everything")
 		let speechDurationMs = SpeechEngine.shared.speak(introText, interrupt: true)
-		let startDelayMs = max(700, min(2_400, speechDurationMs + 180))
+		let startDelayMs = max(900, min(3_000, speechDurationMs + 240))
 
 		DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(startDelayMs)) {
 			guard pendingRoundStartID == startID else { return }
