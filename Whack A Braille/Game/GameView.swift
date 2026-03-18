@@ -10,7 +10,6 @@ struct GameView: View {
 	@AppStorage("whackABraille.difficulty") private var difficultyRawValue = Difficulty.normal.rawValue
 	@AppStorage("whackABraille.roundDurationSeconds") private var roundDurationSeconds = 30
 	@AppStorage("whackABraille.inputMode") private var inputModeRawValue = InputMode.qwerty.rawValue
-	@AppStorage("whackABraille.audioMode") private var audioMode = "original"
 	@AppStorage("whackABraille.timerMusicEnabled") private var timerMusicEnabled = true
 	@AppStorage("whackABraille.spatialMoleMappingEnabled") private var spatialMoleMappingEnabled = true
 	@AppStorage("whackABraille.speakBrailleDots") private var speakBrailleDots = false
@@ -61,7 +60,6 @@ struct GameView: View {
 				difficulty: difficultyBinding,
 				roundDurationSeconds: $roundDurationSeconds,
 				inputMode: inputModeBinding,
-				audioMode: $audioMode,
 				timerMusicEnabled: $timerMusicEnabled,
 				spatialMoleMappingEnabled: $spatialMoleMappingEnabled,
 				speakBrailleDots: $speakBrailleDots,
@@ -134,15 +132,13 @@ struct GameView: View {
 			speakBrailleDots: speakBrailleDots,
 			characterEcho: characterEcho,
 			timerMusicEnabled: timerMusicEnabled,
-			spatialMoleMappingEnabled: spatialMoleMappingEnabled,
-			audioMode: audioMode
+			spatialMoleMappingEnabled: spatialMoleMappingEnabled
 		)
 
 		let startID = UUID()
 		pendingRoundStartID = startID
 		viewModel.startRound(options: options)
 		GameAudioEngine.shared.configure(
-			mode: audioMode,
 			timerMusicEnabled: timerMusicEnabled && difficulty != .training
 		)
 		SpeechEngine.shared.prewarm()

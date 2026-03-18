@@ -12,7 +12,6 @@ final class GameLoop {
 		let characterEcho: Bool
 		let timerMusicEnabled: Bool
 		let spatialMoleMappingEnabled: Bool
-		let audioMode: String
 	}
 
 	var onRoundEnded: ((RoundResult) -> Void)?
@@ -62,8 +61,7 @@ final class GameLoop {
 		speakBrailleDots: false,
 		characterEcho: false,
 		timerMusicEnabled: true,
-		spatialMoleMappingEnabled: true,
-		audioMode: "original"
+		spatialMoleMappingEnabled: true
 	)
 
 	private var availableItems: [BrailleItem] = []

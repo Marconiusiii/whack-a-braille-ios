@@ -7,7 +7,6 @@ struct GameSettingsSheet: View {
 	@Binding var difficulty: Difficulty
 	@Binding var roundDurationSeconds: Int
 	@Binding var inputMode: InputMode
-	@Binding var audioMode: String
 	@Binding var timerMusicEnabled: Bool
 	@Binding var spatialMoleMappingEnabled: Bool
 	@Binding var speakBrailleDots: Bool
@@ -57,13 +56,6 @@ struct GameSettingsSheet: View {
 						}
 					}
 					.disabled(modeId == "everything")
-				}
-
-				Section("Game Audio") {
-					Picker("Game audio", selection: $audioMode) {
-						Text("Original").tag("original")
-						Text("Silly").tag("silly")
-					}
 				}
 
 				Section("Timer Music") {

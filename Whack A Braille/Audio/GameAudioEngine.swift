@@ -9,7 +9,6 @@ final class GameAudioEngine {
 	private let sampleRate = 44_100.0
 
 	private var timerMusicEnabled = true
-	private var audioMode = "original"
 	private var activePlayers: [AVAudioPlayer] = []
 	private var hasStartedPrewarm = false
 	private var hasFinishedPrewarm = false
@@ -74,34 +73,16 @@ final class GameAudioEngine {
 		hasFinishedPrewarm
 	}
 
-	func configure(mode: String, timerMusicEnabled: Bool) {
-		audioMode = mode == "silly" ? "silly" : "original"
+	func configure(timerMusicEnabled: Bool) {
 		self.timerMusicEnabled = timerMusicEnabled
 		configureAudioSession()
 	}
 
 	func playOpeningCue(playEverythingIntro: Bool) {
-		if audioMode == "silly" {
-			if playEverythingIntro {
-				playBundledSound(named: "ChanceyBonk_6", fileExtension: "m4a", volume: 0.7, pan: 0)
-				DispatchQueue.main.asyncAfter(deadline: .now() + 0.16) {
-					self.playBundledSound(named: "ChanceyBonk_6", fileExtension: "m4a", volume: 0.7, pan: 0)
-				}
-			} else {
-				playBundledSound(named: "ChanceyBonk_6", fileExtension: "m4a", volume: 0.6, pan: 0)
-			}
-			return
-		}
-
 		playGeneratedSound(playEverythingIntro ? everythingCueData : openingCueData, volume: 1.0, pan: 0)
 	}
 
 	func playEndCue() {
-		if audioMode == "silly" {
-			playBundledSound(named: "50pts_2", fileExtension: "m4a", volume: 0.85, pan: 0)
-			return
-		}
-
 		playGeneratedSound(endCueData, volume: 1.0, pan: 0)
 	}
 
@@ -115,17 +96,8 @@ final class GameAudioEngine {
 	}
 
 	func playHit(scoreBeforeHit: Int, lane: Int) {
+		_ = scoreBeforeHit
 		let pan = pan(for: lane)
-
-		if audioMode == "silly" {
-			playBundledSound(named: "ChanceyBonk_6", fileExtension: "m4a", volume: 0.85, pan: pan)
-
-			if scoreBeforeHit < 50, scoreBeforeHit + 10 >= 50 {
-				playBundledSound(named: "50pts_2", fileExtension: "m4a", volume: 0.8, pan: 0)
-			}
-			return
-		}
-
 		playGeneratedSound(hitSoundData, volume: 1.18, pan: pan)
 	}
 
@@ -189,22 +161,6 @@ final class GameAudioEngine {
 		)
 	}
 
-	private func playBundledSound(named name: String, fileExtension: String, volume: Float, pan: Float) {
-		guard let url = bundledAudioURL(named: name, fileExtension: fileExtension) else { return }
-
-		do {
-			let player = try AVAudioPlayer(contentsOf: url)
-			player.volume = volume
-			player.pan = pan
-			player.prepareToPlay()
-			activePlayers.append(player)
-			player.play()
-			purgeFinishedPlayers()
-		} catch {
-			// Keep gameplay running even if a bundled sound cannot be played.
-		}
-	}
-
 	private func playGeneratedSound(_ data: Data?, volume: Float, pan: Float) {
 		guard let data, data.count > 44 else { return }
 
@@ -220,16 +176,6 @@ final class GameAudioEngine {
 		} catch {
 			// Keep gameplay running even if a generated sound cannot be played.
 		}
-	}
-
-	private func bundledAudioURL(named name: String, fileExtension: String) -> URL? {
-		let possibleURLs: [URL?] = [
-			Bundle.main.url(forResource: name, withExtension: fileExtension, subdirectory: "Resources/Audio"),
-			Bundle.main.url(forResource: name, withExtension: fileExtension, subdirectory: "Audio"),
-			Bundle.main.url(forResource: name, withExtension: fileExtension)
-		]
-
-		return possibleURLs.compactMap { $0 }.first
 	}
 
 	private func purgeFinishedPlayers() {
