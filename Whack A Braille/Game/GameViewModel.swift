@@ -66,20 +66,21 @@ final class GameViewModel: ObservableObject {
 			self.dismissGameplayInput()
 
 			if result.canceled {
-				self.phase = .home
 				self.lastRoundResult = nil
 				self.lastRoundWasTraining = false
 				self.homeNotice = "Round stopped."
+				self.transitionPhase(to: .home)
 			} else {
 				GameAudioEngine.shared.playEndCue()
 				self.lastRoundResult = result
 				self.lastRoundWasTraining = result.isTraining
-				self.phase = .roundResults
 
 				if !result.isTraining {
 					self.totalAccruedTickets += result.totalTickets
 					UserDefaults.standard.set(self.totalAccruedTickets, forKey: StorageKey.totalTickets)
 				}
+
+				self.transitionPhase(to: .roundResults)
 			}
 		}
 	}
@@ -94,7 +95,7 @@ final class GameViewModel: ObservableObject {
 		activeTargetLabel = "Get ready"
 		inputResetToken += 1
 		isRunning = true
-		phase = .gameplay
+		transitionPhase(to: .gameplay)
 	}
 
 	func beginRound(options: GameLoop.Options) {
@@ -117,7 +118,7 @@ final class GameViewModel: ObservableObject {
 		guard totalAccruedTickets >= 0 else { return }
 		dismissGameplayInput()
 		cashOutPrizes = Self.pickRandomPrizes(from: PrizeCatalog.eligible(for: totalAccruedTickets), count: 3)
-		phase = .cashOut
+		transitionPhase(to: .cashOut)
 	}
 
 	func claimPrize(_ prizeID: String?) {
@@ -128,13 +129,13 @@ final class GameViewModel: ObservableObject {
 		totalAccruedTickets = 0
 		UserDefaults.standard.set(totalAccruedTickets, forKey: StorageKey.totalTickets)
 		cashOutPrizes = []
-		phase = .home
 		homeNotice = "You claimed \(prize.label)."
+		transitionPhase(to: .home)
 	}
 
 	func cancelCashOut() {
 		dismissGameplayInput()
-		phase = .roundResults
+		transitionPhase(to: .roundResults)
 	}
 
 	func clearPrizeShelf() {
@@ -196,5 +197,11 @@ final class GameViewModel: ObservableObject {
 	private func dismissGameplayInput() {
 		inputResetToken += 1
 		NotificationCenter.default.post(name: .dismissGameplayInput, object: nil)
+	}
+
+	private func transitionPhase(to phase: Phase) {
+		DispatchQueue.main.async { [weak self] in
+			self?.phase = phase
+		}
 	}
 }

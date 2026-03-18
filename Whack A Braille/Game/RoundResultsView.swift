@@ -7,13 +7,16 @@ struct RoundResultsView: View {
 	let keepWhacking: () -> Void
 	let cashInTickets: () -> Void
 
+	@AccessibilityFocusState private var isHeadingFocused: Bool
+
 	var body: some View {
 		ScrollView {
 			VStack(alignment: .leading, spacing: 24) {
 				if let result {
-					Text(result.isTraining ? "Training Complete! Great Work!" : "Results")
+					Text(result.isTraining ? "Training Complete! Great Work!" : "Round Results")
 						.font(.largeTitle.bold())
 						.accessibilityAddTraits(.isHeader)
+						.accessibilityFocused($isHeadingFocused)
 
 					VStack(alignment: .leading, spacing: 10) {
 						if !result.isTraining {
@@ -26,9 +29,13 @@ struct RoundResultsView: View {
 							Text("Training moles completed: \(result.trainingMolesCompleted)")
 						}
 
-						Text("Hits: \(result.hits)")
-						Text("Misses: \(result.misses)")
-						Text("Escapes: \(result.escapes)")
+						VStack(alignment: .leading, spacing: 4) {
+							Text("Hits: \(result.hits)")
+							Text("Misses: \(result.misses)")
+							Text("Escapes: \(result.escapes)")
+						}
+						.accessibilityElement(children: .ignore)
+						.accessibilityLabel("Hits \(result.hits), misses \(result.misses), escapes \(result.escapes)")
 					}
 
 					VStack(alignment: .leading, spacing: 12) {
@@ -42,6 +49,12 @@ struct RoundResultsView: View {
 				}
 			}
 			.padding(20)
+		}
+		.onAppear {
+			NotificationCenter.default.post(name: .dismissGameplayInput, object: nil)
+			DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+				isHeadingFocused = true
+			}
 		}
 	}
 }

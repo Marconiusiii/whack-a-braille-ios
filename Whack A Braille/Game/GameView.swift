@@ -53,6 +53,7 @@ struct GameView: View {
 				)
 			}
 		}
+		.id(viewIdentity)
 		.sheet(isPresented: $isShowingSettings) {
 			GameSettingsSheet(
 				modeId: $modeId,
@@ -74,6 +75,19 @@ struct GameView: View {
 
 	private var difficulty: Difficulty {
 		Difficulty(rawValue: difficultyRawValue) ?? .normal
+	}
+
+	private var viewIdentity: String {
+		switch viewModel.phase {
+		case .home:
+			return "home"
+		case .gameplay:
+			return "gameplay"
+		case .roundResults:
+			return "roundResults"
+		case .cashOut:
+			return "cashOut"
+		}
 	}
 
 	private var configuredInputMode: InputMode {

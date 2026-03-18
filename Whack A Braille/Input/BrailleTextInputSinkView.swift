@@ -68,6 +68,14 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 		Coordinator(gameLoop: gameLoop, inputMode: inputMode)
 	}
 
+	static func dismantleUIView(_ uiView: GameInputTextField, coordinator: Coordinator) {
+		uiView.shouldAutoFocus = false
+		uiView.clearForTransition()
+		if uiView.isFirstResponder {
+			uiView.resignFirstResponder()
+		}
+	}
+
 	final class Coordinator: NSObject {
 
 		var gameLoop: GameLoop
@@ -333,6 +341,14 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 			lastResetToken = token
 			suppressedInsertText = nil
 			suppressInsertTextUntil = 0
+			clearBufferedText()
+		}
+
+		func clearForTransition() {
+			suppressedInsertText = nil
+			suppressInsertTextUntil = 0
+			activePerkinsKeys.removeAll()
+			usedPerkinsKeys.removeAll()
 			clearBufferedText()
 		}
 
