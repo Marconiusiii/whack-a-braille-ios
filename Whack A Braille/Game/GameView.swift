@@ -48,9 +48,7 @@ struct GameView: View {
 				CashOutView(
 					totalTickets: viewModel.totalAccruedTickets,
 					prizes: viewModel.cashOutPrizes,
-					selectedPrizeID: viewModel.selectedCashOutPrizeID,
-					selectPrize: viewModel.selectCashOutPrize,
-					claimPrize: viewModel.claimSelectedPrize,
+					claimPrize: viewModel.claimPrize,
 					keepWhacking: viewModel.cancelCashOut
 				)
 			}

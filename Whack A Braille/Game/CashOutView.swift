@@ -4,10 +4,10 @@ struct CashOutView: View {
 
 	let totalTickets: Int
 	let prizes: [Prize]
-	let selectedPrizeID: String?
-	let selectPrize: (String) -> Void
-	let claimPrize: () -> Void
+	let claimPrize: (String?) -> Void
 	let keepWhacking: () -> Void
+
+	@State private var selectedPrizeID: String?
 
 	var body: some View {
 		ScrollView {
@@ -27,7 +27,7 @@ struct CashOutView: View {
 
 					ForEach(prizes) { prize in
 						Button {
-							selectPrize(prize.id)
+							selectedPrizeID = prize.id
 						} label: {
 							HStack(alignment: .top, spacing: 12) {
 								Image(systemName: selectedPrizeID == prize.id ? "largecircle.fill.circle" : "circle")
@@ -42,7 +42,9 @@ struct CashOutView: View {
 				}
 
 				VStack(alignment: .leading, spacing: 12) {
-					Button("Claim Selected Prize", action: claimPrize)
+					Button("Claim Selected Prize") {
+						claimPrize(selectedPrizeID)
+					}
 						.buttonStyle(.borderedProminent)
 						.disabled(selectedPrizeID == nil)
 
@@ -51,6 +53,11 @@ struct CashOutView: View {
 				}
 			}
 			.padding(20)
+		}
+		.onAppear {
+			if selectedPrizeID == nil {
+				selectedPrizeID = prizes.first?.id
+			}
 		}
 	}
 }

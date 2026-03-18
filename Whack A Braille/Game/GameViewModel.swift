@@ -32,7 +32,6 @@ final class GameViewModel: ObservableObject {
 	@Published private(set) var homeNotice: String?
 	@Published private(set) var inputResetToken = 0
 	@Published private(set) var cashOutPrizes: [Prize] = []
-	@Published var selectedCashOutPrizeID: String?
 
 	private var prizeShelfEntries: [PrizeShelfEntry]
 
@@ -64,6 +63,7 @@ final class GameViewModel: ObservableObject {
 			self.isRunning = false
 			self.activeLane = nil
 			self.activeTargetLabel = result.canceled ? "Round stopped" : "Round finished"
+			self.dismissGameplayInput()
 
 			if result.canceled {
 				self.phase = .home
@@ -115,31 +115,26 @@ final class GameViewModel: ObservableObject {
 
 	func cashInTickets() {
 		guard totalAccruedTickets >= 0 else { return }
-		let prizes = Self.pickRandomPrizes(from: PrizeCatalog.eligible(for: totalAccruedTickets), count: 3)
-		cashOutPrizes = prizes
-		selectedCashOutPrizeID = prizes.first?.id
-		transitionPhase(to: .cashOut)
+		dismissGameplayInput()
+		cashOutPrizes = Self.pickRandomPrizes(from: PrizeCatalog.eligible(for: totalAccruedTickets), count: 3)
+		phase = .cashOut
 	}
 
-	func selectCashOutPrize(_ prizeID: String) {
-		selectedCashOutPrizeID = prizeID
-	}
-
-	func claimSelectedPrize() {
-		guard let selectedCashOutPrizeID,
-			let prize = cashOutPrizes.first(where: { $0.id == selectedCashOutPrizeID }) else { return }
+	func claimPrize(_ prizeID: String?) {
+		guard let prizeID,
+			let prize = cashOutPrizes.first(where: { $0.id == prizeID }) else { return }
 
 		addPrizeToShelf(prize.label)
 		totalAccruedTickets = 0
 		UserDefaults.standard.set(totalAccruedTickets, forKey: StorageKey.totalTickets)
 		cashOutPrizes = []
-		self.selectedCashOutPrizeID = nil
+		phase = .home
 		homeNotice = "You claimed \(prize.label)."
-		transitionPhase(to: .home)
 	}
 
 	func cancelCashOut() {
-		transitionPhase(to: .roundResults)
+		dismissGameplayInput()
+		phase = .roundResults
 	}
 
 	func clearPrizeShelf() {
@@ -198,9 +193,8 @@ final class GameViewModel: ObservableObject {
 		return Array(prizes.shuffled().prefix(max(0, count)))
 	}
 
-	private func transitionPhase(to nextPhase: Phase) {
-		DispatchQueue.main.async { [weak self] in
-			self?.phase = nextPhase
-		}
+	private func dismissGameplayInput() {
+		inputResetToken += 1
+		NotificationCenter.default.post(name: .dismissGameplayInput, object: nil)
 	}
 }

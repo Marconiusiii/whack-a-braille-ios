@@ -1,6 +1,10 @@
 import SwiftUI
 import UIKit
 
+extension Notification.Name {
+	static let dismissGameplayInput = Notification.Name("dismissGameplayInput")
+}
+
 struct BrailleTextInputSinkView: UIViewRepresentable {
 
 	let gameLoop: GameLoop
@@ -148,6 +152,7 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 		private var lastResetToken = -1
 		private var suppressedInsertText: String?
 		private var suppressInsertTextUntil = 0.0
+		private var dismissObserver: NSObjectProtocol?
 
 		override var canBecomeFirstResponder: Bool {
 			true
@@ -167,7 +172,34 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 
 		override func didMoveToWindow() {
 			super.didMoveToWindow()
+
+			if window != nil, dismissObserver == nil {
+				dismissObserver = NotificationCenter.default.addObserver(
+					forName: .dismissGameplayInput,
+					object: nil,
+					queue: .main
+				) { [weak self] _ in
+					guard let self else { return }
+					self.shouldAutoFocus = false
+					self.clearBufferedText()
+					if self.isFirstResponder {
+						self.resignFirstResponder()
+					}
+				}
+			}
+
+			if window == nil, let dismissObserver {
+				NotificationCenter.default.removeObserver(dismissObserver)
+				self.dismissObserver = nil
+			}
+
 			attemptFocusIfNeeded()
+		}
+
+		deinit {
+			if let dismissObserver {
+				NotificationCenter.default.removeObserver(dismissObserver)
+			}
 		}
 
 		override func becomeFirstResponder() -> Bool {
