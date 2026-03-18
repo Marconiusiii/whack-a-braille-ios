@@ -43,8 +43,7 @@ struct GameView: View {
 					result: viewModel.lastRoundResult,
 					totalTickets: viewModel.totalAccruedTickets,
 					keepWhacking: startRound,
-					cashInTickets: cashInTickets,
-					onAppearAction: handleResultsAppear
+					cashInTickets: cashInTickets
 				)
 			case .cashOut:
 				CashOutView(
@@ -70,6 +69,9 @@ struct GameView: View {
 				speechRatePercent: $speechRatePercent,
 				selectedVoiceId: $selectedVoiceId
 			)
+		}
+		.onChange(of: viewModel.phase, initial: true) { _, newPhase in
+			handlePhaseChange(newPhase)
 		}
 		.onChange(of: selectedVoiceId) { applySpeechSettings() }
 		.onChange(of: speechRatePercent) { applySpeechSettings() }
@@ -151,20 +153,42 @@ struct GameView: View {
 
 	private func cashInTickets() {
 		pendingRoundStartID = UUID()
-		NotificationCenter.default.post(name: .dismissGameplayInput, object: nil)
-		UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+		dismissTextInputSystem()
 		SpeechEngine.shared.cancel()
 		GameAudioEngine.shared.stopRound()
-		DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+		DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
 			viewModel.cashInTickets()
 		}
 	}
 
-	private func handleResultsAppear() {
+	private func handlePhaseChange(_ phase: GameViewModel.Phase) {
 		pendingRoundStartID = UUID()
+		switch phase {
+		case .home:
+			break
+		case .gameplay:
+			break
+		case .roundResults:
+			dismissTextInputSystem()
+			SpeechEngine.shared.cancel()
+			GameAudioEngine.shared.stopRound()
+			GameAudioEngine.shared.playEndCue()
+		case .cashOut:
+			dismissTextInputSystem()
+			SpeechEngine.shared.cancel()
+			GameAudioEngine.shared.stopRound()
+		}
+	}
+
+	private func dismissTextInputSystem() {
 		NotificationCenter.default.post(name: .dismissGameplayInput, object: nil)
 		UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-		GameAudioEngine.shared.playEndCue()
+		for scene in UIApplication.shared.connectedScenes {
+			guard let windowScene = scene as? UIWindowScene else { continue }
+			for window in windowScene.windows {
+				window.endEditing(true)
+			}
+		}
 	}
 
 	private func waitForRoundReadiness(startID: UUID, options: GameLoop.Options, startedAt: TimeInterval) {

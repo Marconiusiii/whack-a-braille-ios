@@ -117,7 +117,6 @@ final class GameViewModel: ObservableObject {
 
 	func cashInTickets() {
 		guard totalAccruedTickets >= 0 else { return }
-		dismissGameplayInput()
 		cashOutPrizes = Self.pickRandomPrizes(from: PrizeCatalog.eligible(for: totalAccruedTickets), count: 3)
 		transitionPhase(to: .cashOut)
 	}

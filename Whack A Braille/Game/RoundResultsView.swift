@@ -6,7 +6,6 @@ struct RoundResultsView: View {
 	let totalTickets: Int
 	let keepWhacking: () -> Void
 	let cashInTickets: () -> Void
-	let onAppearAction: () -> Void
 
 	@AccessibilityFocusState private var isHeadingFocused: Bool
 
@@ -52,8 +51,6 @@ struct RoundResultsView: View {
 			.padding(20)
 		}
 		.onAppear {
-			onAppearAction()
-			NotificationCenter.default.post(name: .dismissGameplayInput, object: nil)
 			DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
 				isHeadingFocused = true
 			}
