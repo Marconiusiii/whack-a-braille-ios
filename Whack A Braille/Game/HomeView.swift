@@ -41,7 +41,9 @@ struct HomeView: View {
 				}
 				.appCard()
 
-				DisclosureGroup("Prize Shelf", isExpanded: $isPrizeShelfExpanded) {
+				DisclosureGroup(
+					isExpanded: $isPrizeShelfExpanded,
+					content: {
 					VStack(alignment: .leading, spacing: 12) {
 						if prizeShelfItems.isEmpty {
 							Text("Your shelf is empty. Go bonk some moles and win something shiny!")
@@ -70,8 +72,13 @@ struct HomeView: View {
 							.buttonStyle(SecondaryGameButton())
 					}
 					.padding(.top, 8)
-				}
-				.accessibilityValue(prizeShelfAccessibilityValue)
+				},
+					label: {
+						Text("Prize Shelf")
+							.accessibilityLabel("Prize Shelf")
+							.accessibilityValue(prizeShelfAccessibilityValue)
+					}
+				)
 				.tint(AppTheme.heading)
 				.foregroundStyle(AppTheme.heading)
 				.modifier(PrizeShelfCard())
