@@ -1,6 +1,6 @@
 import AVFoundation
-import SwiftUI
 import MessageUI
+import SwiftUI
 
 struct GameSettingsSheet: View {
 
@@ -23,107 +23,125 @@ struct GameSettingsSheet: View {
 
 	var body: some View {
 		NavigationStack {
-			Form {
-				Section("Mole Chooser") {
-					Picker("Mole chooser", selection: $modeId) {
-						ForEach(BrailleRegistry.modeOptions, id: \.id) { option in
-							Text(option.label).tag(option.id)
+			ScrollView {
+				VStack(alignment: .leading, spacing: 18) {
+					settingsSection("Mole Chooser") {
+						Picker("Mole chooser", selection: $modeId) {
+							ForEach(BrailleRegistry.modeOptions, id: \.id) { option in
+								Text(option.label).tag(option.id)
+							}
 						}
+						.pickerStyle(.navigationLink)
+						.settingsRowCard()
 					}
-				}
 
-				Section("Difficulty") {
-					Picker("Difficulty", selection: $difficulty) {
-						ForEach(Difficulty.allCases) { level in
-							Text(level.label).tag(level)
+					settingsSection("Difficulty") {
+						Picker("Difficulty", selection: $difficulty) {
+							ForEach(Difficulty.allCases) { level in
+								Text(level.label).tag(level)
+							}
 						}
+						.pickerStyle(.segmented)
+						.settingsRowCard()
 					}
-				}
 
-				Section("Training Options") {
-					Toggle("Speak Braille Dots", isOn: $speakBrailleDots)
-						.disabled(difficulty != .training)
-				}
-
-				Section("Round Length") {
-					Picker("Round length", selection: $roundDurationSeconds) {
-						Text("30 seconds").tag(30)
-						Text("45 seconds").tag(45)
-						Text("60 seconds").tag(60)
+					settingsSection("Training Options") {
+						Toggle("Speak Braille Dots", isOn: $speakBrailleDots)
+							.disabled(difficulty != .training)
+							.settingsRowCard()
 					}
-					.disabled(difficulty == .training)
-				}
 
-				Section("Keyboard Input Mode") {
-					Picker("Keyboard input mode", selection: $inputMode) {
-						ForEach(InputMode.allCases) { mode in
-							Text(mode.label).tag(mode)
+					settingsSection("Round Length") {
+						Picker("Round length", selection: $roundDurationSeconds) {
+							Text("30 seconds").tag(30)
+							Text("45 seconds").tag(45)
+							Text("60 seconds").tag(60)
 						}
+						.pickerStyle(.segmented)
+						.disabled(difficulty == .training)
+						.settingsRowCard()
 					}
-					.disabled(modeId == "everything")
-				}
 
-				Section("Timer Music") {
-					Toggle("Enable timer music", isOn: $timerMusicEnabled)
-				}
-
-				Section("Spatial Mole Mapping") {
-					Toggle("Enable spatial mole mapping", isOn: $spatialMoleMappingEnabled)
-				}
-
-				Section("Voice Settings") {
-					Picker("System Voice", selection: $selectedVoiceId) {
-						Text("System default").tag("")
-
-						ForEach(availableVoices, id: \.identifier) { voice in
-							Text("\(voice.name) (\(voice.language))").tag(voice.identifier)
+					settingsSection("Keyboard Input Mode") {
+						Picker("Keyboard input mode", selection: $inputMode) {
+							ForEach(InputMode.allCases) { mode in
+								Text(mode.label).tag(mode)
+							}
 						}
+						.pickerStyle(.navigationLink)
+						.disabled(modeId == "everything")
+						.settingsRowCard()
 					}
 
-					Toggle("Character Echo", isOn: $characterEcho)
+					settingsSection("Sound and Space") {
+						Toggle("Enable timer music", isOn: $timerMusicEnabled)
+							.settingsRowCard()
 
-					VStack(alignment: .leading, spacing: 8) {
-						Text("Speech Rate: \(speechRatePercent) percent")
-							.accessibilityHidden(true)
-
-						Slider(
-							value: speechRateBinding,
-							in: 5...100,
-							step: 5
-						)
-						.accessibilityLabel("Speech Rate")
-						.accessibilityValue("\(speechRatePercent) percent")
+						Toggle("Enable spatial mole mapping", isOn: $spatialMoleMappingEnabled)
+							.settingsRowCard()
 					}
 
-					Button("Play Voice Sample") {
-						let voice = selectedVoiceId.isEmpty ? nil : AVSpeechSynthesisVoice(identifier: selectedVoiceId)
-						SpeechEngine.shared.playVoiceSample(voice: voice, ratePercent: speechRatePercent)
-					}
+					settingsSection("Voice Settings") {
+						Picker("System Voice", selection: $selectedVoiceId) {
+							Text("System default").tag("")
 
-					Button("Send Game Feedback") {
-						if MFMailComposeViewController.canSendMail() {
-							isShowingMailComposer = true
-						} else {
-							openMailFallback()
+							ForEach(availableVoices, id: \.identifier) { voice in
+								Text("\(voice.name) (\(voice.language))").tag(voice.identifier)
+							}
 						}
-					}
-					.accessibilityHint("Opens Mail so you can send feedback about the game.")
-				}
+						.pickerStyle(.navigationLink)
+						.settingsRowCard()
 
-				Section {
-					Text(appFooterText)
-						.font(.footnote)
-						.multilineTextAlignment(.center)
-						.frame(maxWidth: .infinity, alignment: .center)
-						.foregroundStyle(secondaryTextColor)
+						Toggle("Character Echo", isOn: $characterEcho)
+							.settingsRowCard()
+
+						VStack(alignment: .leading, spacing: 8) {
+							Text("Speech Rate: \(speechRatePercent) percent")
+								.foregroundStyle(secondaryTextColor)
+								.accessibilityHidden(true)
+
+							Slider(
+								value: speechRateBinding,
+								in: 5...100,
+								step: 5
+							)
+							.accessibilityLabel("Speech Rate")
+							.accessibilityValue("\(speechRatePercent) percent")
+							.tint(AppTheme.focus)
+						}
+						.settingsRowCard()
+
+						Button("Play Voice Sample") {
+							let voice = selectedVoiceId.isEmpty ? nil : AVSpeechSynthesisVoice(identifier: selectedVoiceId)
+							SpeechEngine.shared.playVoiceSample(voice: voice, ratePercent: speechRatePercent)
+						}
+						.buttonStyle(SecondaryGameButton())
+
+						Button("Send Game Feedback") {
+							if MFMailComposeViewController.canSendMail() {
+								isShowingMailComposer = true
+							} else {
+								openMailFallback()
+							}
+						}
+						.buttonStyle(PrimaryGameButton())
+						.accessibilityHint("Opens Mail so you can send feedback about the game.")
+					}
+
+					VStack(spacing: 8) {
+						Text(appFooterText)
+							.font(.footnote)
+							.multilineTextAlignment(.center)
+							.frame(maxWidth: .infinity, alignment: .center)
+							.foregroundStyle(secondaryTextColor)
+					}
+					.padding(.top, 6)
 				}
+				.padding(24)
 			}
-			.scrollContentBackground(.hidden)
-			.listSectionSpacing(20)
 			.background(backgroundView)
 			.tint(AppTheme.focus)
 			.foregroundStyle(primaryTextColor)
-			.environment(\.defaultMinListRowHeight, 54)
 			.navigationTitle("Game Settings")
 			.navigationBarTitleDisplayMode(.inline)
 			.toolbarBackground(.visible, for: .navigationBar)
@@ -148,8 +166,20 @@ struct GameSettingsSheet: View {
 				onFinish: { _ in }
 			)
 		}
-		.onAppear {
-			UITableView.appearance().backgroundColor = .clear
+	}
+
+	@ViewBuilder
+	private func settingsSection<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+		VStack(alignment: .leading, spacing: 10) {
+			Text(title)
+				.font(.system(.headline, design: .rounded, weight: .bold))
+				.foregroundStyle(AppTheme.settingsSectionHeader)
+				.textCase(.uppercase)
+
+			VStack(alignment: .leading, spacing: 12) {
+				content()
+			}
+			.appCard()
 		}
 	}
 
@@ -170,10 +200,6 @@ struct GameSettingsSheet: View {
 
 	private var secondaryTextColor: Color {
 		colorScheme == .dark ? AppTheme.darkSecondaryText : AppTheme.lightSecondaryText
-	}
-
-	private var rowBackground: Color {
-		colorScheme == .dark ? AppTheme.settingsRowDark : AppTheme.settingsRowLight
 	}
 
 	private var speechRateBinding: Binding<Double> {
@@ -201,5 +227,28 @@ struct GameSettingsSheet: View {
 		let subject = "Whack a Braille iOS Feedback".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
 		guard let mailURL = URL(string: "mailto:marco@marconius.com?subject=\(subject)") else { return }
 		openURL(mailURL)
+	}
+}
+
+private struct SettingsRowCard: ViewModifier {
+	@Environment(\.colorScheme) private var colorScheme
+
+	func body(content: Content) -> some View {
+		content
+			.padding(.horizontal, 14)
+			.padding(.vertical, 12)
+			.frame(maxWidth: .infinity, alignment: .leading)
+			.background(colorScheme == .dark ? AppTheme.settingsRowDark : AppTheme.settingsRowLight)
+			.clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+			.overlay(
+				RoundedRectangle(cornerRadius: 16, style: .continuous)
+					.stroke(AppTheme.focus.opacity(colorScheme == .dark ? 0.16 : 0.2), lineWidth: 1)
+			)
+	}
+}
+
+private extension View {
+	func settingsRowCard() -> some View {
+		modifier(SettingsRowCard())
 	}
 }
