@@ -14,6 +14,11 @@ final class GameAudioEngine {
 	private var hasFinishedPrewarm = false
 	private var pendingPrewarmHandlers: [() -> Void] = []
 	private var sessionObservers: [NSObjectProtocol] = []
+	private var roundBeatWorkItem: DispatchWorkItem?
+	private var roundBeatProgressProvider: (() -> Double)?
+	private var beatStepIndex = 0
+	private var beatRepeatCount = 0
+	private var beatRootMidi = 48
 
 	private lazy var popSoundData: Data? = makePopSoundData()
 	private lazy var hitSoundData: Data? = makeHitSoundData()
@@ -88,10 +93,16 @@ final class GameAudioEngine {
 
 	func startRoundAudio(progressProvider: @escaping () -> Double, timerMusicEnabled: Bool) {
 		self.timerMusicEnabled = timerMusicEnabled
-		_ = progressProvider
+		stopRoundBeat()
+
+		guard timerMusicEnabled else { return }
+
+		roundBeatProgressProvider = progressProvider
+		startRoundBeat()
 	}
 
 	func stopRound() {
+		stopRoundBeat()
 		stopAllPlayers()
 	}
 
@@ -175,6 +186,67 @@ final class GameAudioEngine {
 			purgeFinishedPlayers()
 		} catch {
 			// Keep gameplay running even if a generated sound cannot be played.
+		}
+	}
+
+	private func startRoundBeat() {
+		beatStepIndex = 0
+		beatRepeatCount = 0
+		beatRootMidi = 48
+		scheduleNextBeat()
+	}
+
+	private func stopRoundBeat() {
+		roundBeatWorkItem?.cancel()
+		roundBeatWorkItem = nil
+		roundBeatProgressProvider = nil
+		beatStepIndex = 0
+		beatRepeatCount = 0
+		beatRootMidi = 48
+	}
+
+	private func scheduleNextBeat() {
+		guard timerMusicEnabled, let progressProvider = roundBeatProgressProvider else { return }
+
+		let progress = max(0.0, min(1.0, progressProvider()))
+		playBeatPulse(progress: progress)
+
+		let minIntervalMs = 220.0
+		let maxIntervalMs = 720.0
+		let intervalMs = maxIntervalMs - ((maxIntervalMs - minIntervalMs) * progress)
+
+		var workItem: DispatchWorkItem?
+		workItem = DispatchWorkItem { [weak self] in
+			guard let self, let workItem else { return }
+			guard !workItem.isCancelled else { return }
+			self.scheduleNextBeat()
+		}
+
+		roundBeatWorkItem = workItem
+		if let workItem {
+			DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(Int(intervalMs.rounded())), execute: workItem)
+		}
+	}
+
+	private func playBeatPulse(progress: Double) {
+		let pattern = [0, 4, 7, 2]
+		let step = pattern[beatStepIndex % pattern.count]
+		let targetMidi = beatRootMidi + step
+		let targetFreq = 440.0 * pow(2.0, Double(targetMidi - 69) / 12.0)
+		let volume = Float(0.25 + (progress * 0.2))
+
+		let data = makeBeatPulseData(frequency: targetFreq)
+		playGeneratedSound(data, volume: volume, pan: 0)
+
+		beatStepIndex += 1
+
+		if beatStepIndex % pattern.count == 0 {
+			beatRepeatCount += 1
+
+			if beatRepeatCount >= 2 {
+				beatRepeatCount = 0
+				beatRootMidi += 1
+			}
 		}
 	}
 
@@ -348,6 +420,16 @@ final class GameAudioEngine {
 			}
 
 			return clampSample(sample * 0.45)
+		}
+	}
+
+	private func makeBeatPulseData(frequency: Double) -> Data? {
+		let duration = 0.28
+		return makeWaveFile(duration: duration) { time in
+			let noteDuration = 0.26
+			let attackTime = 0.04
+			let env = envelope(time, attack: attackTime, release: noteDuration, peak: 0.42)
+			return clampSample(triangle(frequency, time) * env * 0.75)
 		}
 	}
 

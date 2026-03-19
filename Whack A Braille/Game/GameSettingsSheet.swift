@@ -69,6 +69,7 @@ struct GameSettingsSheet: View {
 
 				Section("Spatial Mole Mapping") {
 					Toggle("Enable spatial mole mapping", isOn: $spatialMoleMappingEnabled)
+						.accessibilityHint("Matches mole location with key positions on keyboard.")
 				}
 
 				Section("Voice Settings") {
@@ -81,6 +82,7 @@ struct GameSettingsSheet: View {
 					}
 
 					Toggle("Character Echo", isOn: $characterEcho)
+						.accessibilityHint("Speaks NATO word for single letters")
 
 					VStack(alignment: .leading, spacing: 8) {
 						Text("Speech Rate: \(speechRatePercent) percent")
