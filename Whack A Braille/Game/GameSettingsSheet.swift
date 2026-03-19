@@ -1,5 +1,6 @@
 import AVFoundation
 import SwiftUI
+import MessageUI
 
 struct GameSettingsSheet: View {
 
@@ -15,6 +16,9 @@ struct GameSettingsSheet: View {
 	@Binding var selectedVoiceId: String
 
 	@Environment(\.dismiss) private var dismiss
+	@Environment(\.openURL) private var openURL
+
+	@State private var isShowingMailComposer = false
 
 	var body: some View {
 		NavigationStack {
@@ -94,6 +98,22 @@ struct GameSettingsSheet: View {
 						let voice = selectedVoiceId.isEmpty ? nil : AVSpeechSynthesisVoice(identifier: selectedVoiceId)
 						SpeechEngine.shared.playVoiceSample(voice: voice, ratePercent: speechRatePercent)
 					}
+
+					Button("Send Game Feedback") {
+						if MFMailComposeViewController.canSendMail() {
+							isShowingMailComposer = true
+						} else {
+							openMailFallback()
+						}
+					}
+					.accessibilityHint("Opens Mail so you can send feedback about the game.")
+				}
+
+				Section {
+					Text(appFooterText)
+						.font(.footnote)
+						.multilineTextAlignment(.center)
+						.frame(maxWidth: .infinity, alignment: .center)
 				}
 			}
 			.navigationTitle("Game Settings")
@@ -105,6 +125,14 @@ struct GameSettingsSheet: View {
 					}
 				}
 			}
+		}
+		.sheet(isPresented: $isShowingMailComposer) {
+			MailComposerView(
+				recipient: "marco@marconius.com",
+				subject: "Whack a Braille iOS Feedback",
+				body: nil,
+				onFinish: { _ in }
+			)
 		}
 	}
 
@@ -120,5 +148,18 @@ struct GameSettingsSheet: View {
 		let filtered = AVSpeechSynthesisVoice.speechVoices().filter { $0.language.lowercased().hasPrefix(localeLanguage.lowercased()) }
 		let source = filtered.isEmpty ? AVSpeechSynthesisVoice.speechVoices() : filtered
 		return source.sorted { $0.name < $1.name }
+	}
+
+	private var appFooterText: String {
+		let year = Calendar.current.component(.year, from: .now)
+		let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0,0"
+		let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
+		return "Copyright \(year) By Marco Salsiccia\nv.\(version) (\(build))"
+	}
+
+	private func openMailFallback() {
+		let subject = "Whack a Braille iOS Feedback".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+		guard let mailURL = URL(string: "mailto:marco@marconius.com?subject=\(subject)") else { return }
+		openURL(mailURL)
 	}
 }
