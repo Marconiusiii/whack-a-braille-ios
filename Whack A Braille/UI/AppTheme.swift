@@ -37,6 +37,7 @@ enum AppTheme {
 	static let boardLipLight = Color.white.opacity(0.78)
 	static let settingsRowLight = Color.white.opacity(0.9)
 	static let settingsRowDark = Color(red: 15 / 255, green: 23 / 255, blue: 48 / 255).opacity(0.96)
+	static let settingsSectionHeader = Color(red: 205 / 255, green: 180 / 255, blue: 255 / 255)
 	static let prizeShelfTop = Color(red: 26 / 255, green: 32 / 255, blue: 64 / 255)
 	static let prizeShelfBottom = Color(red: 11 / 255, green: 16 / 255, blue: 32 / 255)
 	static let plaqueDarkStart = Color(red: 111 / 255, green: 78 / 255, blue: 0)
@@ -44,6 +45,10 @@ enum AppTheme {
 	static let plaqueLightMid = Color(red: 224 / 255, green: 184 / 255, blue: 74 / 255)
 	static let plaqueText = Color(red: 1.0, green: 246 / 255, blue: 213 / 255)
 	static let missMuted = Color(red: 160 / 255, green: 160 / 255, blue: 160 / 255)
+	static let summaryRowLight = Color.white.opacity(0.88)
+	static let summaryRowDark = Color(red: 9 / 255, green: 13 / 255, blue: 28 / 255).opacity(0.92)
+	static let gameplayInputLight = Color.white.opacity(0.82)
+	static let gameplayInputDark = Color(red: 9 / 255, green: 13 / 255, blue: 28 / 255).opacity(0.96)
 }
 
 struct AppBackground: ViewModifier {
@@ -140,5 +145,48 @@ extension View {
 
 	func appCard() -> some View {
 		modifier(AppCard())
+	}
+}
+
+struct SummaryRowCard: ViewModifier {
+	@Environment(\.colorScheme) private var colorScheme
+
+	func body(content: Content) -> some View {
+		content
+			.padding(.horizontal, 14)
+			.padding(.vertical, 12)
+			.frame(maxWidth: .infinity, alignment: .leading)
+			.background(colorScheme == .dark ? AppTheme.summaryRowDark : AppTheme.summaryRowLight)
+			.clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+			.overlay(
+				RoundedRectangle(cornerRadius: 14, style: .continuous)
+					.stroke(AppTheme.focus.opacity(colorScheme == .dark ? 0.14 : 0.18), lineWidth: 1)
+			)
+	}
+}
+
+struct GameplayInputCard: ViewModifier {
+	@Environment(\.colorScheme) private var colorScheme
+
+	func body(content: Content) -> some View {
+		content
+			.padding(14)
+			.frame(maxWidth: .infinity, alignment: .leading)
+			.background(colorScheme == .dark ? AppTheme.gameplayInputDark : AppTheme.gameplayInputLight)
+			.clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+			.overlay(
+				RoundedRectangle(cornerRadius: 18, style: .continuous)
+					.stroke(AppTheme.focus.opacity(0.24), lineWidth: 1.5)
+			)
+	}
+}
+
+extension View {
+	func summaryRowCard() -> some View {
+		modifier(SummaryRowCard())
+	}
+
+	func gameplayInputCard() -> some View {
+		modifier(GameplayInputCard())
 	}
 }

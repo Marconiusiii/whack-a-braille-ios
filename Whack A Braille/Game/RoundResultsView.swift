@@ -26,12 +26,18 @@ struct RoundResultsView: View {
 					VStack(alignment: .leading, spacing: 10) {
 						if !result.isTraining {
 							Text("Score: \(result.score)")
+								.summaryRowCard()
 							Text("Tickets this round: \(result.totalTickets)")
+								.summaryRowCard()
 							Text("Streak Bonus Tickets: \(result.streakBonusTickets)")
+								.summaryRowCard()
 							Text("Speed Bonus Tickets: \(result.speedBonusTickets)")
+								.summaryRowCard()
 							Text("Total tickets: \(totalTickets)")
+								.summaryRowCard()
 						} else {
 							Text("Training moles completed: \(result.trainingMolesCompleted)")
+								.summaryRowCard()
 						}
 
 						VStack(alignment: .leading, spacing: 4) {
@@ -39,6 +45,7 @@ struct RoundResultsView: View {
 							Text("Misses: \(result.misses)")
 							Text("Escapes: \(result.escapes)")
 						}
+						.summaryRowCard()
 						.accessibilityElement(children: .ignore)
 						.accessibilityLabel("Hits \(result.hits), misses \(result.misses), escapes \(result.escapes)")
 					}

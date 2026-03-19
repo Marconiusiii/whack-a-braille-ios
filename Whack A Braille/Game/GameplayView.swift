@@ -42,6 +42,7 @@ struct GameplayView: View {
 					VStack(alignment: .leading, spacing: 8) {
 						Text("Braille Entry")
 							.font(.headline)
+							.foregroundStyle(AppTheme.heading)
 
 						BrailleTextInputSinkView(
 							gameLoop: viewModel.gameLoop,
@@ -52,6 +53,7 @@ struct GameplayView: View {
 						)
 						.frame(height: 48)
 					}
+					.gameplayInputCard()
 
 					Button("Exit Game", action: exitGame)
 						.buttonStyle(SecondaryGameButton())

@@ -22,6 +22,10 @@ struct CashOutView: View {
 
 					Text("Your tickets are ready to trade. Pick the prize that catches your ear, or keep whacking and save up for a bigger score.")
 						.foregroundStyle(secondaryTextColor)
+
+					Text("Tickets ready: \(totalTickets)")
+						.summaryRowCard()
+						.foregroundStyle(colorScheme == .dark ? AppTheme.darkText : AppTheme.lightText)
 				}
 				.appCard()
 

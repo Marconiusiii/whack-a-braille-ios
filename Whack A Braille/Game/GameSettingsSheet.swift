@@ -119,9 +119,11 @@ struct GameSettingsSheet: View {
 				}
 			}
 			.scrollContentBackground(.hidden)
+			.listSectionSpacing(20)
 			.background(backgroundView)
 			.tint(AppTheme.focus)
 			.foregroundStyle(primaryTextColor)
+			.environment(\.defaultMinListRowHeight, 54)
 			.navigationTitle("Game Settings")
 			.navigationBarTitleDisplayMode(.inline)
 			.toolbarBackground(.visible, for: .navigationBar)
@@ -168,6 +170,10 @@ struct GameSettingsSheet: View {
 
 	private var secondaryTextColor: Color {
 		colorScheme == .dark ? AppTheme.darkSecondaryText : AppTheme.lightSecondaryText
+	}
+
+	private var rowBackground: Color {
+		colorScheme == .dark ? AppTheme.settingsRowDark : AppTheme.settingsRowLight
 	}
 
 	private var speechRateBinding: Binding<Double> {
