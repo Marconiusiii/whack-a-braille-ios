@@ -203,8 +203,9 @@ final class GameViewModel: ObservableObject {
 	}
 
 	private static func displayItems(from entries: [PrizeShelfEntry]) -> [String] {
-		entries.map { entry in
-			entry.quantity > 1 ? "\(entry.label) x\(entry.quantity)" : entry.label
+		entries.enumerated().map { index, entry in
+			let baseLabel = entry.quantity > 1 ? "\(entry.label), x\(entry.quantity)" : entry.label
+			return "\(index + 1). \(baseLabel)"
 		}
 	}
 
