@@ -18,7 +18,7 @@ struct RoundResultsView: View {
 				if let result {
 					VStack(alignment: .leading, spacing: 12) {
 						Text(result.isTraining ? "Training Complete! Great Work!" : "Round Results")
-							.font(.system(size: 34, weight: .heavy, design: .rounded))
+							.font(.system(.largeTitle, design: .rounded, weight: .heavy))
 							.foregroundStyle(AppTheme.heading)
 							.accessibilityAddTraits(.isHeader)
 							.accessibilityFocused($isHeadingFocused)

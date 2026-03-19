@@ -103,7 +103,9 @@ struct PrimaryGameButton: ButtonStyle {
 		configuration.label
 			.font(.headline)
 			.frame(maxWidth: .infinity)
-			.padding(.vertical, 14)
+			.frame(minHeight: 52)
+			.padding(.horizontal, 16)
+			.padding(.vertical, 8)
 			.background(configuration.isPressed ? AppTheme.primaryButtonPressed : AppTheme.primaryButton)
 			.foregroundStyle(AppTheme.primaryButtonText)
 			.clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
@@ -113,6 +115,7 @@ struct PrimaryGameButton: ButtonStyle {
 			)
 			.shadow(color: AppTheme.primaryButton.opacity(configuration.isPressed ? 0.18 : 0.3), radius: configuration.isPressed ? 8 : 14, x: 0, y: configuration.isPressed ? 4 : 8)
 			.scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+			.contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 	}
 }
 
@@ -123,7 +126,9 @@ struct SecondaryGameButton: ButtonStyle {
 		configuration.label
 			.font(.headline)
 			.frame(maxWidth: .infinity)
-			.padding(.vertical, 14)
+			.frame(minHeight: 52)
+			.padding(.horizontal, 16)
+			.padding(.vertical, 8)
 			.background(
 				RoundedRectangle(cornerRadius: 14, style: .continuous)
 					.fill((colorScheme == .dark ? AppTheme.darkCard : Color.white).opacity(configuration.isPressed ? 0.82 : 0.96))
@@ -135,6 +140,7 @@ struct SecondaryGameButton: ButtonStyle {
 			.foregroundStyle(colorScheme == .dark ? AppTheme.darkText : AppTheme.lightText)
 			.shadow(color: Color.black.opacity(colorScheme == .dark ? 0.12 : 0.06), radius: 10, x: 0, y: 6)
 			.scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+			.contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 	}
 }
 

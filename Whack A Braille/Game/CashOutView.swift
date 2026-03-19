@@ -15,13 +15,14 @@ struct CashOutView: View {
 			VStack(alignment: .leading, spacing: 20) {
 				VStack(alignment: .leading, spacing: 12) {
 					Text("Pick a Prize!")
-						.font(.system(size: 34, weight: .heavy, design: .rounded))
+						.font(.system(.largeTitle, design: .rounded, weight: .heavy))
 						.foregroundStyle(AppTheme.heading)
 						.accessibilityAddTraits(.isHeader)
 						.accessibilityFocused($isHeadingFocused)
 
 					Text("Your tickets are ready to trade. Pick the prize that suits your fancy, or keep whacking and save up for a bigger score.")
 						.foregroundStyle(secondaryTextColor)
+						.fixedSize(horizontal: false, vertical: true)
 
 					Text("Tickets ready: \(totalTickets)")
 						.summaryRowCard()
@@ -35,6 +36,7 @@ struct CashOutView: View {
 							claimPrize(prize.id)
 						}
 						.buttonStyle(PrimaryGameButton())
+						.fixedSize(horizontal: false, vertical: true)
 						.accessibilityValue("\(index + 1) of \(prizes.count)")
 						.accessibilityHint("Double-tap to claim.")
 					}

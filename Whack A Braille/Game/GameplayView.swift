@@ -6,13 +6,15 @@ struct GameplayView: View {
 	let inputMode: InputMode
 	let exitGame: () -> Void
 	@Environment(\.colorScheme) private var colorScheme
+	@ScaledMetric(relativeTo: .title2) private var activeMoleFontSize: CGFloat = 30
+	@ScaledMetric(relativeTo: .headline) private var compactMoleFontSize: CGFloat = 22
 
 	var body: some View {
 		ScrollView {
 			VStack(alignment: .leading, spacing: 20) {
 				VStack(alignment: .leading, spacing: 14) {
 					Text("Whack the Braille!")
-						.font(.system(size: 34, weight: .heavy, design: .rounded))
+						.font(.system(.largeTitle, design: .rounded, weight: .heavy))
 						.foregroundStyle(AppTheme.heading)
 						.accessibilityAddTraits(.isHeader)
 
@@ -71,7 +73,9 @@ struct GameplayView: View {
 				MoleLaneView(
 					label: viewModel.activeLane == lane ? viewModel.activeTargetLabel : nil,
 					isActive: viewModel.activeLane == lane,
-					feedbackKind: viewModel.feedbackLane == lane ? viewModel.feedbackKind : nil
+					feedbackKind: viewModel.feedbackLane == lane ? viewModel.feedbackKind : nil,
+					activeMoleFontSize: activeMoleFontSize,
+					compactMoleFontSize: compactMoleFontSize
 				)
 			}
 		}
@@ -105,6 +109,8 @@ private struct MoleLaneView: View {
 	let label: String?
 	let isActive: Bool
 	let feedbackKind: GameLoop.FeedbackKind?
+	let activeMoleFontSize: CGFloat
+	let compactMoleFontSize: CGFloat
 	@Environment(\.colorScheme) private var colorScheme
 
 	var body: some View {
@@ -207,7 +213,7 @@ private struct MoleLaneView: View {
 
 	private var moleFontSize: CGFloat {
 		guard let label else { return 30 }
-		return label.contains(" ") || label.contains("+") || label.count > 3 ? 22 : 30
+		return label.contains(" ") || label.contains("+") || label.count > 3 ? compactMoleFontSize : activeMoleFontSize
 	}
 
 	private var labelColor: Color {

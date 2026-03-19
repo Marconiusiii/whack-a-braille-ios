@@ -28,12 +28,13 @@ struct HomeView: View {
 			VStack(alignment: .leading, spacing: 20) {
 				VStack(alignment: .leading, spacing: 12) {
 					Text("Whack A Braille")
-						.font(.system(size: 38, weight: .heavy, design: .rounded))
+						.font(.system(.largeTitle, design: .rounded, weight: .heavy))
 						.foregroundStyle(AppTheme.title)
 						.accessibilityAddTraits(.isHeader)
 
 					Text("Listen sharp, type fast, and send those braille moles scampering before they duck away. Rack up tickets with Braille Screen Input, a keyboard, or your braille display, then cash in for prizes.")
 						.foregroundStyle(secondaryTextColor)
+						.fixedSize(horizontal: false, vertical: true)
 
 					if let homeNotice {
 						Text(homeNotice)
@@ -62,6 +63,7 @@ struct HomeView: View {
 						if prizeShelfItems.isEmpty {
 							Text("Your shelf is empty. Go bonk some moles and win something shiny!")
 								.foregroundStyle(secondaryTextColor)
+								.fixedSize(horizontal: false, vertical: true)
 								.accessibilityFocused($focusedElement, equals: .emptyShelfMessage)
 						} else {
 							ForEach(prizeShelfItems, id: \.self) { item in
@@ -95,6 +97,7 @@ struct HomeView: View {
 				},
 					label: {
 						Text("Prize Shelf")
+							.font(.headline)
 							.accessibilityLabel("Prize Shelf")
 							.accessibilityValue(prizeShelfAccessibilityValue)
 					}

@@ -86,6 +86,7 @@ struct GameSettingsSheet: View {
 					VStack(alignment: .leading, spacing: 8) {
 						Text("Speech Rate: \(speechRatePercent) percent")
 							.accessibilityHidden(true)
+							.fixedSize(horizontal: false, vertical: true)
 
 						Slider(
 							value: speechRateBinding,
