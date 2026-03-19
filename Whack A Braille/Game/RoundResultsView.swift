@@ -20,9 +20,6 @@ struct RoundResultsView: View {
 							.foregroundStyle(AppTheme.heading)
 							.accessibilityAddTraits(.isHeader)
 							.accessibilityFocused($isHeadingFocused)
-
-						Text(result.isTraining ? "You knocked out a full practice set. Want another round?" : "The round is over. Count your tickets, brag a little, and decide whether to keep swinging or cash in.")
-							.foregroundStyle(secondaryTextColor)
 					}
 					.appCard()
 
