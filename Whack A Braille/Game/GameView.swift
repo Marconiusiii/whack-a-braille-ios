@@ -27,6 +27,7 @@ struct GameView: View {
 			case .home:
 				HomeView(
 					prizeShelfItems: viewModel.prizeShelfItems,
+					prizeShelfCount: viewModel.prizeShelfCount,
 					homeNotice: viewModel.homeNotice,
 					openSettings: { isShowingSettings = true },
 					startGame: startRound,

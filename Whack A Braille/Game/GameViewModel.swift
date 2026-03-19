@@ -1,5 +1,6 @@
 import Combine
 import Foundation
+import UIKit
 
 @MainActor
 final class GameViewModel: ObservableObject {
@@ -28,6 +29,7 @@ final class GameViewModel: ObservableObject {
 	@Published private(set) var lastRoundWasTraining = false
 	@Published private(set) var totalAccruedTickets: Int
 	@Published private(set) var prizeShelfItems: [String]
+	@Published private(set) var prizeShelfCount: Int
 	@Published private(set) var homeNotice: String?
 	@Published private(set) var inputResetToken = 0
 	@Published private(set) var cashOutPrizes: [Prize] = []
@@ -43,6 +45,7 @@ final class GameViewModel: ObservableObject {
 		self.totalAccruedTickets = UserDefaults.standard.integer(forKey: StorageKey.totalTickets)
 		self.prizeShelfEntries = Self.loadPrizeShelfEntries()
 		self.prizeShelfItems = Self.displayItems(from: self.prizeShelfEntries)
+		self.prizeShelfCount = Self.totalPrizeCount(from: self.prizeShelfEntries)
 
 		self.gameLoop.onScoreUpdated = { [weak self] score, streak in
 			guard let self else { return }
@@ -160,9 +163,11 @@ final class GameViewModel: ObservableObject {
 	func clearPrizeShelf() {
 		prizeShelfEntries = []
 		prizeShelfItems = []
+		prizeShelfCount = 0
 		UserDefaults.standard.removeObject(forKey: StorageKey.prizeShelfEntries)
 		UserDefaults.standard.removeObject(forKey: StorageKey.prizeShelf)
-		homeNotice = "Prize Shelf Cleared."
+		homeNotice = nil
+		UIAccessibility.post(notification: .announcement, argument: "Your Shelf has been cleared and dusted!")
 	}
 
 	private func addPrizeToShelf(_ label: String) {
@@ -174,6 +179,7 @@ final class GameViewModel: ObservableObject {
 
 		savePrizeShelfEntries()
 		prizeShelfItems = Self.displayItems(from: prizeShelfEntries)
+		prizeShelfCount = Self.totalPrizeCount(from: prizeShelfEntries)
 	}
 
 	private func savePrizeShelfEntries() {
@@ -212,6 +218,10 @@ final class GameViewModel: ObservableObject {
 	private static func pickRandomPrizes(from prizes: [Prize], count: Int) -> [Prize] {
 		guard !prizes.isEmpty else { return [] }
 		return Array(prizes.shuffled().prefix(max(0, count)))
+	}
+
+	private static func totalPrizeCount(from entries: [PrizeShelfEntry]) -> Int {
+		entries.reduce(0) { $0 + $1.quantity }
 	}
 
 	private func dismissGameplayInput() {

@@ -3,6 +3,7 @@ import SwiftUI
 struct HomeView: View {
 
 	let prizeShelfItems: [String]
+	let prizeShelfCount: Int
 	let homeNotice: String?
 	let openSettings: () -> Void
 	let startGame: () -> Void
@@ -10,6 +11,7 @@ struct HomeView: View {
 
 	@Environment(\.colorScheme) private var colorScheme
 	@State private var isPrizeShelfExpanded = false
+	@State private var isShowingClearShelfConfirmation = false
 
 	var body: some View {
 		ScrollView {
@@ -62,11 +64,14 @@ struct HomeView: View {
 							}
 						}
 
-						Button("Clear Prize Shelf", action: clearPrizeShelf)
+						Button("Clear Prize Shelf") {
+							isShowingClearShelfConfirmation = true
+						}
 							.buttonStyle(SecondaryGameButton())
 					}
 					.padding(.top, 8)
 				}
+				.accessibilityValue(prizeShelfAccessibilityValue)
 				.tint(AppTheme.heading)
 				.foregroundStyle(AppTheme.heading)
 				.modifier(PrizeShelfCard())
@@ -75,6 +80,13 @@ struct HomeView: View {
 		}
 		.appBackground()
 		.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+		.alert("Are You Sure?", isPresented: $isShowingClearShelfConfirmation) {
+			Button("Yes, Clear My Shelf", role: .destructive) {
+				clearPrizeShelf()
+			}
+
+			Button("No, Keep My Prizes", role: .cancel) { }
+		}
 	}
 
 	private var primaryTextColor: Color {
@@ -97,6 +109,10 @@ struct HomeView: View {
 			startPoint: .topLeading,
 			endPoint: .bottomTrailing
 		)
+	}
+
+	private var prizeShelfAccessibilityValue: String {
+		"\(prizeShelfCount) " + (prizeShelfCount == 1 ? "Prize" : "Prizes")
 	}
 }
 
