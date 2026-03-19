@@ -116,7 +116,7 @@ struct GameView: View {
 	}
 
 	private var effectiveInputMode: InputMode {
-		modeId == "everything" ? .perkins : configuredInputMode
+		configuredInputMode
 	}
 
 	private var difficultyBinding: Binding<Difficulty> {
@@ -207,8 +207,8 @@ struct GameView: View {
 	private func beginPreparedRound(startID: UUID, options: GameLoop.Options) {
 		guard pendingRoundStartID == startID else { return }
 
-		let introText = modeId == "everything" ? "Incoming Mole Invasion!" : "Ready?"
-		GameAudioEngine.shared.playOpeningCue(playEverythingIntro: modeId == "everything")
+		let introText = "Ready?"
+		GameAudioEngine.shared.playOpeningCue(playEverythingIntro: false)
 		let speechDurationMs = SpeechEngine.shared.speak(introText, interrupt: true)
 		let startDelayMs = max(900, min(3_000, speechDurationMs + 240))
 

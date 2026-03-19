@@ -60,7 +60,6 @@ struct GameSettingsSheet: View {
 							Text(mode.label).tag(mode)
 						}
 					}
-					.disabled(modeId == "everything")
 				}
 
 				Section("Timer Music") {

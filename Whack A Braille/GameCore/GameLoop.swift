@@ -288,7 +288,7 @@ final class GameLoop {
 	}
 
 	private var effectiveInputMode: InputMode {
-		currentOptions.modeId == "everything" ? .perkins : currentOptions.inputMode
+		currentOptions.inputMode
 	}
 
 	private func scheduleNextMole(extraDelayMs: Int) {

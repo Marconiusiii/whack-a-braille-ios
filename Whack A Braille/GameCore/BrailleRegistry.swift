@@ -243,8 +243,7 @@ enum BrailleRegistry {
 		("grade1Numbers", "Numbers only (Grade 1)"),
 		("grade1LettersNumbers", "Letters and numbers (Grade 1)"),
 		("grade2Symbols", "Grade 2 contractions (symbols)"),
-		("grade2Words", "Grade 2 whole-word contractions"),
-		("everything", "Everything!")
+		("grade2Words", "Grade 2 whole-word contractions")
 	]
 
 	private static func letterInRange(_ item: BrailleItem, end: Character) -> Bool {
@@ -256,8 +255,6 @@ enum BrailleRegistry {
 
 	static func getItems(for modeId: String) -> [BrailleItem] {
 		switch modeId {
-		case "everything":
-			return brailleOnlyRegistry
 		case "letters-aj":
 			return grade1Letters.filter { letterInRange($0, end: "J") }
 		case "letters-at":
