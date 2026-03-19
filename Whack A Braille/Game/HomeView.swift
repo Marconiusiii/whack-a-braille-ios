@@ -17,6 +17,7 @@ struct HomeView: View {
 	@Environment(\.colorScheme) private var colorScheme
 	@State private var isPrizeShelfExpanded = false
 	@State private var isShowingClearShelfConfirmation = false
+	@State private var isShowingEmptyShelfAlert = false
 	@AccessibilityFocusState private var focusedElement: FocusTarget?
 
 	var body: some View {
@@ -74,7 +75,11 @@ struct HomeView: View {
 						}
 
 						Button("Clear Prize Shelf") {
-							isShowingClearShelfConfirmation = true
+							if prizeShelfItems.isEmpty {
+								isShowingEmptyShelfAlert = true
+							} else {
+								isShowingClearShelfConfirmation = true
+							}
 						}
 							.buttonStyle(SecondaryGameButton())
 							.accessibilityFocused($focusedElement, equals: .clearPrizeShelf)
@@ -109,6 +114,15 @@ struct HomeView: View {
 					focusedElement = .clearPrizeShelf
 				}
 			}
+		}
+		.alert("You have no Prizes!", isPresented: $isShowingEmptyShelfAlert) {
+			Button("Ok!") {
+				DispatchQueue.main.async {
+					focusedElement = .clearPrizeShelf
+				}
+			}
+		} message: {
+			Text("You can't clear away what you don't have! Go win some tickets!")
 		}
 	}
 
