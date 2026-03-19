@@ -126,7 +126,7 @@ final class GameViewModel: ObservableObject {
 		totalAccruedTickets = 0
 		UserDefaults.standard.set(totalAccruedTickets, forKey: StorageKey.totalTickets)
 		cashOutPrizes = []
-		homeNotice = "You claimed \(prize.label)."
+		homeNotice = nil
 		transitionPhase(to: .home)
 	}
 

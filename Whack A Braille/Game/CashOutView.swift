@@ -7,43 +7,50 @@ struct CashOutView: View {
 	let claimPrize: (String) -> Void
 	let keepWhacking: () -> Void
 
+	@Environment(\.colorScheme) private var colorScheme
 	@AccessibilityFocusState private var isHeadingFocused: Bool
 
 	var body: some View {
 		ScrollView {
-			VStack(alignment: .leading, spacing: 24) {
-				Text("Pick a Prize!")
-					.font(.largeTitle.bold())
-					.accessibilityAddTraits(.isHeader)
-					.accessibilityFocused($isHeadingFocused)
+			VStack(alignment: .leading, spacing: 20) {
+				VStack(alignment: .leading, spacing: 12) {
+					Text("Pick a Prize!")
+						.font(.system(size: 34, weight: .heavy, design: .rounded))
+						.foregroundStyle(AppTheme.heading)
+						.accessibilityAddTraits(.isHeader)
+						.accessibilityFocused($isHeadingFocused)
 
-				VStack(alignment: .leading, spacing: 10) {
-					Text("You have \(totalTickets) tickets.")
-					Text("Choose one of the wonderful prizes, or keep playing to win more tickets.")
+					Text("You wrangled \(totalTickets) tickets. Grab a prize now, or keep the mole mayhem going and shoot for something bigger.")
+						.foregroundStyle(secondaryTextColor)
 				}
+				.appCard()
 
 				VStack(alignment: .leading, spacing: 12) {
-					Text("Available prizes")
-						.font(.headline)
-						.accessibilityHidden(true)
-
-					ForEach(prizes) { prize in
-						Button("Claim \(prize.label)") {
+					ForEach(Array(prizes.enumerated()), id: \.element.id) { index, prize in
+						Button(prize.label) {
 							claimPrize(prize.id)
 						}
-						.buttonStyle(.borderedProminent)
+						.buttonStyle(PrimaryGameButton())
+						.accessibilityValue("\(index + 1) of \(prizes.count)")
+						.accessibilityHint("Double-tap to claim.")
 					}
 
 					Button("Keep Whacking!", action: keepWhacking)
-						.buttonStyle(.bordered)
+						.buttonStyle(SecondaryGameButton())
 				}
+				.appCard()
 			}
-			.padding(20)
+			.padding(24)
 		}
+		.appBackground()
 		.onAppear {
 			DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
 				isHeadingFocused = true
 			}
 		}
+	}
+
+	private var secondaryTextColor: Color {
+		colorScheme == .dark ? AppTheme.darkSecondaryText : AppTheme.lightSecondaryText
 	}
 }
