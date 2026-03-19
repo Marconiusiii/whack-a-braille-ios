@@ -27,6 +27,14 @@ enum AppTheme {
 	static let scoreEnd = Color(red: 251 / 255, green: 86 / 255, blue: 7 / 255)
 	static let lightBorder = Color(red: 123 / 255, green: 223 / 255, blue: 242 / 255).opacity(0.26)
 	static let darkBorder = Color(red: 123 / 255, green: 223 / 255, blue: 242 / 255).opacity(0.22)
+	static let moleCoolStart = Color(red: 108 / 255, green: 99 / 255, blue: 1.0)
+	static let moleCoolEnd = Color(red: 58 / 255, green: 45 / 255, blue: 191 / 255)
+	static let moleWarmStart = Color(red: 1.0, green: 190 / 255, blue: 11 / 255)
+	static let moleWarmEnd = Color(red: 251 / 255, green: 86 / 255, blue: 7 / 255)
+	static let boardSurfaceDark = Color(red: 9 / 255, green: 13 / 255, blue: 28 / 255)
+	static let boardSurfaceLight = Color(red: 230 / 255, green: 238 / 255, blue: 1.0)
+	static let boardLipDark = Color.white.opacity(0.06)
+	static let boardLipLight = Color.white.opacity(0.78)
 }
 
 struct AppBackground: ViewModifier {
