@@ -3,6 +3,11 @@ import Foundation
 @MainActor
 final class GameLoop {
 
+	enum FeedbackKind {
+		case hit
+		case miss
+	}
+
 	struct Options {
 		let modeId: String
 		let durationSeconds: Int
@@ -18,6 +23,7 @@ final class GameLoop {
 	var onScoreUpdated: ((Int, Int) -> Void)?
 	var onActiveMoleChanged: ((Int?, BrailleItem?) -> Void)?
 	var onInputResetRequested: (() -> Void)?
+	var onMoleFeedback: ((Int, FeedbackKind) -> Void)?
 
 	private(set) var isRunning: Bool = false
 	private(set) var roundEnding: Bool = false
@@ -396,6 +402,7 @@ final class GameLoop {
 
 		if currentOptions.difficulty == .training {
 			GameAudioEngine.shared.playHit(scoreBeforeHit: 0, lane: lane)
+			onMoleFeedback?(lane, .hit)
 			hitsThisRound += 1
 			trainingMolesCompleted += 1
 			onInputResetRequested?()
@@ -428,6 +435,7 @@ final class GameLoop {
 		}
 
 		GameAudioEngine.shared.playHit(scoreBeforeHit: previousScore, lane: lane)
+		onMoleFeedback?(lane, .hit)
 		onInputResetRequested?()
 		missRegisteredForMole = true
 		moleUpTimer?.cancel()
@@ -444,6 +452,7 @@ final class GameLoop {
 
 		if let lane = activeLane {
 			GameAudioEngine.shared.playMiss(lane: lane)
+			onMoleFeedback?(lane, .miss)
 		}
 	}
 
@@ -455,6 +464,7 @@ final class GameLoop {
 		score = max(0, score - 2)
 
 		GameAudioEngine.shared.playMiss(lane: lane)
+		onMoleFeedback?(lane, .miss)
 		onInputResetRequested?()
 		onScoreUpdated?(score, hitStreak)
 	}

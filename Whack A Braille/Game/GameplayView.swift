@@ -68,7 +68,8 @@ struct GameplayView: View {
 			ForEach(0..<5, id: \.self) { lane in
 				MoleLaneView(
 					label: viewModel.activeLane == lane ? viewModel.activeTargetLabel : nil,
-					isActive: viewModel.activeLane == lane
+					isActive: viewModel.activeLane == lane,
+					feedbackKind: viewModel.feedbackLane == lane ? viewModel.feedbackKind : nil
 				)
 			}
 		}
@@ -101,13 +102,14 @@ private struct MoleLaneView: View {
 
 	let label: String?
 	let isActive: Bool
+	let feedbackKind: GameLoop.FeedbackKind?
 	@Environment(\.colorScheme) private var colorScheme
 
 	var body: some View {
 		ZStack(alignment: .bottom) {
 			RoundedRectangle(cornerRadius: 22, style: .continuous)
 				.fill(laneWellGradient)
-				overlay(alignment: .top) {
+				.overlay(alignment: .top) {
 					RoundedRectangle(cornerRadius: 22, style: .continuous)
 						.fill(laneGloss)
 						.frame(height: 24)
@@ -115,10 +117,10 @@ private struct MoleLaneView: View {
 
 			RoundedRectangle(cornerRadius: 18, style: .continuous)
 				.fill(moleGradient)
-				overlay {
+				.overlay {
 					Text(label ?? "")
 						.font(.system(size: moleFontSize, weight: .heavy, design: .rounded))
-						.foregroundStyle(isActive ? AppTheme.darkText : AppTheme.darkText.opacity(0))
+						.foregroundStyle(labelColor)
 						.multilineTextAlignment(.center)
 						.minimumScaleFactor(0.55)
 						.lineLimit(2)
@@ -129,8 +131,19 @@ private struct MoleLaneView: View {
 						.opacity(isActive ? 1 : 0)
 						.animation(.easeOut(duration: 0.11), value: isActive)
 				}
-				overlay {
-					if isActive {
+				.overlay {
+					if feedbackKind == .hit {
+						RoundedRectangle(cornerRadius: 18, style: .continuous)
+							.fill(
+								RadialGradient(
+									colors: [AppTheme.moleWarmStart.opacity(0.95), AppTheme.moleWarmEnd.opacity(0.78)],
+									center: .topLeading,
+									startRadius: 8,
+									endRadius: 90
+								)
+							)
+							.blendMode(.screen)
+					} else if isActive {
 						RoundedRectangle(cornerRadius: 18, style: .continuous)
 							.fill(
 								RadialGradient(
@@ -142,17 +155,19 @@ private struct MoleLaneView: View {
 							)
 					}
 				}
-				overlay(
+				.overlay(
 					RoundedRectangle(cornerRadius: 18, style: .continuous)
-						.stroke(AppTheme.focus.opacity(isActive ? 0.28 : 0.08), lineWidth: 1)
+						.stroke(borderColor, lineWidth: feedbackKind == .hit ? 2 : 1)
 				)
 				.frame(maxWidth: .infinity, minHeight: 120, maxHeight: 120)
 				.offset(y: isActive ? 0 : 22)
-				.scaleEffect(isActive ? 1 : 0.98)
+				.scaleEffect(scale)
 				.opacity(isActive ? 1 : 0.16)
 				.saturation(isActive ? 1 : 0.9)
 				.shadow(color: Color.black.opacity(isActive ? 0.5 : 0.22), radius: isActive ? 18 : 8, x: 0, y: isActive ? 10 : 5)
 				.animation(.interactiveSpring(response: 0.2, dampingFraction: 0.78), value: isActive)
+				.animation(.easeOut(duration: 0.17), value: feedbackKind == .hit)
+				.animation(.easeOut(duration: 0.14), value: feedbackKind == .miss)
 				.padding(.horizontal, 2)
 		}
 		.frame(maxWidth: .infinity, minHeight: 146, maxHeight: 146, alignment: .bottom)
@@ -178,7 +193,9 @@ private struct MoleLaneView: View {
 
 	private var moleGradient: some ShapeStyle {
 		LinearGradient(
-			colors: isActive
+			colors: feedbackKind == .hit
+				? [AppTheme.moleWarmStart, AppTheme.moleWarmEnd]
+				: isActive
 				? [AppTheme.moleWarmStart, AppTheme.moleWarmEnd]
 				: [AppTheme.moleCoolStart, AppTheme.moleCoolEnd],
 			startPoint: .topLeading,
@@ -189,5 +206,29 @@ private struct MoleLaneView: View {
 	private var moleFontSize: CGFloat {
 		guard let label else { return 30 }
 		return label.contains(" ") || label.contains("+") || label.count > 3 ? 22 : 30
+	}
+
+	private var labelColor: Color {
+		if feedbackKind == .miss {
+			return AppTheme.missMuted
+		}
+		return isActive ? AppTheme.darkText : AppTheme.darkText.opacity(0)
+	}
+
+	private var borderColor: Color {
+		if feedbackKind == .hit {
+			return AppTheme.focus.opacity(0.52)
+		}
+		if feedbackKind == .miss {
+			return AppTheme.missMuted.opacity(0.22)
+		}
+		return AppTheme.focus.opacity(isActive ? 0.28 : 0.08)
+	}
+
+	private var scale: CGFloat {
+		if feedbackKind == .hit {
+			return 0.92
+		}
+		return isActive ? 1 : 0.98
 	}
 }

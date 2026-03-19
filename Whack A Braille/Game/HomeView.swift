@@ -47,7 +47,18 @@ struct HomeView: View {
 						} else {
 							ForEach(prizeShelfItems, id: \.self) { item in
 								Text(item)
-									.foregroundStyle(primaryTextColor)
+									.font(.headline)
+									.foregroundStyle(AppTheme.plaqueText)
+									.frame(maxWidth: .infinity, alignment: .leading)
+									.padding(.horizontal, 14)
+									.padding(.vertical, 12)
+									.background(plaqueBackground)
+									.clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+									.overlay(
+										RoundedRectangle(cornerRadius: 14, style: .continuous)
+											.stroke(Color.white.opacity(0.16), lineWidth: 1)
+									)
+									.shadow(color: Color.black.opacity(0.25), radius: 6, x: 0, y: 4)
 							}
 						}
 
@@ -58,7 +69,7 @@ struct HomeView: View {
 				}
 				.tint(AppTheme.heading)
 				.foregroundStyle(AppTheme.heading)
-				.appCard()
+				.modifier(PrizeShelfCard())
 			}
 			.padding(24)
 		}
@@ -72,5 +83,40 @@ struct HomeView: View {
 
 	private var secondaryTextColor: Color {
 		colorScheme == .dark ? AppTheme.darkSecondaryText : AppTheme.lightSecondaryText
+	}
+
+	private var plaqueBackground: some ShapeStyle {
+		LinearGradient(
+			colors: [
+				AppTheme.plaqueDarkStart,
+				AppTheme.plaqueDarkMid,
+				AppTheme.plaqueLightMid,
+				AppTheme.plaqueDarkMid,
+				AppTheme.plaqueDarkStart
+			],
+			startPoint: .topLeading,
+			endPoint: .bottomTrailing
+		)
+	}
+}
+
+private struct PrizeShelfCard: ViewModifier {
+	func body(content: Content) -> some View {
+		content
+			.padding(20)
+			.frame(maxWidth: .infinity, alignment: .leading)
+			.background(
+				LinearGradient(
+					colors: [AppTheme.prizeShelfTop, AppTheme.prizeShelfBottom],
+					startPoint: .topLeading,
+					endPoint: .bottomTrailing
+				)
+			)
+			.clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+			.overlay(
+				RoundedRectangle(cornerRadius: 22, style: .continuous)
+					.stroke(AppTheme.focus.opacity(0.16), lineWidth: 2)
+			)
+			.shadow(color: Color.black.opacity(0.3), radius: 18, x: 0, y: 10)
 	}
 }

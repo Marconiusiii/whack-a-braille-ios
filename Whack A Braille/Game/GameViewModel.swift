@@ -31,8 +31,11 @@ final class GameViewModel: ObservableObject {
 	@Published private(set) var homeNotice: String?
 	@Published private(set) var inputResetToken = 0
 	@Published private(set) var cashOutPrizes: [Prize] = []
+	@Published private(set) var feedbackLane: Int?
+	@Published private(set) var feedbackKind: GameLoop.FeedbackKind?
 
 	private var prizeShelfEntries: [PrizeShelfEntry]
+	private var feedbackResetTask: DispatchWorkItem?
 
 	init(gameLoop: GameLoop? = nil) {
 		let gameLoop = gameLoop ?? GameLoop()
@@ -57,11 +60,28 @@ final class GameViewModel: ObservableObject {
 			self?.inputResetToken += 1
 		}
 
+		self.gameLoop.onMoleFeedback = { [weak self] lane, kind in
+			guard let self else { return }
+			self.feedbackResetTask?.cancel()
+			self.feedbackLane = lane
+			self.feedbackKind = kind
+
+			let task = DispatchWorkItem { [weak self] in
+				self?.feedbackLane = nil
+				self?.feedbackKind = nil
+			}
+			self.feedbackResetTask = task
+			DispatchQueue.main.asyncAfter(deadline: .now() + 0.22, execute: task)
+		}
+
 		self.gameLoop.onRoundEnded = { [weak self] result in
 			guard let self else { return }
 			self.isRunning = false
 			self.activeLane = nil
 			self.activeTargetLabel = result.canceled ? "Round stopped" : "Round finished"
+			self.feedbackResetTask?.cancel()
+			self.feedbackLane = nil
+			self.feedbackKind = nil
 			self.dismissGameplayInput()
 			SpeechEngine.shared.cancel()
 			GameAudioEngine.shared.stopRound()
@@ -93,6 +113,9 @@ final class GameViewModel: ObservableObject {
 		hitStreak = 0
 		activeLane = nil
 		activeTargetLabel = "Get ready"
+		feedbackResetTask?.cancel()
+		feedbackLane = nil
+		feedbackKind = nil
 		inputResetToken += 1
 		isRunning = true
 		transitionPhase(to: .gameplay)

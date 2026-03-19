@@ -17,6 +17,7 @@ struct GameSettingsSheet: View {
 
 	@Environment(\.dismiss) private var dismiss
 	@Environment(\.openURL) private var openURL
+	@Environment(\.colorScheme) private var colorScheme
 
 	@State private var isShowingMailComposer = false
 
@@ -114,10 +115,21 @@ struct GameSettingsSheet: View {
 						.font(.footnote)
 						.multilineTextAlignment(.center)
 						.frame(maxWidth: .infinity, alignment: .center)
+						.foregroundStyle(secondaryTextColor)
 				}
 			}
+			.scrollContentBackground(.hidden)
+			.background(backgroundView)
+			.tint(AppTheme.focus)
+			.foregroundStyle(primaryTextColor)
 			.navigationTitle("Game Settings")
 			.navigationBarTitleDisplayMode(.inline)
+			.toolbarBackground(.visible, for: .navigationBar)
+			.toolbarBackground(
+				colorScheme == .dark ? AppTheme.darkCard : AppTheme.lightCard,
+				for: .navigationBar
+			)
+			.toolbarColorScheme(colorScheme == .dark ? .dark : .light, for: .navigationBar)
 			.toolbar {
 				ToolbarItem(placement: .confirmationAction) {
 					Button("Done") {
@@ -134,6 +146,28 @@ struct GameSettingsSheet: View {
 				onFinish: { _ in }
 			)
 		}
+		.onAppear {
+			UITableView.appearance().backgroundColor = .clear
+		}
+	}
+
+	private var backgroundView: some View {
+		LinearGradient(
+			colors: colorScheme == .dark
+				? [AppTheme.darkBackgroundTop, AppTheme.darkBackgroundBottom]
+				: [AppTheme.lightBackgroundTop, AppTheme.lightBackgroundBottom],
+			startPoint: .top,
+			endPoint: .bottom
+		)
+		.ignoresSafeArea()
+	}
+
+	private var primaryTextColor: Color {
+		colorScheme == .dark ? AppTheme.darkText : AppTheme.lightText
+	}
+
+	private var secondaryTextColor: Color {
+		colorScheme == .dark ? AppTheme.darkSecondaryText : AppTheme.lightSecondaryText
 	}
 
 	private var speechRateBinding: Binding<Double> {

@@ -35,6 +35,15 @@ enum AppTheme {
 	static let boardSurfaceLight = Color(red: 230 / 255, green: 238 / 255, blue: 1.0)
 	static let boardLipDark = Color.white.opacity(0.06)
 	static let boardLipLight = Color.white.opacity(0.78)
+	static let settingsRowLight = Color.white.opacity(0.9)
+	static let settingsRowDark = Color(red: 15 / 255, green: 23 / 255, blue: 48 / 255).opacity(0.96)
+	static let prizeShelfTop = Color(red: 26 / 255, green: 32 / 255, blue: 64 / 255)
+	static let prizeShelfBottom = Color(red: 11 / 255, green: 16 / 255, blue: 32 / 255)
+	static let plaqueDarkStart = Color(red: 111 / 255, green: 78 / 255, blue: 0)
+	static let plaqueDarkMid = Color(red: 184 / 255, green: 134 / 255, blue: 11 / 255)
+	static let plaqueLightMid = Color(red: 224 / 255, green: 184 / 255, blue: 74 / 255)
+	static let plaqueText = Color(red: 1.0, green: 246 / 255, blue: 213 / 255)
+	static let missMuted = Color(red: 160 / 255, green: 160 / 255, blue: 160 / 255)
 }
 
 struct AppBackground: ViewModifier {
