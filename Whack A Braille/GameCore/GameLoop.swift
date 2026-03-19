@@ -634,9 +634,13 @@ final class GameLoop {
 		let minUpTimeMs = 550
 		let maxUpTimeMs = 2_200
 		let effectiveSpeechDurationMs = max(300, speechDurationMs)
+		let brailleScreenInputSubmissionBufferMs = currentOptions.inputMode == .brailleText ? 220 : 0
 
 		return min(
-			max(baseUpTimeMs + effectiveSpeechDurationMs + reactionBufferMs, minUpTimeMs),
+			max(
+				baseUpTimeMs + effectiveSpeechDurationMs + reactionBufferMs + brailleScreenInputSubmissionBufferMs,
+				minUpTimeMs
+			),
 			maxUpTimeMs
 		)
 	}
