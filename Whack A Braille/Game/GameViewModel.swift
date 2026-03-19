@@ -31,6 +31,7 @@ final class GameViewModel: ObservableObject {
 	@Published private(set) var prizeShelfCount: Int
 	@Published private(set) var homeNotice: String?
 	@Published private(set) var inputResetToken = 0
+	@Published private(set) var inputInstructionsFocusToken = 0
 	@Published private(set) var cashOutPrizes: [Prize] = []
 	@Published private(set) var feedbackLane: Int?
 	@Published private(set) var feedbackKind: GameLoop.FeedbackKind?
@@ -179,6 +180,10 @@ final class GameViewModel: ObservableObject {
 		UserDefaults.standard.removeObject(forKey: StorageKey.prizeShelfEntries)
 		UserDefaults.standard.removeObject(forKey: StorageKey.prizeShelf)
 		homeNotice = nil
+	}
+
+	func returnFocusToInputInstructions() {
+		inputInstructionsFocusToken += 1
 	}
 
 	private func addPrizeToShelf(_ label: String) {

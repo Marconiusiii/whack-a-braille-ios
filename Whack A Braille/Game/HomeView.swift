@@ -3,6 +3,7 @@ import SwiftUI
 struct HomeView: View {
 
 	private enum FocusTarget: Hashable {
+		case inputInstructions
 		case clearPrizeShelf
 		case emptyShelfMessage
 	}
@@ -10,6 +11,8 @@ struct HomeView: View {
 	let prizeShelfItems: [String]
 	let prizeShelfCount: Int
 	let homeNotice: String?
+	let inputInstructionsFocusToken: Int
+	let openInputInstructions: () -> Void
 	let openSettings: () -> Void
 	let startGame: () -> Void
 	let clearPrizeShelf: () -> Void
@@ -40,6 +43,10 @@ struct HomeView: View {
 				.appCard()
 
 				VStack(alignment: .leading, spacing: 12) {
+					Button("Input Instructions", action: openInputInstructions)
+						.buttonStyle(SecondaryGameButton())
+						.accessibilityFocused($focusedElement, equals: .inputInstructions)
+
 					Button("Game Settings", action: openSettings)
 						.buttonStyle(SecondaryGameButton())
 
@@ -123,6 +130,12 @@ struct HomeView: View {
 			}
 		} message: {
 			Text("You can't clear away what you don't have! Go win some tickets!")
+		}
+		.onChange(of: inputInstructionsFocusToken, initial: true) { _, _ in
+			guard inputInstructionsFocusToken > 0 else { return }
+			DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+				focusedElement = .inputInstructions
+			}
 		}
 	}
 

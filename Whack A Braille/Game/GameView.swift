@@ -19,6 +19,7 @@ struct GameView: View {
 
 	@State private var isShowingSettings = false
 	@State private var isShowingCashOut = false
+	@State private var isShowingInputInstructions = false
 	@State private var pendingRoundStartID = UUID()
 
 	var body: some View {
@@ -29,6 +30,8 @@ struct GameView: View {
 					prizeShelfItems: viewModel.prizeShelfItems,
 					prizeShelfCount: viewModel.prizeShelfCount,
 					homeNotice: viewModel.homeNotice,
+					inputInstructionsFocusToken: viewModel.inputInstructionsFocusToken,
+					openInputInstructions: { isShowingInputInstructions = true },
 					openSettings: { isShowingSettings = true },
 					startGame: startRound,
 					clearPrizeShelf: viewModel.clearPrizeShelf
@@ -62,6 +65,14 @@ struct GameView: View {
 				characterEcho: $characterEcho,
 				speechRatePercent: $speechRatePercent,
 				selectedVoiceId: $selectedVoiceId
+			)
+		}
+		.fullScreenCover(isPresented: $isShowingInputInstructions) {
+			InputInstructionsView(
+				goBack: {
+					isShowingInputInstructions = false
+					viewModel.returnFocusToInputInstructions()
+				}
 			)
 		}
 		.fullScreenCover(isPresented: $isShowingCashOut, onDismiss: viewModel.cancelCashOut) {
