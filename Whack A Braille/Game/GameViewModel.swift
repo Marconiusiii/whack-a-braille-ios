@@ -159,6 +159,19 @@ final class GameViewModel: ObservableObject {
 		cashOutPrizes = []
 	}
 
+	func returnHomeFromResults() {
+		lastRoundResult = nil
+		lastRoundWasTraining = false
+		cashOutPrizes = []
+		isRunning = false
+		activeLane = nil
+		feedbackResetTask?.cancel()
+		feedbackLane = nil
+		feedbackKind = nil
+		dismissGameplayInput()
+		transitionPhase(to: .home)
+	}
+
 	func clearPrizeShelf() {
 		prizeShelfEntries = []
 		prizeShelfItems = []

@@ -44,7 +44,8 @@ struct GameView: View {
 					result: viewModel.lastRoundResult,
 					totalTickets: viewModel.totalAccruedTickets,
 					keepWhacking: startRound,
-					cashInTickets: cashInTickets
+					cashInTickets: cashInTickets,
+					returnHome: viewModel.returnHomeFromResults
 				)
 			}
 		}

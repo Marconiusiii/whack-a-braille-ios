@@ -7,6 +7,7 @@ struct RoundResultsView: View {
 	let totalTickets: Int
 	let keepWhacking: () -> Void
 	let cashInTickets: () -> Void
+	let returnHome: () -> Void
 
 	@Environment(\.colorScheme) private var colorScheme
 	@AccessibilityFocusState private var isHeadingFocused: Bool
@@ -41,14 +42,16 @@ struct RoundResultsView: View {
 								.summaryRowCard()
 						}
 
-						VStack(alignment: .leading, spacing: 4) {
-							Text("Hits: \(result.hits)")
-							Text("Misses: \(result.misses)")
-							Text("Escapes: \(result.escapes)")
+						if !result.isTraining {
+							VStack(alignment: .leading, spacing: 4) {
+								Text("Hits: \(result.hits)")
+								Text("Misses: \(result.misses)")
+								Text("Escapes: \(result.escapes)")
+							}
+							.summaryRowCard()
+							.accessibilityElement(children: .ignore)
+							.accessibilityLabel("Hits \(result.hits), misses \(result.misses), escapes \(result.escapes)")
 						}
-						.summaryRowCard()
-						.accessibilityElement(children: .ignore)
-						.accessibilityLabel("Hits \(result.hits), misses \(result.misses), escapes \(result.escapes)")
 					}
 					.foregroundStyle(primaryTextColor)
 					.appCard()
@@ -56,6 +59,11 @@ struct RoundResultsView: View {
 					VStack(alignment: .leading, spacing: 12) {
 						Button(result.isTraining ? "Keep Training!" : "Keep Whacking!", action: keepWhacking)
 							.buttonStyle(PrimaryGameButton())
+
+						if result.isTraining {
+							Button("Return Home", action: returnHome)
+								.buttonStyle(SecondaryGameButton())
+						}
 
 						if !result.isTraining {
 							Button("Cash In Tickets and Pick a Prize", action: cashInTickets)
@@ -69,16 +77,26 @@ struct RoundResultsView: View {
 		}
 		.appBackground()
 		.onAppear {
-			NotificationCenter.default.post(name: .dismissGameplayInput, object: nil)
-			UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-			for scene in UIApplication.shared.connectedScenes {
-				guard let windowScene = scene as? UIWindowScene else { continue }
-				for window in windowScene.windows {
-					window.endEditing(true)
-				}
+			dismissTextInputSystem()
+			DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+				dismissTextInputSystem()
+			}
+			DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+				dismissTextInputSystem()
 			}
 			DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
 				isHeadingFocused = true
+			}
+		}
+	}
+
+	private func dismissTextInputSystem() {
+		NotificationCenter.default.post(name: .dismissGameplayInput, object: nil)
+		UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+		for scene in UIApplication.shared.connectedScenes {
+			guard let windowScene = scene as? UIWindowScene else { continue }
+			for window in windowScene.windows {
+				window.endEditing(true)
 			}
 		}
 	}
