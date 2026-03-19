@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct RoundResultsView: View {
 
@@ -68,6 +69,14 @@ struct RoundResultsView: View {
 		}
 		.appBackground()
 		.onAppear {
+			NotificationCenter.default.post(name: .dismissGameplayInput, object: nil)
+			UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+			for scene in UIApplication.shared.connectedScenes {
+				guard let windowScene = scene as? UIWindowScene else { continue }
+				for window in windowScene.windows {
+					window.endEditing(true)
+				}
+			}
 			DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
 				isHeadingFocused = true
 			}

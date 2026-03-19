@@ -53,6 +53,8 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 		context.coordinator.inputMode = inputMode
 
 		uiView.inputModeSelection = inputMode
+		uiView.isAccessibilityElement = inputMode == .brailleText
+		uiView.accessibilityElementsHidden = inputMode != .brailleText
 		uiView.isEnabled = isEnabled
 		uiView.alpha = isEnabled ? 1.0 : 0.45
 		uiView.shouldAutoFocus = isEnabled && autoFocus
@@ -190,6 +192,8 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 					guard let self else { return }
 					self.shouldAutoFocus = false
 					self.clearBufferedText()
+					self.window?.endEditing(true)
+					self.reloadInputViews()
 					if self.isFirstResponder {
 						self.resignFirstResponder()
 					}
@@ -350,6 +354,8 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 			activePerkinsKeys.removeAll()
 			usedPerkinsKeys.removeAll()
 			clearBufferedText()
+			window?.endEditing(true)
+			reloadInputViews()
 		}
 
 		@objc

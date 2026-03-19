@@ -20,7 +20,7 @@ struct CashOutView: View {
 						.accessibilityAddTraits(.isHeader)
 						.accessibilityFocused($isHeadingFocused)
 
-					Text("Your tickets are ready to trade. Pick the prize that catches your ear, or keep whacking and save up for a bigger score.")
+					Text("Your tickets are ready to trade. Pick the prize that suits your fancy, or keep whacking and save up for a bigger score.")
 						.foregroundStyle(secondaryTextColor)
 
 					Text("Tickets ready: \(totalTickets)")
