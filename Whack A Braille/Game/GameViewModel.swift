@@ -1,6 +1,5 @@
 import Combine
 import Foundation
-import UIKit
 
 @MainActor
 final class GameViewModel: ObservableObject {
@@ -167,7 +166,6 @@ final class GameViewModel: ObservableObject {
 		UserDefaults.standard.removeObject(forKey: StorageKey.prizeShelfEntries)
 		UserDefaults.standard.removeObject(forKey: StorageKey.prizeShelf)
 		homeNotice = nil
-		UIAccessibility.post(notification: .announcement, argument: "Your Shelf has been cleared and dusted!")
 	}
 
 	private func addPrizeToShelf(_ label: String) {

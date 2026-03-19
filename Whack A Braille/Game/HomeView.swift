@@ -2,6 +2,11 @@ import SwiftUI
 
 struct HomeView: View {
 
+	private enum FocusTarget: Hashable {
+		case clearPrizeShelf
+		case emptyShelfMessage
+	}
+
 	let prizeShelfItems: [String]
 	let prizeShelfCount: Int
 	let homeNotice: String?
@@ -12,6 +17,7 @@ struct HomeView: View {
 	@Environment(\.colorScheme) private var colorScheme
 	@State private var isPrizeShelfExpanded = false
 	@State private var isShowingClearShelfConfirmation = false
+	@AccessibilityFocusState private var focusedElement: FocusTarget?
 
 	var body: some View {
 		ScrollView {
@@ -48,6 +54,7 @@ struct HomeView: View {
 						if prizeShelfItems.isEmpty {
 							Text("Your shelf is empty. Go bonk some moles and win something shiny!")
 								.foregroundStyle(secondaryTextColor)
+								.accessibilityFocused($focusedElement, equals: .emptyShelfMessage)
 						} else {
 							ForEach(prizeShelfItems, id: \.self) { item in
 								Text(item)
@@ -70,6 +77,7 @@ struct HomeView: View {
 							isShowingClearShelfConfirmation = true
 						}
 							.buttonStyle(SecondaryGameButton())
+							.accessibilityFocused($focusedElement, equals: .clearPrizeShelf)
 					}
 					.padding(.top, 8)
 				},
@@ -90,9 +98,17 @@ struct HomeView: View {
 		.alert("Are You Sure?", isPresented: $isShowingClearShelfConfirmation) {
 			Button("Yes, Clear My Shelf", role: .destructive) {
 				clearPrizeShelf()
+				DispatchQueue.main.async {
+					isPrizeShelfExpanded = true
+					focusedElement = .emptyShelfMessage
+				}
 			}
 
-			Button("No, Keep My Prizes", role: .cancel) { }
+			Button("No, Keep My Prizes", role: .cancel) {
+				DispatchQueue.main.async {
+					focusedElement = .clearPrizeShelf
+				}
+			}
 		}
 	}
 
