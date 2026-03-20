@@ -32,6 +32,7 @@ final class GameViewModel: ObservableObject {
 	@Published private(set) var homeNotice: String?
 	@Published private(set) var inputResetToken = 0
 	@Published private(set) var inputInstructionsFocusToken = 0
+	@Published private(set) var gameplayFocusToken = 0
 	@Published private(set) var cashOutPrizes: [Prize] = []
 	@Published private(set) var feedbackLane: Int?
 	@Published private(set) var feedbackKind: GameLoop.FeedbackKind?
@@ -120,6 +121,7 @@ final class GameViewModel: ObservableObject {
 		feedbackLane = nil
 		feedbackKind = nil
 		inputResetToken += 1
+		gameplayFocusToken += 1
 		isRunning = true
 		transitionPhase(to: .gameplay)
 	}

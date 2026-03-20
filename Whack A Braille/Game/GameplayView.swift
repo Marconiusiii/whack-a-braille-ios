@@ -1,13 +1,16 @@
 import SwiftUI
+import UIKit
 
 struct GameplayView: View {
 
 	@ObservedObject var viewModel: GameViewModel
 	let inputMode: InputMode
+	let gameplayFocusToken: Int
 	let exitGame: () -> Void
 	@Environment(\.colorScheme) private var colorScheme
 	@ScaledMetric(relativeTo: .title2) private var activeMoleFontSize: CGFloat = 30
 	@ScaledMetric(relativeTo: .headline) private var compactMoleFontSize: CGFloat = 22
+	@AccessibilityFocusState private var isHeadingFocused: Bool
 
 	var body: some View {
 		ScrollView {
@@ -17,6 +20,7 @@ struct GameplayView: View {
 						.font(.system(.largeTitle, design: .rounded, weight: .heavy))
 						.foregroundStyle(AppTheme.heading)
 						.accessibilityAddTraits(.isHeader)
+						.accessibilityFocused($isHeadingFocused)
 
 					if !viewModel.lastRoundWasTraining {
 						Text("Score: \(viewModel.score)")
@@ -65,6 +69,19 @@ struct GameplayView: View {
 			.padding(24)
 		}
 		.appBackground()
+		.onAppear {
+			focusGameplayHeading()
+		}
+		.onChange(of: gameplayFocusToken, initial: false) { _, _ in
+			focusGameplayHeading()
+		}
+	}
+
+	private func focusGameplayHeading() {
+		DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+			isHeadingFocused = true
+			UIAccessibility.post(notification: .screenChanged, argument: nil)
+		}
 	}
 
 	private var gameBoard: some View {

@@ -40,6 +40,7 @@ struct GameView: View {
 				GameplayView(
 					viewModel: viewModel,
 					inputMode: effectiveInputMode,
+					gameplayFocusToken: viewModel.gameplayFocusToken,
 					exitGame: viewModel.exitRoundToResults
 				)
 			case .roundResults:
