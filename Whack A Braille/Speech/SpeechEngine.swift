@@ -93,7 +93,9 @@ final class SpeechEngine {
 				object: session,
 				queue: .main
 			) { [weak self] _ in
-				self?.activateAudioSession()
+				Task { @MainActor [weak self] in
+					self?.activateAudioSession()
+				}
 			}
 		)
 
@@ -112,7 +114,9 @@ final class SpeechEngine {
 				}
 
 				if type == .ended {
-					self?.activateAudioSession()
+					Task { @MainActor [weak self] in
+						self?.activateAudioSession()
+					}
 				}
 			}
 		)
