@@ -230,6 +230,7 @@ enum BrailleRegistry {
 	]
 
 	static let brailleOnlyRegistry: [BrailleItem] = grade1Letters + grade1Numbers + grade2Symbols + grade2Words
+	static let grade2MoleInvasionItems: [BrailleItem] = grade2Symbols + grade2Words
 	static let allItems: [BrailleItem] = brailleOnlyRegistry + typingSimpleHomeRowItems + typingHomeRowItems + typingTopRowItems + typingBottomRowItems
 
 	static let modeOptions: [(id: String, label: String)] = [
@@ -243,6 +244,7 @@ enum BrailleRegistry {
 		("grade1Numbers", "Numbers only (Grade 1)"),
 		("grade1LettersNumbers", "Letters and numbers (Grade 1)"),
 		("grade2Symbols", "Grade 2 contractions (symbols)"),
+		("grade2MoleInvasion", "Grade 2 Mole Invasion!"),
 		("grade2Words", "Grade 2 whole-word contractions")
 	]
 
@@ -259,6 +261,8 @@ enum BrailleRegistry {
 			return grade1Letters.filter { letterInRange($0, end: "J") }
 		case "letters-at":
 			return grade1Letters.filter { letterInRange($0, end: "T") }
+		case "grade2MoleInvasion":
+			return grade2MoleInvasionItems
 		default:
 			return allItems.filter { $0.modeTags.contains(modeId) }
 		}

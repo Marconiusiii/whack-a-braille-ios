@@ -73,6 +73,7 @@ final class GameLoop {
 	private var availableItems: [BrailleItem] = []
 	private var roundItems: [BrailleItem] = []
 	private var roundLaneItems: [BrailleItem?] = []
+	private var invasionActiveItem: BrailleItem?
 
 	private var activeLane: Int?
 	private var missRegisteredForMole = false
@@ -92,6 +93,8 @@ final class GameLoop {
 	private var roundStartTimeMs = 0
 	private var lastLaneIndex: Int?
 	private var sameLaneRunCount = 0
+	private var lastItemID: String?
+	private var sameItemRunCount = 0
 
 	private var roundTimer: DispatchSourceTimer?
 	private var moleTimer: DispatchSourceTimer?
@@ -128,7 +131,10 @@ final class GameLoop {
 		roundStartTimeMs = TimeUtils.nowMs()
 		lastLaneIndex = nil
 		sameLaneRunCount = 0
+		lastItemID = nil
+		sameItemRunCount = 0
 		activeLane = nil
+		invasionActiveItem = nil
 		currentMoleId = 0
 		missRegisteredForMole = false
 		activeMoleShownAtMs = 0
@@ -210,11 +216,17 @@ final class GameLoop {
 	}
 
 	private var currentItem: BrailleItem? {
+		if isGrade2MoleInvasionMode {
+			return invasionActiveItem
+		}
 		guard let activeLane else { return nil }
 		return laneItem(for: activeLane)
 	}
 
 	private func laneItem(for lane: Int) -> BrailleItem? {
+		if isGrade2MoleInvasionMode, lane == activeLane {
+			return invasionActiveItem
+		}
 		guard roundLaneItems.indices.contains(lane) else { return nil }
 		return roundLaneItems[lane]
 	}
@@ -263,9 +275,12 @@ final class GameLoop {
 		}
 
 		let isTraining = currentOptions.difficulty == .training
-		let baseTickets = isTraining ? 0 : scoreToTickets(score)
-		let streakTickets = isTraining ? 0 : streakBonusCount
-		let speedTickets = isTraining ? 0 : speedBonusTickets
+		let rawBaseTickets = isTraining ? 0 : scoreToTickets(score)
+		let rawStreakTickets = isTraining ? 0 : streakBonusCount
+		let rawSpeedTickets = isTraining ? 0 : speedBonusTickets
+		let baseTickets = adjustedTickets(rawBaseTickets)
+		let streakTickets = adjustedTickets(rawStreakTickets)
+		let speedTickets = adjustedTickets(rawSpeedTickets)
 
 		onRoundEnded?(
 			RoundResult(
@@ -341,7 +356,16 @@ final class GameLoop {
 		missRegisteredForMole = false
 
 		let lane = pickNextLaneIndex()
-		guard let item = laneItem(for: lane) else {
+		let item: BrailleItem?
+
+		if isGrade2MoleInvasionMode {
+			item = pickNextInvasionItem()
+			invasionActiveItem = item
+		} else {
+			item = laneItem(for: lane)
+		}
+
+		guard let item else {
 			clearActiveMole()
 			scheduleFollowUp(afterTraining: trainingMode)
 			return
@@ -496,6 +520,10 @@ final class GameLoop {
 	}
 
 	private func pickRoundItems(modeId: String, pool: [BrailleItem], useSpatialMapping: Bool) -> [BrailleItem] {
+		if modeId == "grade2MoleInvasion" {
+			return []
+		}
+
 		if !useSpatialMapping || !isSpatialMappingEligibleMode(modeId) {
 			return pickFiveItems(from: pool)
 		}
@@ -519,6 +547,10 @@ final class GameLoop {
 	}
 
 	private func buildRoundLaneItems(modeId: String, items: [BrailleItem], useSpatialMapping: Bool) -> [BrailleItem?] {
+		if modeId == "grade2MoleInvasion" {
+			return Array<BrailleItem?>(repeating: nil, count: laneCount)
+		}
+
 		var lanes = Array<BrailleItem?>(repeating: nil, count: laneCount)
 
 		if !useSpatialMapping || !isSpatialMappingEligibleMode(modeId) {
@@ -561,7 +593,9 @@ final class GameLoop {
 	}
 
 	private func pickNextLaneIndex() -> Int {
-		let candidates = roundLaneItems.indices.filter { roundLaneItems[$0] != nil }
+		let candidates = isGrade2MoleInvasionMode
+			? Array(0..<laneCount)
+			: roundLaneItems.indices.filter { roundLaneItems[$0] != nil }
 		guard !candidates.isEmpty else { return 0 }
 		guard candidates.count > 1 else { return candidates[0] }
 
@@ -592,6 +626,7 @@ final class GameLoop {
 
 	private func clearActiveMole() {
 		activeLane = nil
+		invasionActiveItem = nil
 		activeMoleShownAtMs = 0
 		onActiveMoleChanged?(nil, nil)
 	}
@@ -655,6 +690,39 @@ final class GameLoop {
 		if score >= 100 { return 10 }
 		if score >= 50 { return 5 }
 		return 0
+	}
+
+	private var isGrade2MoleInvasionMode: Bool {
+		currentOptions.modeId == "grade2MoleInvasion"
+	}
+
+	private func pickNextInvasionItem() -> BrailleItem? {
+		guard !availableItems.isEmpty else { return nil }
+
+		var candidates = availableItems
+
+		if let lastItemID, sameItemRunCount >= 3 {
+			let filtered = candidates.filter { $0.id != lastItemID }
+			if !filtered.isEmpty {
+				candidates = filtered
+			}
+		}
+
+		let item = candidates.randomElement() ?? availableItems[0]
+
+		if item.id == lastItemID {
+			sameItemRunCount += 1
+		} else {
+			lastItemID = item.id
+			sameItemRunCount = 1
+		}
+
+		return item
+	}
+
+	private func adjustedTickets(_ tickets: Int) -> Int {
+		guard isGrade2MoleInvasionMode, tickets > 0 else { return tickets }
+		return Int(ceil(Double(tickets) * 1.5))
 	}
 
 	private func cancelTimers() {

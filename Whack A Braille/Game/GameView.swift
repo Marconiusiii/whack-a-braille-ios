@@ -209,7 +209,7 @@ struct GameView: View {
 		guard pendingRoundStartID == startID else { return }
 
 		let introText = "Ready?"
-		GameAudioEngine.shared.playOpeningCue(playEverythingIntro: false)
+		GameAudioEngine.shared.playOpeningCue(playEverythingIntro: options.modeId == "grade2MoleInvasion")
 		let speechDurationMs = SpeechEngine.shared.speak(introText, interrupt: true)
 		let startDelayMs = max(900, min(3_000, speechDurationMs + 240))
 
