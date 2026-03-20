@@ -371,8 +371,8 @@ final class GameAudioEngine {
 				duration: beat * 4.0,
 				frequencies: rootChord,
 				peak: 0.8,
-				vibratoRate: 3.5,
-				vibratoDepth: 10.5
+				vibratoRate: 3.1,
+				vibratoDepth: 4.0
 			)
 
 			return clampSample(sample * 0.5)

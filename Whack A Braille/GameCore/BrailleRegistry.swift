@@ -244,8 +244,8 @@ enum BrailleRegistry {
 		("grade1Numbers", "Numbers only (Grade 1)"),
 		("grade1LettersNumbers", "Letters and numbers (Grade 1)"),
 		("grade2Symbols", "Grade 2 contractions (symbols)"),
-		("grade2MoleInvasion", "Grade 2 Mole Invasion!"),
-		("grade2Words", "Grade 2 whole-word contractions")
+		("grade2Words", "Grade 2 whole-word contractions"),
+		("grade2MoleInvasion", "Grade 2 Mole Invasion!")
 	]
 
 	private static func letterInRange(_ item: BrailleItem, end: Character) -> Bool {

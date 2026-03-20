@@ -4,6 +4,19 @@ import UIKit
 
 struct GameView: View {
 
+	private let invasionIntroPhrases = [
+		"Incoming moles!",
+		"Invasion Incoming!",
+		"Mole Invasion, Oh no!",
+		"Prepare for Moles!",
+		"So many moles!",
+		"Here comes the mole stampede!",
+		"The moles are on the move!",
+		"Brace yourself for moles!",
+		"Grade 2 moles, everywhere!",
+		"Moles incoming from all sides!"
+	]
+
 	@StateObject private var viewModel = GameViewModel()
 
 	@AppStorage("whackABraille.modeId") private var modeId = "grade1Letters"
@@ -208,7 +221,9 @@ struct GameView: View {
 	private func beginPreparedRound(startID: UUID, options: GameLoop.Options) {
 		guard pendingRoundStartID == startID else { return }
 
-		let introText = "Ready?"
+		let introText = options.modeId == "grade2MoleInvasion"
+			? (invasionIntroPhrases.randomElement() ?? "Incoming moles!")
+			: "Ready?"
 		GameAudioEngine.shared.playOpeningCue(playEverythingIntro: options.modeId == "grade2MoleInvasion")
 		let speechDurationMs = SpeechEngine.shared.speak(introText, interrupt: true)
 		let startDelayMs = max(900, min(3_000, speechDurationMs + 240))
