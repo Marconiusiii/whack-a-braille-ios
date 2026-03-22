@@ -185,7 +185,42 @@ struct GameSettingsSheet: View {
 		let localeLanguage = Locale.current.language.languageCode?.identifier ?? "en"
 		let filtered = AVSpeechSynthesisVoice.speechVoices().filter { $0.language.lowercased().hasPrefix(localeLanguage.lowercased()) }
 		let source = filtered.isEmpty ? AVSpeechSynthesisVoice.speechVoices() : filtered
-		return source.sorted { $0.name < $1.name }
+		return source.sorted { lhs, rhs in
+			let lhsRank = voiceSortRank(for: lhs)
+			let rhsRank = voiceSortRank(for: rhs)
+
+			if lhsRank != rhsRank {
+				return lhsRank < rhsRank
+			}
+
+			if lhs.name != rhs.name {
+				return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+			}
+
+			return lhs.language.localizedCaseInsensitiveCompare(rhs.language) == .orderedAscending
+		}
+	}
+
+	private func voiceSortRank(for voice: AVSpeechSynthesisVoice) -> Int {
+		let qualityRank: Int
+
+		switch voice.quality {
+		case .premium:
+			qualityRank = 0
+		case .enhanced:
+			qualityRank = 1
+		default:
+			qualityRank = 2
+		}
+
+		let noveltyPenalty: Int
+		if #available(iOS 17.0, *) {
+			noveltyPenalty = voice.voiceTraits.contains(.isNoveltyVoice) ? 10 : 0
+		} else {
+			noveltyPenalty = 0
+		}
+
+		return qualityRank + noveltyPenalty
 	}
 
 	private var appFooterText: String {

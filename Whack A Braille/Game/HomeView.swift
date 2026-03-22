@@ -32,7 +32,7 @@ struct HomeView: View {
 						.foregroundStyle(AppTheme.title)
 						.accessibilityAddTraits(.isHeader)
 
-					Text("Listen sharp, type fast, and send those braille moles scampering before they duck away. Rack up tickets with Braille Screen Input, a keyboard, or your braille display, then cash in for prizes.")
+					Text("Listen sharp, type fast, and send those braille moles scampering before they duck away. Rack up tickets with Braille Screen Input, a keyboard, or your braille display, then cash in for silly prizes.")
 						.foregroundStyle(secondaryTextColor)
 						.fixedSize(horizontal: false, vertical: true)
 
