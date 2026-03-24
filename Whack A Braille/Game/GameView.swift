@@ -84,7 +84,7 @@ struct GameView: View {
 				selectedVoiceId: $selectedVoiceId
 			)
 		}
-		.fullScreenCover(
+		.sheet(
 			isPresented: $isShowingHowToPlay,
 			onDismiss: {
 				guard shouldRestoreHowToPlayFocus else { return }
