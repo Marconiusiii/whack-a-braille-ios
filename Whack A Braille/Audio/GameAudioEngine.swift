@@ -484,16 +484,17 @@ final class GameAudioEngine {
 		let chord = chordChoices[(seed - 1) % chordChoices.count]
 		let melody = melodyChoices[(seed - 1) % melodyChoices.count]
 		let noteStarts = [0.0, 0.12, 0.24, 0.37]
-		let duration = 0.72
+		let duration = 0.94
 
 		return makeWaveFile(duration: duration) { time in
 			var sample = 0.0
+			var finalNoteSample = 0.0
 
 			for (index, start) in noteStarts.enumerated() {
 				let localTime = time - start
 				guard localTime >= 0 else { continue }
 
-				let noteDuration = index == noteStarts.count - 1 ? 0.42 : 0.22
+				let noteDuration = index == noteStarts.count - 1 ? 0.62 : 0.22
 				let midi = baseMidi + melody[index]
 				let baseFreq = 440.0 * pow(2.0, Double(midi - 69) / 12.0)
 				let freq: Double
@@ -506,7 +507,12 @@ final class GameAudioEngine {
 				let env = linearEnvelope(localTime, attack: 0.01, release: noteDuration, peak: 0.34)
 				let body = sine(freq, localTime)
 				let sparkle = triangle(freq * 2.0, localTime) * 0.24
-				sample += (body + sparkle) * env
+				let noteSample = (body + sparkle) * env
+				sample += noteSample
+
+				if index == noteStarts.count - 1 {
+					finalNoteSample = noteSample
+				}
 			}
 
 			for step in chord {
@@ -523,7 +529,30 @@ final class GameAudioEngine {
 			let shimmer = envelope(time, attack: 0.01, release: 0.16, peak: 0.12) *
 				filteredNoise(seed: shimmerSeed, time: time, carrier: 1_400)
 
-			return clampSample((sample + snap + shimmer) * 0.72)
+			let reverbOffsets = [0.065, 0.12, 0.185]
+			let reverbGains = [0.12, 0.08, 0.05]
+			var reverbTail = 0.0
+			let finalStart = noteStarts.last ?? 0.37
+
+			if time >= finalStart {
+				for (offset, gain) in zip(reverbOffsets, reverbGains) {
+					let reflectedTime = time - offset
+					if reflectedTime >= finalStart {
+						let reflectionLocal = reflectedTime - finalStart
+						let fade = max(0.0, 1.0 - (reflectionLocal / 0.62))
+						reverbTail += finalNoteSample * gain * fade
+					}
+				}
+			}
+
+			let endingFade: Double
+			if time > 0.62 {
+				endingFade = max(0.0, 1.0 - ((time - 0.62) / 0.32))
+			} else {
+				endingFade = 1.0
+			}
+
+			return clampSample((sample + reverbTail + snap + shimmer) * 0.72 * endingFade)
 		}
 	}
 
