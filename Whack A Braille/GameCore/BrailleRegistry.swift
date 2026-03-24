@@ -2,6 +2,8 @@ import Foundation
 
 enum BrailleRegistry {
 
+	typealias ModeOption = (id: String, label: String)
+
 	private static func dotsToMask(_ dots: [Int]) -> Int {
 		var mask = 0
 		for dot in dots {
@@ -234,7 +236,7 @@ enum BrailleRegistry {
 	static let grade2MoleInvasionItems: [BrailleItem] = grade2Symbols + grade2Words
 	static let allItems: [BrailleItem] = brailleOnlyRegistry + typingSimpleHomeRowItems + typingHomeRowItems + typingTopRowItems + typingBottomRowItems
 
-	static let modeOptions: [(id: String, label: String)] = [
+	static let modeOptions: [ModeOption] = [
 		("typingSimpleHomeRow", "Simple Home Row"),
 		("typingHomeRow", "QWERTY Home Row"),
 		("typingHomeTopRow", "QWERTY Home Row + Top Row"),
@@ -250,6 +252,18 @@ enum BrailleRegistry {
 		("grade2MoleInvasion", "Grade 2 Mole Invasion!")
 	]
 
+	private static let qwertyModeIDs: Set<String> = [
+		"typingSimpleHomeRow",
+		"typingHomeRow",
+		"typingHomeTopRow",
+		"typingHomeBottomRow"
+	]
+
+	private static let bsiExcludedModeIDs: Set<String> = qwertyModeIDs.union([
+		"grade1Numbers",
+		"grade1LettersNumbers"
+	])
+
 	private static func letterInRange(_ item: BrailleItem, end: Character) -> Bool {
 		guard let first = item.id.uppercased().first else { return false }
 		guard let scalar = first.unicodeScalars.first?.value else { return false }
@@ -257,14 +271,43 @@ enum BrailleRegistry {
 		return scalar >= 65 && scalar <= endScalar
 	}
 
-	static func getItems(for modeId: String) -> [BrailleItem] {
+	static func filteredModeOptions(for inputMode: InputMode) -> [ModeOption] {
+		modeOptions.filter { option in
+			switch inputMode {
+			case .qwerty:
+				return true
+			case .perkins:
+				return !qwertyModeIDs.contains(option.id)
+			case .brailleText:
+				return !bsiExcludedModeIDs.contains(option.id)
+			}
+		}
+	}
+
+	static func sanitizedModeId(_ modeId: String, for inputMode: InputMode) -> String {
+		let allowed = filteredModeOptions(for: inputMode)
+		if allowed.contains(where: { $0.id == modeId }) {
+			return modeId
+		}
+
+		switch inputMode {
+		case .qwerty:
+			return modeId
+		case .perkins:
+			return "grade1Letters"
+		case .brailleText:
+			return "grade1Letters"
+		}
+	}
+
+	static func getItems(for modeId: String, inputMode: InputMode = .qwerty) -> [BrailleItem] {
 		switch modeId {
 		case "letters-aj":
 			return grade1Letters.filter { letterInRange($0, end: "J") }
 		case "letters-at":
 			return grade1Letters.filter { letterInRange($0, end: "T") }
 		case "grade1MoleInvasion":
-			return grade1MoleInvasionItems
+			return inputMode == .brailleText ? grade1Letters : grade1MoleInvasionItems
 		case "grade2MoleInvasion":
 			return grade2MoleInvasionItems
 		default:

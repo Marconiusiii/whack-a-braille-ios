@@ -104,7 +104,7 @@ final class GameLoop {
 		guard !isRunning else { return }
 
 		currentOptions = options
-		availableItems = BrailleRegistry.getItems(for: options.modeId)
+		availableItems = BrailleRegistry.getItems(for: options.modeId, inputMode: options.inputMode)
 		roundItems = pickRoundItems(
 			modeId: options.modeId,
 			pool: availableItems,

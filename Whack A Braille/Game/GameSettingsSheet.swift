@@ -24,9 +24,17 @@ struct GameSettingsSheet: View {
 	var body: some View {
 		NavigationStack {
 			Form {
+				Section("Keyboard Input Mode") {
+					Picker("Keyboard input mode", selection: $inputMode) {
+						ForEach(InputMode.allCases) { mode in
+							Text(mode.label).tag(mode)
+						}
+					}
+				}
+
 				Section("Mole Chooser") {
 					Picker("Mole chooser", selection: $modeId) {
-						ForEach(BrailleRegistry.modeOptions, id: \.id) { option in
+						ForEach(availableModeOptions, id: \.id) { option in
 							Text(option.label).tag(option.id)
 						}
 					}
@@ -52,14 +60,6 @@ struct GameSettingsSheet: View {
 						Text("60 seconds").tag(60)
 					}
 					.disabled(difficulty == .training)
-				}
-
-				Section("Keyboard Input Mode") {
-					Picker("Keyboard input mode", selection: $inputMode) {
-						ForEach(InputMode.allCases) { mode in
-							Text(mode.label).tag(mode)
-						}
-					}
 				}
 
 				Section("Timer Music") {
@@ -152,6 +152,10 @@ struct GameSettingsSheet: View {
 		}
 		.onAppear {
 			UITableView.appearance().backgroundColor = .clear
+			sanitizeModeSelection()
+		}
+		.onChange(of: inputMode) { _, _ in
+			sanitizeModeSelection()
 		}
 	}
 
@@ -179,6 +183,10 @@ struct GameSettingsSheet: View {
 			get: { Double(speechRatePercent) },
 			set: { speechRatePercent = Int($0.rounded()) }
 		)
+	}
+
+	private var availableModeOptions: [BrailleRegistry.ModeOption] {
+		BrailleRegistry.filteredModeOptions(for: inputMode)
 	}
 
 	private var availableVoices: [AVSpeechSynthesisVoice] {
@@ -234,5 +242,9 @@ struct GameSettingsSheet: View {
 		let subject = "Whack a Braille iOS Feedback".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
 		guard let mailURL = URL(string: "mailto:marco@marconius.com?subject=\(subject)") else { return }
 		openURL(mailURL)
+	}
+
+	private func sanitizeModeSelection() {
+		modeId = BrailleRegistry.sanitizedModeId(modeId, for: inputMode)
 	}
 }

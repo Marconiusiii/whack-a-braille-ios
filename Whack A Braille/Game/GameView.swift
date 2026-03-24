@@ -142,6 +142,10 @@ struct GameView: View {
 		configuredInputMode
 	}
 
+	private var effectiveModeId: String {
+		BrailleRegistry.sanitizedModeId(modeId, for: effectiveInputMode)
+	}
+
 	private var difficultyBinding: Binding<Difficulty> {
 		Binding(
 			get: { difficulty },
@@ -166,8 +170,9 @@ struct GameView: View {
 	private func startRound() {
 		pendingRoundStartID = UUID()
 		applySpeechSettings()
+		modeId = effectiveModeId
 		let options = GameLoop.Options(
-			modeId: modeId,
+			modeId: effectiveModeId,
 			durationSeconds: difficulty.isTimed ? roundDurationSeconds : 30,
 			inputMode: effectiveInputMode,
 			difficulty: difficulty,
