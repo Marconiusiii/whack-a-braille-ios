@@ -33,6 +33,7 @@ struct GameView: View {
 	@State private var isShowingSettings = false
 	@State private var isShowingCashOut = false
 	@State private var isShowingHowToPlay = false
+	@State private var shouldRestoreHowToPlayFocus = false
 	@State private var pendingRoundStartID = UUID()
 
 	var body: some View {
@@ -83,11 +84,17 @@ struct GameView: View {
 				selectedVoiceId: $selectedVoiceId
 			)
 		}
-		.fullScreenCover(isPresented: $isShowingHowToPlay) {
+		.fullScreenCover(
+			isPresented: $isShowingHowToPlay,
+			onDismiss: {
+				guard shouldRestoreHowToPlayFocus else { return }
+				shouldRestoreHowToPlayFocus = false
+				viewModel.returnFocusToHowToPlay()
+			}
+		) {
 			HowToPlayView(
-				goBack: {
-					isShowingHowToPlay = false
-					viewModel.returnFocusToHowToPlay()
+				onDismissRequest: {
+					shouldRestoreHowToPlayFocus = true
 				}
 			)
 		}

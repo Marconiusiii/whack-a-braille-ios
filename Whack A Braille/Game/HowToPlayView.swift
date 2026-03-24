@@ -6,8 +6,9 @@ struct HowToPlayView: View {
 		case heading
 	}
 
-	let goBack: () -> Void
+	let onDismissRequest: () -> Void
 
+	@Environment(\.dismiss) private var dismiss
 	@Environment(\.colorScheme) private var colorScheme
 	@AccessibilityFocusState private var focusedElement: FocusTarget?
 	@State private var isInputInstructionsExpanded = false
@@ -15,7 +16,7 @@ struct HowToPlayView: View {
 	var body: some View {
 		ScrollView {
 			VStack(alignment: .leading, spacing: 20) {
-				Button("Back", action: goBack)
+				Button("Back", action: dismissHowToPlay)
 					.buttonStyle(SecondaryGameButton())
 
 				VStack(alignment: .leading, spacing: 12) {
@@ -113,6 +114,7 @@ struct HowToPlayView: View {
 			.padding(24)
 		}
 		.appBackground()
+		.accessibilityAction(.escape, dismissHowToPlay)
 		.onAppear {
 			DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
 				focusedElement = .heading
@@ -159,5 +161,10 @@ struct HowToPlayView: View {
 
 	private var secondaryTextColor: Color {
 		colorScheme == .dark ? AppTheme.darkSecondaryText : AppTheme.lightSecondaryText
+	}
+
+	private func dismissHowToPlay() {
+		onDismissRequest()
+		dismiss()
 	}
 }
