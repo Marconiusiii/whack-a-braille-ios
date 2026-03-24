@@ -30,14 +30,20 @@ struct RoundResultsView: View {
 						if !result.isTraining {
 							Text("Score: \(result.score)")
 								.summaryRowCard()
-							Text("Tickets this round: \(result.totalTickets)")
-								.summaryRowCard()
-							Text("Streak Bonus Tickets: \(result.streakBonusTickets)")
-								.summaryRowCard()
-							Text("Speed Bonus Tickets: \(result.speedBonusTickets)")
-								.summaryRowCard()
-							Text("Total tickets: \(totalTickets)")
-								.summaryRowCard()
+							VStack(alignment: .leading, spacing: 4) {
+								Text("Tickets this round: \(result.totalTickets)")
+								Text("Total tickets: \(totalTickets)")
+							}
+							.summaryRowCard()
+							.accessibilityElement(children: .ignore)
+							.accessibilityLabel("Tickets this round \(result.totalTickets), total tickets \(totalTickets)")
+							VStack(alignment: .leading, spacing: 4) {
+								Text("Streak Bonus Tickets: \(result.streakBonusTickets)")
+								Text("Speed Bonus Tickets: \(result.speedBonusTickets)")
+							}
+							.summaryRowCard()
+							.accessibilityElement(children: .ignore)
+							.accessibilityLabel("Streak bonus tickets \(result.streakBonusTickets), speed bonus tickets \(result.speedBonusTickets)")
 						} else {
 							Text("Training moles completed: \(result.trainingMolesCompleted)")
 								.summaryRowCard()
