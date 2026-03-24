@@ -8,7 +8,7 @@ struct Prize: Identifiable, Equatable {
 	let category: String
 
 	var ticketCost: Int {
-		minTickets
+		max(1, minTickets)
 	}
 }
 

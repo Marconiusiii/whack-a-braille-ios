@@ -493,9 +493,16 @@ final class GameAudioEngine {
 				let localTime = time - start
 				guard localTime >= 0 else { continue }
 
-				let noteDuration = index == noteStarts.count - 1 ? 0.32 : 0.22
+				let noteDuration = index == noteStarts.count - 1 ? 0.42 : 0.22
 				let midi = baseMidi + melody[index]
-				let freq = 440.0 * pow(2.0, Double(midi - 69) / 12.0)
+				let baseFreq = 440.0 * pow(2.0, Double(midi - 69) / 12.0)
+				let freq: Double
+				if index == noteStarts.count - 1 {
+					let vibrato = sin(2 * .pi * 5.1 * localTime) * 4.6
+					freq = baseFreq + vibrato
+				} else {
+					freq = baseFreq
+				}
 				let env = linearEnvelope(localTime, attack: 0.01, release: noteDuration, peak: 0.34)
 				let body = sine(freq, localTime)
 				let sparkle = triangle(freq * 2.0, localTime) * 0.24
@@ -512,8 +519,9 @@ final class GameAudioEngine {
 
 			let snap = envelope(time, attack: 0.004, release: 0.045, peak: 0.22) *
 				sine(lerpExp(start: 1180, end: 420, progress: min(time / 0.04, 1)), time)
+			let shimmerSeed = UInt64(81_000 + (seed * 37))
 			let shimmer = envelope(time, attack: 0.01, release: 0.16, peak: 0.12) *
-				filteredNoise(seed: 81_000 + (seed * 37), time: time, carrier: 1_400)
+				filteredNoise(seed: shimmerSeed, time: time, carrier: 1_400)
 
 			return clampSample((sample + snap + shimmer) * 0.72)
 		}
