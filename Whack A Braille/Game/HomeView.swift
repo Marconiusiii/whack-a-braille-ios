@@ -42,10 +42,6 @@ struct HomeView: View {
 						Text(homeNotice)
 							.foregroundStyle(AppTheme.heading)
 					}
-
-					Text("Total Tickets: \(totalTickets)")
-						.summaryRowCard()
-						.foregroundStyle(primaryTextColor)
 				}
 				.appCard()
 
@@ -54,8 +50,24 @@ struct HomeView: View {
 						.buttonStyle(SecondaryGameButton())
 						.accessibilityFocused($focusedElement, equals: .howToPlay)
 
-					Button("Cash In Tickets", action: openPrizeCounter)
+					Button(action: openPrizeCounter) {
+						HStack(spacing: 12) {
+							Text("Cash In Tickets")
+							Spacer(minLength: 12)
+							Text("\(totalTickets)")
+								.font(.subheadline.weight(.bold))
+								.foregroundStyle(AppTheme.primaryButtonText)
+								.padding(.horizontal, 10)
+								.padding(.vertical, 6)
+								.background(
+									Capsule(style: .continuous)
+										.fill(AppTheme.focus)
+								)
+						}
+					}
 						.buttonStyle(SecondaryGameButton())
+						.accessibilityValue("\(totalTickets) available")
+						.accessibilityHint("Opens Prize Counter")
 
 					Button("Game Settings", action: openSettings)
 						.buttonStyle(SecondaryGameButton())
@@ -150,11 +162,6 @@ struct HomeView: View {
 			}
 		}
 	}
-
-	private var primaryTextColor: Color {
-		colorScheme == .dark ? AppTheme.darkText : AppTheme.lightText
-	}
-
 	private var secondaryTextColor: Color {
 		colorScheme == .dark ? AppTheme.darkSecondaryText : AppTheme.lightSecondaryText
 	}

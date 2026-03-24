@@ -499,7 +499,7 @@ final class GameAudioEngine {
 				let baseFreq = 440.0 * pow(2.0, Double(midi - 69) / 12.0)
 				let freq: Double
 				if index == noteStarts.count - 1 {
-					let vibrato = sin(2 * .pi * 5.1 * localTime) * 4.6
+					let vibrato = sin(2 * .pi * 4.8 * localTime) * 2.7
 					freq = baseFreq + vibrato
 				} else {
 					freq = baseFreq
@@ -528,6 +528,22 @@ final class GameAudioEngine {
 			let shimmerSeed = UInt64(81_000 + (seed * 37))
 			let shimmer = envelope(time, attack: 0.01, release: 0.16, peak: 0.12) *
 				filteredNoise(seed: shimmerSeed, time: time, carrier: 1_400)
+			let glissStart = 0.18
+			let glissDuration = 0.4
+			let glissSeedOffset = Double(seed) * 0.015
+			var chimeGliss = 0.0
+
+			if time >= glissStart, time <= glissStart + glissDuration {
+				let localTime = time - glissStart
+				let progress = min(max(localTime / glissDuration, 0), 1)
+				let startFreq = 440.0 * pow(2.0, Double(baseMidi + 16 - 69) / 12.0)
+				let endFreq = 440.0 * pow(2.0, Double(baseMidi + 30 - 69) / 12.0)
+				let glissFreq = lerpExp(start: startFreq, end: endFreq, progress: progress)
+				let pulse = sin(2 * .pi * (10.5 + glissSeedOffset) * localTime)
+				let bellEnv = linearEnvelope(localTime, attack: 0.01, release: glissDuration, peak: 0.1)
+				let bellBody = sine(glissFreq, localTime) + (triangle(glissFreq * 1.5, localTime) * 0.22)
+				chimeGliss = bellBody * bellEnv * (0.72 + (0.28 * max(0, pulse)))
+			}
 
 			let reverbOffsets = [0.065, 0.12, 0.185]
 			let reverbGains = [0.12, 0.08, 0.05]
@@ -552,7 +568,7 @@ final class GameAudioEngine {
 				endingFade = 1.0
 			}
 
-			return clampSample((sample + reverbTail + snap + shimmer) * 0.72 * endingFade)
+			return clampSample((sample + reverbTail + snap + shimmer + chimeGliss) * 0.72 * endingFade)
 		}
 	}
 
