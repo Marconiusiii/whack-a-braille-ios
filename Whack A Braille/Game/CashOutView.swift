@@ -4,6 +4,7 @@ struct CashOutView: View {
 
 	let totalTickets: Int
 	let prizes: [Prize]
+	let showKeepWhacking: Bool
 	let claimPrize: (String) -> Void
 	let keepWhacking: () -> Void
 	let returnHome: () -> Void
@@ -33,12 +34,14 @@ struct CashOutView: View {
 
 				VStack(alignment: .leading, spacing: 12) {
 					if prizes.isEmpty || totalTickets <= 0 {
-						Text("Your ticket jar is emptier than a mole hill after a bonk storm. Go bonk some moles and come back for something shiny!")
+						Text("Your ticket jar is emptier than a mole hill after a whack storm. Go whack some moles and come back for something shiny!")
 							.foregroundStyle(secondaryTextColor)
 							.fixedSize(horizontal: false, vertical: true)
 
-						Button("Keep Whacking!", action: keepWhacking)
-							.buttonStyle(SecondaryGameButton())
+						if showKeepWhacking {
+							Button("Keep Whacking!", action: keepWhacking)
+								.buttonStyle(SecondaryGameButton())
+						}
 					} else {
 						ForEach(Array(prizes.enumerated()), id: \.element.id) { index, prize in
 							Button(prize.label) {
@@ -50,8 +53,10 @@ struct CashOutView: View {
 							.accessibilityHint("Double-tap to claim.")
 						}
 
-						Button("Keep Whacking!", action: keepWhacking)
-							.buttonStyle(SecondaryGameButton())
+						if showKeepWhacking {
+							Button("Keep Whacking!", action: keepWhacking)
+								.buttonStyle(SecondaryGameButton())
+						}
 					}
 
 					Button("Return Home", action: returnHome)

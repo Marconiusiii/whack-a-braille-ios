@@ -4,6 +4,11 @@ import UIKit
 
 struct GameView: View {
 
+	private enum CashOutOrigin {
+		case home
+		case roundResults
+	}
+
 	private let invasionIntroPhrases = [
 		"Incoming moles!",
 		"Invasion Incoming!",
@@ -34,6 +39,7 @@ struct GameView: View {
 	@State private var isShowingCashOut = false
 	@State private var isShowingHowToPlay = false
 	@State private var shouldRestoreHowToPlayFocus = false
+	@State private var cashOutOrigin: CashOutOrigin = .roundResults
 	@State private var pendingRoundStartID = UUID()
 
 	var body: some View {
@@ -103,6 +109,7 @@ struct GameView: View {
 			CashOutView(
 				totalTickets: viewModel.totalAccruedTickets,
 				prizes: viewModel.cashOutPrizes,
+				showKeepWhacking: cashOutOrigin == .roundResults,
 				claimPrize: { prizeID in
 					isShowingCashOut = false
 					viewModel.claimPrize(prizeID)
@@ -201,6 +208,7 @@ struct GameView: View {
 
 	private func cashInTickets() {
 		pendingRoundStartID = UUID()
+		cashOutOrigin = .roundResults
 		dismissTextInputSystem()
 		SpeechEngine.shared.cancel()
 		GameAudioEngine.shared.stopRound()
@@ -212,6 +220,7 @@ struct GameView: View {
 
 	private func openPrizeCounter() {
 		pendingRoundStartID = UUID()
+		cashOutOrigin = .home
 		viewModel.prepareCashOut()
 		isShowingCashOut = true
 	}
@@ -246,10 +255,11 @@ struct GameView: View {
 	private func beginPreparedRound(startID: UUID, options: GameLoop.Options) {
 		guard pendingRoundStartID == startID else { return }
 
-		let introText = options.modeId == "grade2MoleInvasion"
-			? (invasionIntroPhrases.randomElement() ?? "Incoming moles!")
-			: "Ready?"
-		GameAudioEngine.shared.playOpeningCue(playEverythingIntro: options.modeId == "grade2MoleInvasion")
+        let isInvasionMode = options.modeId == "grade1MoleInvasion" || options.modeId == "grade2MoleInvasion"
+        let introText = isInvasionMode
+            ? (invasionIntroPhrases.randomElement() ?? "Incoming moles!")
+            : "Ready?"
+        GameAudioEngine.shared.playOpeningCue(playEverythingIntro: isInvasionMode)
 		let speechDurationMs = SpeechEngine.shared.speak(introText, interrupt: true)
 		let startDelayMs = max(900, min(3_000, speechDurationMs + 240))
 

@@ -50,6 +50,9 @@ struct HomeView: View {
 						.buttonStyle(SecondaryGameButton())
 						.accessibilityFocused($focusedElement, equals: .howToPlay)
 
+					Button("Game Settings", action: openSettings)
+						.buttonStyle(SecondaryGameButton())
+
 					Button(action: openPrizeCounter) {
 						HStack(spacing: 12) {
 							Text("Cash In Tickets")
@@ -63,14 +66,12 @@ struct HomeView: View {
 									Capsule(style: .continuous)
 										.fill(AppTheme.focus)
 								)
+								.accessibilityHidden(true)
 						}
 					}
 						.buttonStyle(SecondaryGameButton())
 						.accessibilityValue("\(totalTickets) available")
 						.accessibilityHint("Opens Prize Counter")
-
-					Button("Game Settings", action: openSettings)
-						.buttonStyle(SecondaryGameButton())
 
 					Button("Start Whacking", action: startGame)
 						.buttonStyle(PrimaryGameButton())
