@@ -37,7 +37,7 @@ struct CashOutView: View {
 						}
 						.buttonStyle(PrimaryGameButton())
 						.fixedSize(horizontal: false, vertical: true)
-						.accessibilityValue("\(index + 1) of \(prizes.count)")
+						.accessibilityValue("\(index + 1) of \(prizes.count), \(prize.ticketCost) " + (prize.ticketCost == 1 ? "ticket" : "tickets"))
 						.accessibilityHint("Double-tap to claim.")
 					}
 

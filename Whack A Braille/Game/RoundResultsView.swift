@@ -7,6 +7,7 @@ struct RoundResultsView: View {
 	let totalTickets: Int
 	let keepWhacking: () -> Void
 	let cashInTickets: () -> Void
+	let saveTicketsAndReturnHome: () -> Void
 	let returnHome: () -> Void
 
 	@Environment(\.colorScheme) private var colorScheme
@@ -66,6 +67,9 @@ struct RoundResultsView: View {
 						}
 
 						if !result.isTraining {
+							Button("Save Tickets and Return Home", action: saveTicketsAndReturnHome)
+								.buttonStyle(SecondaryGameButton())
+
 							Button("Cash In Tickets and Pick a Prize", action: cashInTickets)
 								.buttonStyle(SecondaryGameButton())
 						}

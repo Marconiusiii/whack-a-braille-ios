@@ -6,6 +6,10 @@ struct Prize: Identifiable, Equatable {
 	let minTickets: Int
 	let maxTickets: Int?
 	let category: String
+
+	var ticketCost: Int {
+		minTickets
+	}
 }
 
 struct PrizeShelfEntry: Codable, Equatable {

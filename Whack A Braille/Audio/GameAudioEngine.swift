@@ -22,6 +22,7 @@ final class GameAudioEngine {
 
 	private lazy var popSoundData: Data? = makePopSoundData()
 	private lazy var hitSoundData: Data? = makeHitSoundData()
+	private lazy var alternateHitSoundData: Data? = makeAlternateHitSoundData()
 	private lazy var missSoundData: Data? = makeMissSoundData()
 	private lazy var retreatSoundData: Data? = makeRetreatSoundData()
 	private lazy var openingCueData: Data? = makeStartFlourishData()
@@ -57,6 +58,7 @@ final class GameAudioEngine {
 			guard let self else { return }
 			_ = self.popSoundData
 			_ = self.hitSoundData
+			_ = self.alternateHitSoundData
 			_ = self.missSoundData
 			_ = self.retreatSoundData
 			_ = self.openingCueData
@@ -107,9 +109,10 @@ final class GameAudioEngine {
 	}
 
 	func playHit(scoreBeforeHit: Int, lane: Int) {
-		_ = scoreBeforeHit
 		let pan = pan(for: lane)
-		playGeneratedSound(hitSoundData, volume: 1.18, pan: pan)
+		let useAlternateHit = (max(0, scoreBeforeHit) / 10).isMultiple(of: 2)
+		let soundData = useAlternateHit ? alternateHitSoundData : hitSoundData
+		playGeneratedSound(soundData, volume: 1.34, pan: pan)
 	}
 
 	func playMiss(lane: Int) {
@@ -275,6 +278,9 @@ final class GameAudioEngine {
 			let noiseEnv = envelope(time, attack: 0.01, release: 0.08, peak: 0.22)
 			let noise = noiseEnv * filteredNoise(seed: 23_517, time: time, carrier: 540)
 
+			let knock = envelope(time, attack: 0.004, release: 0.06, peak: 0.58) *
+				sine(lerpExp(start: 920, end: 320, progress: min(time / 0.05, 1)), time)
+
 			let springStart = 0.04
 			let spring = springTone(
 				time: max(0, time - springStart),
@@ -283,7 +289,32 @@ final class GameAudioEngine {
 				peakGain: 0.4
 			)
 
-			return clampSample((sub + subHarm + body + noise + spring) * 0.48)
+			return clampSample((sub + subHarm + body + noise + knock + spring) * 0.56)
+		}
+	}
+
+	private func makeAlternateHitSoundData() -> Data? {
+		makeWaveFile(duration: 0.82) { time in
+			let sub = envelope(time, attack: 0.012, release: 0.13, peak: 1.05) *
+				sine(lerpExp(start: 82, end: 50, progress: min(time / 0.08, 1)), time)
+
+			let body = envelope(time, attack: 0.016, release: 0.18, peak: 0.78) *
+				triangle(lerpExp(start: 170, end: 108, progress: min(time / 0.12, 1)), time)
+
+			let click = envelope(time, attack: 0.003, release: 0.05, peak: 0.52) *
+				triangle(lerpExp(start: 980, end: 360, progress: min(time / 0.05, 1)), time)
+
+			let snapNoise = envelope(time, attack: 0.006, release: 0.07, peak: 0.19) *
+				filteredNoise(seed: 45_901, time: time, carrier: 660)
+
+			let ring = springTone(
+				time: max(0, time - 0.03),
+				base: 210,
+				duration: 0.72,
+				peakGain: 0.32
+			)
+
+			return clampSample((sub + body + click + snapNoise + ring) * 0.58)
 		}
 	}
 

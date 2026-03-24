@@ -31,7 +31,7 @@ final class GameViewModel: ObservableObject {
 	@Published private(set) var prizeShelfCount: Int
 	@Published private(set) var homeNotice: String?
 	@Published private(set) var inputResetToken = 0
-	@Published private(set) var inputInstructionsFocusToken = 0
+	@Published private(set) var howToPlayFocusToken = 0
 	@Published private(set) var gameplayFocusToken = 0
 	@Published private(set) var cashOutPrizes: [Prize] = []
 	@Published private(set) var feedbackLane: Int?
@@ -149,9 +149,10 @@ final class GameViewModel: ObservableObject {
 
 	func claimPrize(_ prizeID: String) {
 		guard let prize = cashOutPrizes.first(where: { $0.id == prizeID }) else { return }
+		guard totalAccruedTickets >= prize.ticketCost else { return }
 
 		addPrizeToShelf(prize.label)
-		totalAccruedTickets = 0
+		totalAccruedTickets -= prize.ticketCost
 		UserDefaults.standard.set(totalAccruedTickets, forKey: StorageKey.totalTickets)
 		cashOutPrizes = []
 		homeNotice = nil
@@ -175,6 +176,10 @@ final class GameViewModel: ObservableObject {
 		transitionPhase(to: .home)
 	}
 
+	func saveTicketsAndReturnHome() {
+		returnHomeFromResults()
+	}
+
 	func clearPrizeShelf() {
 		prizeShelfEntries = []
 		prizeShelfItems = []
@@ -184,8 +189,8 @@ final class GameViewModel: ObservableObject {
 		homeNotice = nil
 	}
 
-	func returnFocusToInputInstructions() {
-		inputInstructionsFocusToken += 1
+	func returnFocusToHowToPlay() {
+		howToPlayFocusToken += 1
 	}
 
 	private func addPrizeToShelf(_ label: String) {

@@ -3,16 +3,17 @@ import SwiftUI
 struct HomeView: View {
 
 	private enum FocusTarget: Hashable {
-		case inputInstructions
+		case howToPlay
 		case clearPrizeShelf
 		case emptyShelfMessage
 	}
 
+	let totalTickets: Int
 	let prizeShelfItems: [String]
 	let prizeShelfCount: Int
 	let homeNotice: String?
-	let inputInstructionsFocusToken: Int
-	let openInputInstructions: () -> Void
+	let howToPlayFocusToken: Int
+	let openHowToPlay: () -> Void
 	let openSettings: () -> Void
 	let startGame: () -> Void
 	let clearPrizeShelf: () -> Void
@@ -40,13 +41,17 @@ struct HomeView: View {
 						Text(homeNotice)
 							.foregroundStyle(AppTheme.heading)
 					}
+
+					Text("Total Tickets: \(totalTickets)")
+						.summaryRowCard()
+						.foregroundStyle(primaryTextColor)
 				}
 				.appCard()
 
 				VStack(alignment: .leading, spacing: 12) {
-					Button("Input Instructions", action: openInputInstructions)
+					Button("How to Play", action: openHowToPlay)
 						.buttonStyle(SecondaryGameButton())
-						.accessibilityFocused($focusedElement, equals: .inputInstructions)
+						.accessibilityFocused($focusedElement, equals: .howToPlay)
 
 					Button("Game Settings", action: openSettings)
 						.buttonStyle(SecondaryGameButton())
@@ -134,10 +139,10 @@ struct HomeView: View {
 		} message: {
 			Text("You can't clear away what you don't have! Go win some tickets!")
 		}
-		.onChange(of: inputInstructionsFocusToken, initial: true) { _, _ in
-			guard inputInstructionsFocusToken > 0 else { return }
+		.onChange(of: howToPlayFocusToken, initial: true) { _, _ in
+			guard howToPlayFocusToken > 0 else { return }
 			DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-				focusedElement = .inputInstructions
+				focusedElement = .howToPlay
 			}
 		}
 	}

@@ -32,7 +32,7 @@ struct GameView: View {
 
 	@State private var isShowingSettings = false
 	@State private var isShowingCashOut = false
-	@State private var isShowingInputInstructions = false
+	@State private var isShowingHowToPlay = false
 	@State private var pendingRoundStartID = UUID()
 
 	var body: some View {
@@ -40,11 +40,12 @@ struct GameView: View {
 			switch viewModel.phase {
 			case .home:
 				HomeView(
+					totalTickets: viewModel.totalAccruedTickets,
 					prizeShelfItems: viewModel.prizeShelfItems,
 					prizeShelfCount: viewModel.prizeShelfCount,
 					homeNotice: viewModel.homeNotice,
-					inputInstructionsFocusToken: viewModel.inputInstructionsFocusToken,
-					openInputInstructions: { isShowingInputInstructions = true },
+					howToPlayFocusToken: viewModel.howToPlayFocusToken,
+					openHowToPlay: { isShowingHowToPlay = true },
 					openSettings: { isShowingSettings = true },
 					startGame: startRound,
 					clearPrizeShelf: viewModel.clearPrizeShelf
@@ -62,6 +63,7 @@ struct GameView: View {
 					totalTickets: viewModel.totalAccruedTickets,
 					keepWhacking: startRound,
 					cashInTickets: cashInTickets,
+					saveTicketsAndReturnHome: viewModel.saveTicketsAndReturnHome,
 					returnHome: viewModel.returnHomeFromResults
 				)
 			}
@@ -81,11 +83,11 @@ struct GameView: View {
 				selectedVoiceId: $selectedVoiceId
 			)
 		}
-		.fullScreenCover(isPresented: $isShowingInputInstructions) {
-			InputInstructionsView(
+		.fullScreenCover(isPresented: $isShowingHowToPlay) {
+			HowToPlayView(
 				goBack: {
-					isShowingInputInstructions = false
-					viewModel.returnFocusToInputInstructions()
+					isShowingHowToPlay = false
+					viewModel.returnFocusToHowToPlay()
 				}
 			)
 		}

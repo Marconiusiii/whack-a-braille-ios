@@ -216,7 +216,7 @@ final class GameLoop {
 	}
 
 	private var currentItem: BrailleItem? {
-		if isGrade2MoleInvasionMode {
+		if isInvasionMode {
 			return invasionActiveItem
 		}
 		guard let activeLane else { return nil }
@@ -224,7 +224,7 @@ final class GameLoop {
 	}
 
 	private func laneItem(for lane: Int) -> BrailleItem? {
-		if isGrade2MoleInvasionMode, lane == activeLane {
+		if isInvasionMode, lane == activeLane {
 			return invasionActiveItem
 		}
 		guard roundLaneItems.indices.contains(lane) else { return nil }
@@ -358,7 +358,7 @@ final class GameLoop {
 		let lane = pickNextLaneIndex()
 		let item: BrailleItem?
 
-		if isGrade2MoleInvasionMode {
+		if isInvasionMode {
 			item = pickNextInvasionItem()
 			invasionActiveItem = item
 		} else {
@@ -520,7 +520,7 @@ final class GameLoop {
 	}
 
 	private func pickRoundItems(modeId: String, pool: [BrailleItem], useSpatialMapping: Bool) -> [BrailleItem] {
-		if modeId == "grade2MoleInvasion" {
+		if isInvasionMode(modeId) {
 			return []
 		}
 
@@ -547,7 +547,7 @@ final class GameLoop {
 	}
 
 	private func buildRoundLaneItems(modeId: String, items: [BrailleItem], useSpatialMapping: Bool) -> [BrailleItem?] {
-		if modeId == "grade2MoleInvasion" {
+		if isInvasionMode(modeId) {
 			return Array<BrailleItem?>(repeating: nil, count: laneCount)
 		}
 
@@ -593,7 +593,7 @@ final class GameLoop {
 	}
 
 	private func pickNextLaneIndex() -> Int {
-		let candidates = isGrade2MoleInvasionMode
+		let candidates = isInvasionMode
 			? Array(0..<laneCount)
 			: roundLaneItems.indices.filter { roundLaneItems[$0] != nil }
 		guard !candidates.isEmpty else { return 0 }
@@ -692,8 +692,12 @@ final class GameLoop {
 		return 0
 	}
 
-	private var isGrade2MoleInvasionMode: Bool {
-		currentOptions.modeId == "grade2MoleInvasion"
+	private var isInvasionMode: Bool {
+		isInvasionMode(currentOptions.modeId)
+	}
+
+	private func isInvasionMode(_ modeId: String) -> Bool {
+		modeId == "grade1MoleInvasion" || modeId == "grade2MoleInvasion"
 	}
 
 	private func pickNextInvasionItem() -> BrailleItem? {
@@ -721,8 +725,17 @@ final class GameLoop {
 	}
 
 	private func adjustedTickets(_ tickets: Int) -> Int {
-		guard isGrade2MoleInvasionMode, tickets > 0 else { return tickets }
-		return Int(ceil(Double(tickets) * 1.5))
+		guard tickets > 0 else { return tickets }
+
+		if currentOptions.modeId == "grade2MoleInvasion" {
+			return Int(ceil(Double(tickets) * 1.5))
+		}
+
+		if currentOptions.modeId == "grade1MoleInvasion" {
+			return Int(ceil(Double(tickets) * 1.25))
+		}
+
+		return tickets
 	}
 
 	private func cancelTimers() {

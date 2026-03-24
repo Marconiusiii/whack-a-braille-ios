@@ -230,6 +230,7 @@ enum BrailleRegistry {
 	]
 
 	static let brailleOnlyRegistry: [BrailleItem] = grade1Letters + grade1Numbers + grade2Symbols + grade2Words
+	static let grade1MoleInvasionItems: [BrailleItem] = grade1Letters + grade1Numbers
 	static let grade2MoleInvasionItems: [BrailleItem] = grade2Symbols + grade2Words
 	static let allItems: [BrailleItem] = brailleOnlyRegistry + typingSimpleHomeRowItems + typingHomeRowItems + typingTopRowItems + typingBottomRowItems
 
@@ -243,6 +244,7 @@ enum BrailleRegistry {
 		("grade1Letters", "Letters only (Grade 1)"),
 		("grade1Numbers", "Numbers only (Grade 1)"),
 		("grade1LettersNumbers", "Letters and numbers (Grade 1)"),
+		("grade1MoleInvasion", "Grade 1 Mole Invasion!"),
 		("grade2Symbols", "Grade 2 contractions (symbols)"),
 		("grade2Words", "Grade 2 whole-word contractions"),
 		("grade2MoleInvasion", "Grade 2 Mole Invasion!")
@@ -261,6 +263,8 @@ enum BrailleRegistry {
 			return grade1Letters.filter { letterInRange($0, end: "J") }
 		case "letters-at":
 			return grade1Letters.filter { letterInRange($0, end: "T") }
+		case "grade1MoleInvasion":
+			return grade1MoleInvasionItems
 		case "grade2MoleInvasion":
 			return grade2MoleInvasionItems
 		default:

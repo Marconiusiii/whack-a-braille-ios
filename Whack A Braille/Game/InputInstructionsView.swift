@@ -3,6 +3,7 @@ import SwiftUI
 struct InputInstructionsView: View {
 
 	let goBack: () -> Void
+	let returnFocusToken: Int
 
 	@Environment(\.colorScheme) private var colorScheme
 	@AccessibilityFocusState private var isHeadingFocused: Bool
@@ -66,6 +67,12 @@ struct InputInstructionsView: View {
 		}
 		.appBackground()
 		.onAppear {
+			DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+				isHeadingFocused = true
+			}
+		}
+		.onChange(of: returnFocusToken, initial: true) { _, _ in
+			guard returnFocusToken > 0 else { return }
 			DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
 				isHeadingFocused = true
 			}
