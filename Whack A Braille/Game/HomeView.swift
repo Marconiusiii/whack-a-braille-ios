@@ -14,6 +14,7 @@ struct HomeView: View {
 	let homeNotice: String?
 	let howToPlayFocusToken: Int
 	let openHowToPlay: () -> Void
+	let openPrizeCounter: () -> Void
 	let openSettings: () -> Void
 	let startGame: () -> Void
 	let clearPrizeShelf: () -> Void
@@ -52,6 +53,9 @@ struct HomeView: View {
 					Button("How to Play", action: openHowToPlay)
 						.buttonStyle(SecondaryGameButton())
 						.accessibilityFocused($focusedElement, equals: .howToPlay)
+
+					Button("Cash In Tickets", action: openPrizeCounter)
+						.buttonStyle(SecondaryGameButton())
 
 					Button("Game Settings", action: openSettings)
 						.buttonStyle(SecondaryGameButton())

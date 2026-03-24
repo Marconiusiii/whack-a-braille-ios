@@ -28,6 +28,9 @@ final class GameAudioEngine {
 	private lazy var openingCueData: Data? = makeStartFlourishData()
 	private lazy var everythingCueData: Data? = makeEverythingStingerData()
 	private lazy var endCueData: Data? = makeEndCueData()
+	private lazy var prizeFanfareVariantAData: Data? = makePrizeFanfareData(seed: 1)
+	private lazy var prizeFanfareVariantBData: Data? = makePrizeFanfareData(seed: 2)
+	private lazy var prizeFanfareVariantCData: Data? = makePrizeFanfareData(seed: 3)
 
 	private init() {
 		observeAudioSession()
@@ -64,6 +67,9 @@ final class GameAudioEngine {
 			_ = self.openingCueData
 			_ = self.everythingCueData
 			_ = self.endCueData
+			_ = self.prizeFanfareVariantAData
+			_ = self.prizeFanfareVariantBData
+			_ = self.prizeFanfareVariantCData
 
 			DispatchQueue.main.async {
 				self.hasFinishedPrewarm = true
@@ -91,6 +97,15 @@ final class GameAudioEngine {
 
 	func playEndCue() {
 		playGeneratedSound(endCueData, volume: 1.0, pan: 0)
+	}
+
+	func playPrizeFanfare() {
+		let variants = [
+			prizeFanfareVariantAData,
+			prizeFanfareVariantBData,
+			prizeFanfareVariantCData
+		].compactMap { $0 }
+		playGeneratedSound(variants.randomElement(), volume: 1.05, pan: 0)
 	}
 
 	func startRoundAudio(progressProvider: @escaping () -> Double, timerMusicEnabled: Bool) {
@@ -451,6 +466,56 @@ final class GameAudioEngine {
 			}
 
 			return clampSample(sample * 0.45)
+		}
+	}
+
+	private func makePrizeFanfareData(seed: Int) -> Data? {
+		let baseMidi = 60 + seed
+		let chordChoices: [[Int]] = [
+			[0, 4, 7, 12],
+			[0, 3, 7, 10],
+			[0, 5, 9, 12]
+		]
+		let melodyChoices: [[Int]] = [
+			[0, 4, 7, 12],
+			[0, 7, 11, 14],
+			[0, 5, 9, 12]
+		]
+		let chord = chordChoices[(seed - 1) % chordChoices.count]
+		let melody = melodyChoices[(seed - 1) % melodyChoices.count]
+		let noteStarts = [0.0, 0.12, 0.24, 0.37]
+		let duration = 0.72
+
+		return makeWaveFile(duration: duration) { time in
+			var sample = 0.0
+
+			for (index, start) in noteStarts.enumerated() {
+				let localTime = time - start
+				guard localTime >= 0 else { continue }
+
+				let noteDuration = index == noteStarts.count - 1 ? 0.32 : 0.22
+				let midi = baseMidi + melody[index]
+				let freq = 440.0 * pow(2.0, Double(midi - 69) / 12.0)
+				let env = linearEnvelope(localTime, attack: 0.01, release: noteDuration, peak: 0.34)
+				let body = sine(freq, localTime)
+				let sparkle = triangle(freq * 2.0, localTime) * 0.24
+				sample += (body + sparkle) * env
+			}
+
+			for step in chord {
+				let localTime = max(0, time - 0.05)
+				let freq = 440.0 * pow(2.0, Double(baseMidi + step - 69) / 12.0)
+				let env = linearEnvelope(localTime, attack: 0.018, release: 0.48, peak: 0.12)
+				let pad = sine(freq, localTime) + (triangle(freq * 0.5, localTime) * 0.2)
+				sample += pad * env
+			}
+
+			let snap = envelope(time, attack: 0.004, release: 0.045, peak: 0.22) *
+				sine(lerpExp(start: 1180, end: 420, progress: min(time / 0.04, 1)), time)
+			let shimmer = envelope(time, attack: 0.01, release: 0.16, peak: 0.12) *
+				filteredNoise(seed: 81_000 + (seed * 37), time: time, carrier: 1_400)
+
+			return clampSample((sample + snap + shimmer) * 0.72)
 		}
 	}
 

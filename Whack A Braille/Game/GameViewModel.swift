@@ -151,6 +151,7 @@ final class GameViewModel: ObservableObject {
 		guard let prize = cashOutPrizes.first(where: { $0.id == prizeID }) else { return }
 		guard totalAccruedTickets >= prize.ticketCost else { return }
 
+		GameAudioEngine.shared.playPrizeFanfare()
 		addPrizeToShelf(prize.label)
 		totalAccruedTickets -= prize.ticketCost
 		UserDefaults.standard.set(totalAccruedTickets, forKey: StorageKey.totalTickets)
@@ -161,6 +162,12 @@ final class GameViewModel: ObservableObject {
 
 	func cancelCashOut() {
 		cashOutPrizes = []
+	}
+
+	func returnHomeFromCashOut() {
+		cashOutPrizes = []
+		homeNotice = nil
+		transitionPhase(to: .home)
 	}
 
 	func returnHomeFromResults() {

@@ -6,6 +6,7 @@ struct CashOutView: View {
 	let prizes: [Prize]
 	let claimPrize: (String) -> Void
 	let keepWhacking: () -> Void
+	let returnHome: () -> Void
 
 	@Environment(\.colorScheme) private var colorScheme
 	@AccessibilityFocusState private var isHeadingFocused: Bool
@@ -42,6 +43,9 @@ struct CashOutView: View {
 					}
 
 					Button("Keep Whacking!", action: keepWhacking)
+						.buttonStyle(SecondaryGameButton())
+
+					Button("Return Home", action: returnHome)
 						.buttonStyle(SecondaryGameButton())
 				}
 				.appCard()

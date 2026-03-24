@@ -47,6 +47,7 @@ struct GameView: View {
 					homeNotice: viewModel.homeNotice,
 					howToPlayFocusToken: viewModel.howToPlayFocusToken,
 					openHowToPlay: { isShowingHowToPlay = true },
+					openPrizeCounter: openPrizeCounter,
 					openSettings: { isShowingSettings = true },
 					startGame: startRound,
 					clearPrizeShelf: viewModel.clearPrizeShelf
@@ -109,6 +110,10 @@ struct GameView: View {
 				keepWhacking: {
 					isShowingCashOut = false
 					viewModel.cancelCashOut()
+				},
+				returnHome: {
+					isShowingCashOut = false
+					viewModel.returnHomeFromCashOut()
 				}
 			)
 		}
@@ -203,6 +208,12 @@ struct GameView: View {
 			viewModel.prepareCashOut()
 			isShowingCashOut = true
 		}
+	}
+
+	private func openPrizeCounter() {
+		pendingRoundStartID = UUID()
+		viewModel.prepareCashOut()
+		isShowingCashOut = true
 	}
 
 	private func handlePhaseChange(_ phase: GameViewModel.Phase) {
