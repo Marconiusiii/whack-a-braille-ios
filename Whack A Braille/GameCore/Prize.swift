@@ -6,6 +6,21 @@ enum PrizeTier: Int {
 	case tier3 = 3
 	case tier4 = 4
 	case tier5 = 5
+
+	var detailLabel: String {
+		switch self {
+		case .tier1:
+			return "Tier 1"
+		case .tier2:
+			return "Tier 2"
+		case .tier3:
+			return "Tier 3"
+		case .tier4:
+			return "Tier 4"
+		case .tier5:
+			return "Tier 5"
+		}
+	}
 }
 
 struct Prize: Identifiable, Equatable {
@@ -45,4 +60,24 @@ struct Prize: Identifiable, Equatable {
 struct PrizeShelfEntry: Codable, Equatable {
 	let label: String
 	var quantity: Int
+	var latestClaimedAt: Date?
+
+	init(label: String, quantity: Int, latestClaimedAt: Date? = nil) {
+		self.label = label
+		self.quantity = quantity
+		self.latestClaimedAt = latestClaimedAt
+	}
+
+	private enum CodingKeys: String, CodingKey {
+		case label
+		case quantity
+		case latestClaimedAt
+	}
+
+	init(from decoder: Decoder) throws {
+		let container = try decoder.container(keyedBy: CodingKeys.self)
+		label = try container.decode(String.self, forKey: .label)
+		quantity = try container.decode(Int.self, forKey: .quantity)
+		latestClaimedAt = try container.decodeIfPresent(Date.self, forKey: .latestClaimedAt)
+	}
 }

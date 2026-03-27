@@ -21,6 +21,10 @@ final class GameViewModel: ObservableObject {
 		let label: String
 		let quantity: Int
 		let displayText: String
+		let flavorText: String
+		let tier: PrizeTier
+		let ticketCost: Int
+		let latestClaimedAt: Date?
 	}
 
 	let gameLoop: GameLoop
@@ -159,7 +163,7 @@ final class GameViewModel: ObservableObject {
 		guard totalAccruedTickets >= prize.ticketCost else { return }
 
 		GameAudioEngine.shared.playPrizeFanfare(for: prize.tier)
-		addPrizeToShelf(prize.label)
+		addPrizeToShelf(prize)
 		totalAccruedTickets -= prize.ticketCost
 		UserDefaults.standard.set(totalAccruedTickets, forKey: StorageKey.totalTickets)
 		cashOutPrizes = []
@@ -216,11 +220,12 @@ final class GameViewModel: ObservableObject {
 		howToPlayFocusToken += 1
 	}
 
-	private func addPrizeToShelf(_ label: String) {
-		if let index = prizeShelfEntries.firstIndex(where: { $0.label == label }) {
+	private func addPrizeToShelf(_ prize: Prize) {
+		if let index = prizeShelfEntries.firstIndex(where: { $0.label == prize.label }) {
 			prizeShelfEntries[index].quantity += 1
+			prizeShelfEntries[index].latestClaimedAt = .now
 		} else {
-			prizeShelfEntries.append(PrizeShelfEntry(label: label, quantity: 1))
+			prizeShelfEntries.append(PrizeShelfEntry(label: prize.label, quantity: 1, latestClaimedAt: .now))
 		}
 
 		savePrizeShelfEntries()
@@ -255,13 +260,18 @@ final class GameViewModel: ObservableObject {
 	}
 
 	private static func displayItems(from entries: [PrizeShelfEntry]) -> [PrizeShelfDisplayItem] {
-		entries.enumerated().map { index, entry in
+		entries.enumerated().compactMap { index, entry in
+			guard let prize = PrizeCatalog.all.first(where: { $0.label == entry.label }) else { return nil }
 			let baseLabel = entry.quantity > 1 ? "\(entry.label), x\(entry.quantity)" : entry.label
 			return PrizeShelfDisplayItem(
 				id: entry.label,
 				label: entry.label,
 				quantity: entry.quantity,
-				displayText: "\(index + 1). \(baseLabel)"
+				displayText: "\(index + 1). \(baseLabel)",
+				flavorText: prize.flavorText,
+				tier: prize.tier,
+				ticketCost: prize.ticketCost,
+				latestClaimedAt: entry.latestClaimedAt
 			)
 		}
 	}
