@@ -207,7 +207,8 @@ struct HomeView: View {
 		}
 		.accessibilityElement(children: .ignore)
 		.accessibilityLabel(item.displayText)
-		.accessibilityHint("Opens prize details. Swipe up or down for actions.")
+		.accessibilityAddTraits(.isButton)
+		.accessibilityHint("Opens prize details.")
 		.accessibilityAction(named: "Delete prize") {
 			removePrizeShelfItem(item.id)
 		}
