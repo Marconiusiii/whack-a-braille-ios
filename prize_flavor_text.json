@@ -1,0 +1,638 @@
+[
+  {
+    "label": "One Invisible Stuffed Mole",
+    "flavorText": "Soft, silent, and impossible to display incorrectly, this invisible plush is a classic starter reward for players with excellent imagination."
+  },
+  {
+    "label": "A Missed Opportunity You Will Think About Later",
+    "flavorText": "This prize lingers in the mind with the exact same stubborn energy as the mole you swear you almost hit."
+  },
+  {
+    "label": "A Key That Does Not Belong to Anything",
+    "flavorText": "Cold in the hand and rich with mystery, this key opens no doors while suggesting that it absolutely should."
+  },
+  {
+    "label": "A Loading Bar That Never Quite Finishes",
+    "flavorText": "Loading... Loading... Loading... Forever 98% away from learning what this prize could actually be."
+  },
+  {
+    "label": "An Unlabeled Button",
+    "flavorText": "It sits there with perfect confidence, offering infinite possibility and absolutely no instructions nor context."
+  },
+  {
+    "label": "Pocket Sand!",
+    "flavorText": "Perfect for making sudden, panicked getaways!"
+  },
+  {
+    "label": "A Ham Sandwich (partially eaten)",
+    "flavorText": "Tasty, but was probably the Arcade manager's lunch before he got called away to clean up after the moles."
+  },
+  {
+    "label": "A Slap Bracelet that Slaps Back",
+    "flavorText": "The 90s wrapped around your wrist, just beware of the pinching!"
+  },
+  {
+    "label": "Lukewarm Arcade Pizza",
+    "flavorText": "The grease just helps you slip faster across all the arcade game controls."
+  },
+  {
+    "label": "One Left Sock (The Right One Is Missing)",
+    "flavorText": "The moles totally stole the other sock, go get it back!"
+  },
+  {
+    "label": "An Encouraging Nod From the Arcade Manager",
+    "flavorText": "The respect you deserve after getting through that last round."
+  },
+  {
+    "label": "A slightly broken Chinese Finger Trap",
+    "flavorText": "A bargain-bin treasure with more charm than dignity. It is funny, questionable, and exactly the sort of thing an arcade would hand over with a straight face."
+  },
+  {
+    "label": "Permission to Claim That Was a Practice Round",
+    "flavorText": "A gloriously tiny reward with suspiciously confident energy. This reward knows exactly what kind of ridiculous arcade economy produced it."
+  },
+  {
+    "label": "A keyboard key You Definitely Pressed Too Hard",
+    "flavorText": "Small prize, big attitude. Logic gave up halfway through, and the prize got better because of it."
+  },
+  {
+    "label": "A Coupon for Absolutely Nothing",
+    "flavorText": "A bargain-bin treasure with more charm than dignity. It is funny, questionable, and exactly the sort of thing an arcade would hand over with a straight face."
+  },
+  {
+    "label": "A Pocket Full of Imaginary Tickets",
+    "flavorText": "A gloriously tiny reward with suspiciously confident energy. Somehow it is both a reward and a punchline."
+  },
+  {
+    "label": "A Certificate of Trying Your Best",
+    "flavorText": "Small prize, big attitude. Think of it as a gentle pat on the back with better shelf presence."
+  },
+  {
+    "label": "One Slightly Used Arcade Token (Non-Refundable)",
+    "flavorText": "A bargain-bin treasure with more charm than dignity. It is funny, questionable, and exactly the sort of thing an arcade would hand over with a straight face."
+  },
+  {
+    "label": "A Whispered Nice Try From the Machine",
+    "flavorText": "A gloriously tiny reward with suspiciously confident energy. The prize may be small, but the morale boost is doing real work."
+  },
+  {
+    "label": "A Virtual High Five",
+    "flavorText": "Crisp, encouraging, and completely hygienic, this is the arcade equivalent of a friend grinning at your score."
+  },
+  {
+    "label": "One Mole That Definitely Got Away",
+    "flavorText": "A bargain-bin treasure with more charm than dignity. It is funny, questionable, and exactly the sort of thing an arcade would hand over with a straight face."
+  },
+  {
+    "label": "A Commemorative Whiff Sound",
+    "flavorText": "A gloriously tiny reward with suspiciously confident energy. Somehow it is both a reward and a punchline."
+  },
+  {
+    "label": "A Screenshot You Can't Take",
+    "flavorText": "Small prize, big attitude. Logic gave up halfway through, and the prize got better because of it."
+  },
+  {
+    "label": "A Mystery Prize (It's This One)",
+    "flavorText": "A bargain-bin treasure with more charm than dignity. It is funny, questionable, and exactly the sort of thing an arcade would hand over with a straight face."
+  },
+  {
+    "label": "A Button That Does Nothing (But It's Big)",
+    "flavorText": "A gloriously tiny reward with suspiciously confident energy. The less this object can be explained, the more valuable it somehow becomes."
+  },
+  {
+    "label": "A Digitally Rendered Pat on the Back",
+    "flavorText": "Small prize, big attitude. Think of it as a gentle pat on the back with better shelf presence."
+  },
+  {
+    "label": "A Sticker You Can't Peel",
+    "flavorText": "A bargain-bin treasure with more charm than dignity. It makes no practical sense, which is part of what gives it power."
+  },
+  {
+    "label": "A Gumball that is actually a Jawbreaker",
+    "flavorText": "A gloriously tiny reward with suspiciously confident energy. Somehow it is both a reward and a punchline."
+  },
+  {
+    "label": "A Hat for Your Other Hat",
+    "flavorText": "Small prize, big attitude. Logic gave up halfway through, and the prize got better because of it."
+  },
+  {
+    "label": "The Feeling That You Were Close",
+    "flavorText": "A bargain-bin treasure with more charm than dignity. It is here to cheer you on, hype you up, and keep your fingers moving."
+  },
+  {
+    "label": "A Paper Crown That Declares You Interim Mole Deputy",
+    "flavorText": "A gloriously tiny reward with suspiciously confident energy. Somehow it is both a reward and a punchline."
+  },
+  {
+    "label": "One Complimentary Oops",
+    "flavorText": "Small prize, big attitude. It comes with the strong feeling that the machine is in on the joke."
+  },
+  {
+    "label": "A Tiny Trophy Made Entirely of Participation",
+    "flavorText": "A bargain-bin treasure with more charm than dignity. It is here to cheer you on, hype you up, and keep your fingers moving."
+  },
+  {
+    "label": "Arcade Air (Freshly Bagged)",
+    "flavorText": "A gloriously tiny reward with suspiciously confident energy. The less this object can be explained, the more valuable it somehow becomes."
+  },
+  {
+    "label": "A Slightly Bent Victory Straw",
+    "flavorText": "Small prize, big attitude. It may not improve your life, but it will absolutely improve the story."
+  },
+  {
+    "label": "A Receipt That Just Says Nice Effort",
+    "flavorText": "A bargain-bin treasure with more charm than dignity. It is here to cheer you on, hype you up, and keep your fingers moving."
+  },
+  {
+    "label": "One Borrowed Luck (Return by Midnight)",
+    "flavorText": "A gloriously tiny reward with suspiciously confident energy. Somehow it is both a reward and a punchline."
+  },
+  {
+    "label": "The Last French Fry in the Building",
+    "flavorText": "Small prize, big attitude. Logic gave up halfway through, and the prize got better because of it."
+  },
+  {
+    "label": "A half-empty bag of stale ground coffee",
+    "flavorText": "A bargain-bin treasure with more charm than dignity. It is funny, questionable, and exactly the sort of thing an arcade would hand over with a straight face."
+  },
+  {
+    "label": "Official Recognition of Being Very Close",
+    "flavorText": "A formal acknowledgment that your round was one strong whack away from becoming a whole legend."
+  },
+  {
+    "label": "A Tactile Map of the Arcade (Not to Scale)",
+    "flavorText": "This one feels almost legitimate. Logic gave up halfway through, and the prize got better because of it."
+  },
+  {
+    "label": "A Rumor That You Are Pretty Good at This",
+    "flavorText": "A mid-shelf wonder that knows how to make an entrance. This is the kind of reward you display where everyone can accidentally admire it."
+  },
+  {
+    "label": "The Mole's Reluctant Respect",
+    "flavorText": "It is hard won, slightly grumpy, and somehow one of the most satisfying things you can pull from the counter."
+  },
+  {
+    "label": "A Secret Handshake You Almost Remember",
+    "flavorText": "This one feels almost legitimate. It may not improve your life, but it will absolutely improve the story."
+  },
+  {
+    "label": "A Tactile Abacus that's missing some beads",
+    "flavorText": "A mid-shelf wonder that knows how to make an entrance. It is funny, questionable, and exactly the sort of thing an arcade would hand over with a straight face."
+  },
+  {
+    "label": "A Certificate of Participation",
+    "flavorText": "A respectable arcade reward with a little extra swagger. This reward knows exactly what kind of ridiculous arcade economy produced it."
+  },
+  {
+    "label": "2 stuffed invisible moles",
+    "flavorText": "This one feels almost legitimate. Logic gave up halfway through, and the prize got better because of it."
+  },
+  {
+    "label": "A Modest Amount of Digital Confetti",
+    "flavorText": "A mid-shelf wonder that knows how to make an entrance. It is here to cheer you on, hype you up, and keep your fingers moving."
+  },
+  {
+    "label": "A Slightly Tangled Slinky",
+    "flavorText": "A respectable arcade reward with a little extra swagger. This reward knows exactly what kind of ridiculous arcade economy produced it."
+  },
+  {
+    "label": "Official Arcade Champion (Of This Round Only)",
+    "flavorText": "This one feels almost legitimate. Perfect for anyone who enjoys a healthy, well-earned amount of showing off."
+  },
+  {
+    "label": "A Golden Mole Whistle",
+    "flavorText": "A mid-shelf wonder that knows how to make an entrance. It is funny, questionable, and exactly the sort of thing an arcade would hand over with a straight face."
+  },
+  {
+    "label": "The Last Ticket Before the Good Stuff",
+    "flavorText": "A respectable arcade reward with a little extra swagger. This reward knows exactly what kind of ridiculous arcade economy produced it."
+  },
+  {
+    "label": "A Bag of Hypothetical Popcorn",
+    "flavorText": "This one feels almost legitimate. Logic gave up halfway through, and the prize got better because of it."
+  },
+  {
+    "label": "One Braille Dot That Escaped",
+    "flavorText": "A mid-shelf wonder that knows how to make an entrance. It is funny, questionable, and exactly the sort of thing an arcade would hand over with a straight face."
+  },
+  {
+    "label": "A Signed Portrait of the Mole (Signature Illegible)",
+    "flavorText": "A respectable arcade reward with a little extra swagger. Somehow it is both a reward and a punchline."
+  },
+  {
+    "label": "A Totally Legit Winner Badge",
+    "flavorText": "This one feels almost legitimate. Perfect for anyone who enjoys a healthy, well-earned amount of showing off."
+  },
+  {
+    "label": "A Coupon for Free Bragging Rights",
+    "flavorText": "A mid-shelf wonder that knows how to make an entrance. This is the kind of reward you display where everyone can accidentally admire it."
+  },
+  {
+    "label": "The Sound of Victory (In Your Head)",
+    "flavorText": "A respectable arcade reward with a little extra swagger. The less this object can be explained, the more valuable it somehow becomes."
+  },
+  {
+    "label": "A Slightly Melted Arcade Slurpee",
+    "flavorText": "This one feels almost legitimate. It may not improve your life, but it will absolutely improve the story."
+  },
+  {
+    "label": "A Digital Ribbon That Says Hey, Not Bad",
+    "flavorText": "A mid-shelf wonder that knows how to make an entrance. It is here to cheer you on, hype you up, and keep your fingers moving."
+  },
+  {
+    "label": "A Groovy Mood Ring",
+    "flavorText": "A respectable arcade reward with a little extra swagger. This reward knows exactly what kind of ridiculous arcade economy produced it."
+  },
+  {
+    "label": "An Empty Magic 8-Ball",
+    "flavorText": "This one feels almost legitimate. It comes with the strong feeling that the machine is in on the joke."
+  },
+  {
+    "label": "Slightly Smooshed Necco Wafers",
+    "flavorText": "A mid-shelf wonder that knows how to make an entrance. It feels aware that it is a prize in a game and seems pleased about that."
+  },
+  {
+    "label": "Validated Guide Dog Parking",
+    "flavorText": "A respectable arcade reward with a little extra swagger. This reward knows exactly what kind of ridiculous arcade economy produced it."
+  },
+  {
+    "label": "A Fragile Foam Model Plane",
+    "flavorText": "This one feels almost legitimate. It comes with the strong feeling that the machine is in on the joke."
+  },
+  {
+    "label": "Limited-Edition Almost-Champion Wristband",
+    "flavorText": "A mid-shelf wonder that knows how to make an entrance. This is the kind of reward you display where everyone can accidentally admire it."
+  },
+  {
+    "label": "A Commemorative Dot Pattern Coin (Value: Emotional)",
+    "flavorText": "A respectable arcade reward with a little extra swagger. The less this object can be explained, the more valuable it somehow becomes."
+  },
+  {
+    "label": "Mole-Signed Non-Disclosure Agreement",
+    "flavorText": "This one feels almost legitimate. It comes with the strong feeling that the machine is in on the joke."
+  },
+  {
+    "label": "Arcade VIP Line Pass (Line Not Currently Available)",
+    "flavorText": "A mid-shelf wonder that knows how to make an entrance. It feels aware that it is a prize in a game and seems pleased about that."
+  },
+  {
+    "label": "A Tactical Snack Break Token",
+    "flavorText": "A respectable arcade reward with a little extra swagger. Somehow it is both a reward and a punchline."
+  },
+  {
+    "label": "Bronze-Level Bragging Rights Plus",
+    "flavorText": "This one feels almost legitimate. Perfect for anyone who enjoys a healthy, well-earned amount of showing off."
+  },
+  {
+    "label": "One Deluxe Replay Excuse",
+    "flavorText": "A mid-shelf wonder that knows how to make an entrance. It is funny, questionable, and exactly the sort of thing an arcade would hand over with a straight face."
+  },
+  {
+    "label": "A Pocket-Sized Legend Starter Kit",
+    "flavorText": "A respectable arcade reward with a little extra swagger. The prize may be small, but the morale boost is doing real work."
+  },
+  {
+    "label": "A Bag of Slightly Burnt Coffee Beans",
+    "flavorText": "This one feels almost legitimate. It may not improve your life, but it will absolutely improve the story."
+  },
+  {
+    "label": "Espresso Beans gnawed on by the mole (slightly)",
+    "flavorText": "A mid-shelf wonder that knows how to make an entrance. It is funny, questionable, and exactly the sort of thing an arcade would hand over with a straight face."
+  },
+  {
+    "label": "Official Mole Historian Certification",
+    "flavorText": "At this point you do not merely whack moles. You understand them, document them, and occasionally outwit them."
+  },
+  {
+    "label": "A Flowing Arcade Champion Cape",
+    "flavorText": "This prize arrives with the confidence of a local legend. Perfect for anyone who enjoys a healthy, well-earned amount of showing off."
+  },
+  {
+    "label": "A Badge That Radiates Focus",
+    "flavorText": "A properly fancy reward for a properly solid whacking session. It is here to cheer you on, hype you up, and keep your fingers moving."
+  },
+  {
+    "label": "A Whole Pile of Food Court Coupons",
+    "flavorText": "A real crowd-pleaser with serious shelf presence. The prize may be small, but the morale boost is doing real work."
+  },
+  {
+    "label": "An Official Diploma in Advanced Whacking",
+    "flavorText": "This prize arrives with the confidence of a local legend. It gives off strong main-character credentials the moment it hits the shelf."
+  },
+  {
+    "label": "Notice That the Moles Are Considering Unionizing",
+    "flavorText": "A properly fancy reward for a properly solid whacking session. It is funny, questionable, and exactly the sort of thing an arcade would hand over with a straight face."
+  },
+  {
+    "label": "A braille-bedazzled Jacket That Definitely Says Arcade Legend",
+    "flavorText": "A real crowd-pleaser with serious shelf presence. It exists mostly to let you stand there looking accomplished."
+  },
+  {
+    "label": "A Faint Aura of Intense Typing Focus",
+    "flavorText": "This prize arrives with the confidence of a local legend. Think of it as a gentle pat on the back with better shelf presence."
+  },
+  {
+    "label": "A Shelf to Hold All Your Imaginary Trophies",
+    "flavorText": "A properly fancy reward for a properly solid whacking session. It makes no practical sense, which is part of what gives it power."
+  },
+  {
+    "label": "A Golden Slinky",
+    "flavorText": "A real crowd-pleaser with serious shelf presence. This reward carries the energy of a ceremony no one warned the moles about."
+  },
+  {
+    "label": "A Set of Non-Biting Toy Dinosaurs",
+    "flavorText": "This prize arrives with the confidence of a local legend. It gives off strong main-character credentials the moment it hits the shelf."
+  },
+  {
+    "label": "A Pet Rock (batteries not included)",
+    "flavorText": "A properly fancy reward for a properly solid whacking session. Owning it feels less like winning an object and more like earning a dramatic new job title."
+  },
+  {
+    "label": "A Jellyfish that's a Hat",
+    "flavorText": "A real crowd-pleaser with serious shelf presence. This reward carries the energy of a ceremony no one warned the moles about."
+  },
+  {
+    "label": "A Hat that's a Jellyfish",
+    "flavorText": "This prize arrives with the confidence of a local legend. It gives off strong main-character credentials the moment it hits the shelf."
+  },
+  {
+    "label": "Certified Braille Whackologist",
+    "flavorText": "A serious-sounding credential for a deeply unserious skill that you have nonetheless earned with real talent."
+  },
+  {
+    "label": "A Slightly Warped White Cane",
+    "flavorText": "A real crowd-pleaser with serious shelf presence. The less this object can be explained, the more valuable it somehow becomes."
+  },
+  {
+    "label": "A Solid Gold Imaginary Trophy",
+    "flavorText": "This prize arrives with the confidence of a local legend. Perfect for anyone who enjoys a healthy, well-earned amount of showing off."
+  },
+  {
+    "label": "The Keys to the Arcade (Do Not Duplicate)",
+    "flavorText": "A properly fancy reward for a properly solid whacking session. This is the kind of reward you display where everyone can accidentally admire it."
+  },
+  {
+    "label": "A Bag of Premium Confidence",
+    "flavorText": "A real crowd-pleaser with serious shelf presence. The prize may be small, but the morale boost is doing real work."
+  },
+  {
+    "label": "The Mole's Resignation Letter",
+    "flavorText": "This prize arrives with the confidence of a local legend. It may not improve your life, but it will absolutely improve the story."
+  },
+  {
+    "label": "A Trophy That's Way Too Big",
+    "flavorText": "A properly fancy reward for a properly solid whacking session. It makes no practical sense, which is part of what gives it power."
+  },
+  {
+    "label": "A Nifty Fidget Spinner",
+    "flavorText": "A real crowd-pleaser with serious shelf presence. The less this object can be explained, the more valuable it somehow becomes."
+  },
+  {
+    "label": "Department of Whacking Professional License",
+    "flavorText": "This prize arrives with the confidence of a local legend. It gives off strong main-character credentials the moment it hits the shelf."
+  },
+  {
+    "label": "Embroidered Jacket Patch: Dot Strike Specialist",
+    "flavorText": "A properly fancy reward for a properly solid whacking session. Owning it feels less like winning an object and more like earning a dramatic new job title."
+  },
+  {
+    "label": "Official Trainer of Nervous Moles Certificate",
+    "flavorText": "A real crowd-pleaser with serious shelf presence. This reward carries the energy of a ceremony no one warned the moles about."
+  },
+  {
+    "label": "Premium Focus Goggles (Vision Optional)",
+    "flavorText": "This prize arrives with the confidence of a local legend. Think of it as a gentle pat on the back with better shelf presence."
+  },
+  {
+    "label": "A Gold-Plated Practice Round Pass",
+    "flavorText": "A properly fancy reward for a properly solid whacking session. It feels aware that it is a prize in a game and seems pleased about that."
+  },
+  {
+    "label": "Command Whistle of Tactical Bonking",
+    "flavorText": "A real crowd-pleaser with serious shelf presence. It exists mostly to let you stand there looking accomplished."
+  },
+  {
+    "label": "One Reserved Parking Space for Your Ego",
+    "flavorText": "This prize arrives with the confidence of a local legend. Logic gave up halfway through, and the prize got better because of it."
+  },
+  {
+    "label": "Hallway Banner: Local Arcade Threat",
+    "flavorText": "A properly fancy reward for a properly solid whacking session. This is the kind of reward you display where everyone can accidentally admire it."
+  },
+  {
+    "label": "A lukewarm cup of coffee",
+    "flavorText": "A real crowd-pleaser with serious shelf presence. Somehow it is both a reward and a punchline."
+  },
+  {
+    "label": "A Cappuccino that's All Foam",
+    "flavorText": "This prize arrives with the confidence of a local legend. It may not improve your life, but it will absolutely improve the story."
+  },
+  {
+    "label": "Arcade Oracle Status (Predictions Unreliable)",
+    "flavorText": "Mysterious, dramatic, and only a little questionable, this title suggests you have seen things in the mole tunnels."
+  },
+  {
+    "label": "Your Name Echoed Dramatically Across the Arcade",
+    "flavorText": "A high-ticket showpiece that practically demands applause. The less this object can be explained, the more valuable it somehow becomes."
+  },
+  {
+    "label": "Arcade Myth Status (Stories May Be Exaggerated)",
+    "flavorText": "This reward radiates glorious arcade nonsense from across the room. Even the fanfare sounds like it knows this prize is on another level."
+  },
+  {
+    "label": "3 Invisible Stuffed Moles",
+    "flavorText": "A deluxe trophy of chaos for players who clearly mean business. It makes no practical sense, which is part of what gives it power."
+  },
+  {
+    "label": "A Looping Applause Track That Follows You",
+    "flavorText": "A high-ticket showpiece that practically demands applause. It exists mostly to let you stand there looking accomplished."
+  },
+  {
+    "label": "Noticeable Final Boss Energy",
+    "flavorText": "This reward radiates glorious arcade nonsense from across the room. It gives off strong main-character credentials the moment it hits the shelf."
+  },
+  {
+    "label": "Delicious NFB Banquet Rubber Chicken",
+    "flavorText": "A deluxe trophy of chaos for players who clearly mean business. Owning it feels less like winning an object and more like earning a dramatic new job title."
+  },
+  {
+    "label": "Grand Master of the Whack Arts",
+    "flavorText": "A heavyweight title for players whose timing, confidence, and general mole energy have reached elite levels."
+  },
+  {
+    "label": "Supreme Mole Commander",
+    "flavorText": "This reward radiates glorious arcade nonsense from across the room. It gives off strong main-character credentials the moment it hits the shelf."
+  },
+  {
+    "label": "A Hall of Fame Induction (Unofficial)",
+    "flavorText": "A deluxe trophy of chaos for players who clearly mean business. This is the kind of reward you display where everyone can accidentally admire it."
+  },
+  {
+    "label": "A Dramatic Slow Clap (Looping)",
+    "flavorText": "A high-ticket showpiece that practically demands applause. The less this object can be explained, the more valuable it somehow becomes."
+  },
+  {
+    "label": "4 Free Vending Machine Items (may get stuck)",
+    "flavorText": "This reward radiates glorious arcade nonsense from across the room. Logic gave up halfway through, and the prize got better because of it."
+  },
+  {
+    "label": "A Magical White Cane that Parts Crowds",
+    "flavorText": "A deluxe trophy of chaos for players who clearly mean business. It makes no practical sense, which is part of what gives it power."
+  },
+  {
+    "label": "A Pin that says You're a Hoot!",
+    "flavorText": "A high-ticket showpiece that practically demands applause. The less this object can be explained, the more valuable it somehow becomes."
+  },
+  {
+    "label": "Pinball Wizard Badge",
+    "flavorText": "This reward radiates glorious arcade nonsense from across the room. It gives off strong main-character credentials the moment it hits the shelf."
+  },
+  {
+    "label": "Unlimited Continue Token",
+    "flavorText": "A deluxe trophy of chaos for players who clearly mean business. This is what happens when the prize counter starts taking your victories personally."
+  },
+  {
+    "label": "Golden Token Wallet",
+    "flavorText": "A high-ticket showpiece that practically demands applause. It exists mostly to let you stand there looking accomplished."
+  },
+  {
+    "label": "A Cappuccino that's not mostly Foam",
+    "flavorText": "This reward radiates glorious arcade nonsense from across the room. Logic gave up halfway through, and the prize got better because of it."
+  },
+  {
+    "label": "A Drink not quite entirely unlike tea.",
+    "flavorText": "A deluxe trophy of chaos for players who clearly mean business. It makes no practical sense, which is part of what gives it power."
+  },
+  {
+    "label": "The Mole's Breakfast Coffee Blend",
+    "flavorText": "A high-ticket showpiece that practically demands applause. Somehow it is both a reward and a punchline."
+  },
+  {
+    "label": "Silly milk drinks!",
+    "flavorText": "This reward radiates glorious arcade nonsense from across the room. It may not improve your life, but it will absolutely improve the story."
+  },
+  {
+    "label": "An Annual Day of Truce Between You and the Moles",
+    "flavorText": "For one sacred day, the moles acknowledge your greatness and agree to stop popping up long enough for everyone to recover."
+  },
+  {
+    "label": "A Constellation Named After Your Whacking Technique",
+    "flavorText": "An absurdly prestigious prize with enough magic to make nearby moles nervous. The shelf has to sit up a little straighter when something like this arrives."
+  },
+  {
+    "label": "Permanent Arcade Immortality (Locally Recognized)",
+    "flavorText": "A delightfully overblown honor proving that somewhere, somehow, your whacking legacy is now part of local folklore."
+  },
+  {
+    "label": "A Historic Peace Treaty With the Moles",
+    "flavorText": "A legendary reward so dramatic it should probably arrive with its own spotlight. This is what happens when the prize counter starts taking your victories personally."
+  },
+  {
+    "label": "Infinite Tickets That You Are Asked Not to Redeem",
+    "flavorText": "An absurdly prestigious prize with enough magic to make nearby moles nervous. The shelf has to sit up a little straighter when something like this arrives."
+  },
+  {
+    "label": "A Considerable Pile of Invisible Stuffed Moles",
+    "flavorText": "This is top-shelf nonsense in its purest and most triumphant form. Even the fanfare sounds like it knows this prize is on another level."
+  },
+  {
+    "label": "Platinum Token Brick",
+    "flavorText": "A legendary reward so dramatic it should probably arrive with its own spotlight. This is what happens when the prize counter starts taking your victories personally."
+  },
+  {
+    "label": "Hall of Fame Joystick",
+    "flavorText": "An absurdly prestigious prize with enough magic to make nearby moles nervous. The shelf has to sit up a little straighter when something like this arrives."
+  },
+  {
+    "label": "Collector Edition Louis Braille Stylus Set",
+    "flavorText": "This is top-shelf nonsense in its purest and most triumphant form. Even the fanfare sounds like it knows this prize is on another level."
+  },
+  {
+    "label": "A Platinum Glide",
+    "flavorText": "A legendary reward so dramatic it should probably arrive with its own spotlight. This is what happens when the prize counter starts taking your victories personally."
+  },
+  {
+    "label": "Premium Guide Dog Snacks",
+    "flavorText": "An absurdly prestigious prize with enough magic to make nearby moles nervous. The shelf has to sit up a little straighter when something like this arrives."
+  },
+  {
+    "label": "Lifetime Supply of Metal Glide Tips",
+    "flavorText": "This is top-shelf nonsense in its purest and most triumphant form. Even the fanfare sounds like it knows this prize is on another level."
+  },
+  {
+    "label": "Moleskin Tactile Notebook",
+    "flavorText": "A legendary reward so dramatic it should probably arrive with its own spotlight. This is what happens when the prize counter starts taking your victories personally."
+  },
+  {
+    "label": "A Platinum NLS e-Reader",
+    "flavorText": "An absurdly prestigious prize with enough magic to make nearby moles nervous. The shelf has to sit up a little straighter when something like this arrives."
+  },
+  {
+    "label": "Premium Costa Rican Coffee Beans",
+    "flavorText": "This is top-shelf nonsense in its purest and most triumphant form. Even the fanfare sounds like it knows this prize is on another level."
+  },
+  {
+    "label": "A Perfect cup of delicious coffee.",
+    "flavorText": "A legendary reward so dramatic it should probably arrive with its own spotlight. This is what happens when the prize counter starts taking your victories personally."
+  },
+  {
+    "label": "The Mole's Expressive Light Roast Coffee Blend",
+    "flavorText": "An absurdly prestigious prize with enough magic to make nearby moles nervous. The shelf has to sit up a little straighter when something like this arrives."
+  },
+  {
+    "label": "Delicious Coffee Beans from Cancun.",
+    "flavorText": "This is top-shelf nonsense in its purest and most triumphant form. Even the fanfare sounds like it knows this prize is on another level."
+  },
+  {
+    "label": "A Golden Pour-Over Coffee Set.",
+    "flavorText": "A legendary reward so dramatic it should probably arrive with its own spotlight. This is what happens when the prize counter starts taking your victories personally."
+  },
+  {
+    "label": "Exotic Loose-leaf Teas (infuser not included)",
+    "flavorText": "An absurdly prestigious prize with enough magic to make nearby moles nervous. The shelf has to sit up a little straighter when something like this arrives."
+  },
+  {
+    "label": "Exclusive Single-Origin Coffee from Amsterdam",
+    "flavorText": "This is top-shelf nonsense in its purest and most triumphant form. Even the fanfare sounds like it knows this prize is on another level."
+  },
+  {
+    "label": "Eternal Arcade Glory",
+    "flavorText": "A legendary reward so dramatic it should probably arrive with its own spotlight. This is what happens when the prize counter starts taking your victories personally."
+  },
+  {
+    "label": "The Mole King's Crown",
+    "flavorText": "An absurdly prestigious prize with enough magic to make nearby moles nervous. The shelf has to sit up a little straighter when something like this arrives."
+  },
+  {
+    "label": "A Legend Status That No One Can Verify",
+    "flavorText": "This is top-shelf nonsense in its purest and most triumphant form. Even the fanfare sounds like it knows this prize is on another level."
+  },
+  {
+    "label": "A Plaque That Just Says Wow",
+    "flavorText": "A legendary reward so dramatic it should probably arrive with its own spotlight. This is what happens when the prize counter starts taking your victories personally."
+  },
+  {
+    "label": "A Shiny Brava Oven filled with Chicken Fingies",
+    "flavorText": "An absurdly prestigious prize with enough magic to make nearby moles nervous. The shelf has to sit up a little straighter when something like this arrives."
+  },
+  {
+    "label": "Louis Braille's Original Stylus",
+    "flavorText": "This is top-shelf nonsense in its purest and most triumphant form. Even the fanfare sounds like it knows this prize is on another level."
+  },
+  {
+    "label": "A Japanese MicroBraille Slate",
+    "flavorText": "A legendary reward so dramatic it should probably arrive with its own spotlight. This is what happens when the prize counter starts taking your victories personally."
+  },
+  {
+    "label": "A Challenging 3D Wave Puzzle",
+    "flavorText": "An absurdly prestigious prize with enough magic to make nearby moles nervous. The shelf has to sit up a little straighter when something like this arrives."
+  },
+  {
+    "label": "Premium Guide Dog Snacks",
+    "flavorText": "This is top-shelf nonsense in its purest and most triumphant form. Even the fanfare sounds like it knows this prize is on another level."
+  },
+  {
+    "label": "Thor's Hammer Mjolnir, for the moles",
+    "flavorText": "A legendary reward so dramatic it should probably arrive with its own spotlight. This is what happens when the prize counter starts taking your victories personally."
+  }
+]
