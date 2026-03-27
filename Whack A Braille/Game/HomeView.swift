@@ -9,7 +9,7 @@ struct HomeView: View {
 	}
 
 	let totalTickets: Int
-	let prizeShelfItems: [String]
+	let prizeShelfItems: [GameViewModel.PrizeShelfDisplayItem]
 	let prizeShelfCount: Int
 	let homeNotice: String?
 	let howToPlayFocusToken: Int
@@ -18,6 +18,7 @@ struct HomeView: View {
 	let openSettings: () -> Void
 	let startGame: () -> Void
 	let clearPrizeShelf: () -> Void
+	let removePrizeShelfItem: (String) -> Void
 
 	@Environment(\.colorScheme) private var colorScheme
 	@State private var isPrizeShelfExpanded = false
@@ -88,20 +89,10 @@ struct HomeView: View {
 								.fixedSize(horizontal: false, vertical: true)
 								.accessibilityFocused($focusedElement, equals: .emptyShelfMessage)
 						} else {
-							ForEach(prizeShelfItems, id: \.self) { item in
-								Text(item)
-									.font(.headline)
-									.foregroundStyle(AppTheme.plaqueText)
-									.frame(maxWidth: .infinity, alignment: .leading)
-									.padding(.horizontal, 14)
-									.padding(.vertical, 12)
-									.background(plaqueBackground)
-									.clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-									.overlay(
-										RoundedRectangle(cornerRadius: 14, style: .continuous)
-											.stroke(Color.white.opacity(0.16), lineWidth: 1)
-									)
-									.shadow(color: Color.black.opacity(0.25), radius: 6, x: 0, y: 4)
+							VStack(alignment: .leading, spacing: 10) {
+								ForEach(prizeShelfItems) { item in
+									prizeShelfRow(item)
+								}
 							}
 						}
 
@@ -161,6 +152,40 @@ struct HomeView: View {
 			DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
 				focusedElement = .howToPlay
 			}
+		}
+	}
+
+	@ViewBuilder
+	private func prizeShelfRow(_ item: GameViewModel.PrizeShelfDisplayItem) -> some View {
+		HStack {
+			Text(item.displayText)
+				.font(.headline)
+				.foregroundStyle(AppTheme.plaqueText)
+				.frame(maxWidth: .infinity, alignment: .leading)
+		}
+		.padding(.horizontal, 14)
+		.padding(.vertical, 12)
+		.background(plaqueBackground)
+		.clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+		.overlay(
+			RoundedRectangle(cornerRadius: 14, style: .continuous)
+				.stroke(Color.white.opacity(0.16), lineWidth: 1)
+		)
+		.shadow(color: Color.black.opacity(0.25), radius: 6, x: 0, y: 4)
+		.contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+		.swipeActions(edge: .trailing, allowsFullSwipe: false) {
+			Button(role: .destructive) {
+				removePrizeShelfItem(item.id)
+			} label: {
+				Label("Delete", systemImage: "trash")
+			}
+			.accessibilityHidden(true)
+		}
+		.accessibilityElement(children: .ignore)
+		.accessibilityLabel(item.displayText)
+		.accessibilityHint("Swipe up or down for actions.")
+		.accessibilityAction(named: "Delete prize") {
+			removePrizeShelfItem(item.id)
 		}
 	}
 	private var secondaryTextColor: Color {

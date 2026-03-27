@@ -57,7 +57,8 @@ struct GameView: View {
 					openPrizeCounter: openPrizeCounter,
 					openSettings: { isShowingSettings = true },
 					startGame: startRound,
-					clearPrizeShelf: viewModel.clearPrizeShelf
+					clearPrizeShelf: viewModel.clearPrizeShelf,
+					removePrizeShelfItem: viewModel.removePrizeShelfItem
 				)
 			case .gameplay:
 				GameplayView(

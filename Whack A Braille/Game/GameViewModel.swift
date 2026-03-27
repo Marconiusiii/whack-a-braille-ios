@@ -16,6 +16,13 @@ final class GameViewModel: ObservableObject {
 		static let prizeShelfEntries = "whackABraille.prizeShelfEntries"
 	}
 
+	struct PrizeShelfDisplayItem: Identifiable, Equatable {
+		let id: String
+		let label: String
+		let quantity: Int
+		let displayText: String
+	}
+
 	let gameLoop: GameLoop
 
 	@Published private(set) var phase: Phase = .home
@@ -27,7 +34,7 @@ final class GameViewModel: ObservableObject {
 	@Published private(set) var lastRoundResult: RoundResult?
 	@Published private(set) var lastRoundWasTraining = false
 	@Published private(set) var totalAccruedTickets: Int
-	@Published private(set) var prizeShelfItems: [String]
+	@Published private(set) var prizeShelfItems: [PrizeShelfDisplayItem]
 	@Published private(set) var prizeShelfCount: Int
 	@Published private(set) var homeNotice: String?
 	@Published private(set) var inputResetToken = 0
@@ -196,6 +203,15 @@ final class GameViewModel: ObservableObject {
 		homeNotice = nil
 	}
 
+	func removePrizeShelfItem(id: String) {
+		guard let index = prizeShelfEntries.firstIndex(where: { $0.label == id }) else { return }
+		prizeShelfEntries.remove(at: index)
+		savePrizeShelfEntries()
+		prizeShelfItems = Self.displayItems(from: prizeShelfEntries)
+		prizeShelfCount = Self.totalPrizeCount(from: prizeShelfEntries)
+		homeNotice = nil
+	}
+
 	func returnFocusToHowToPlay() {
 		howToPlayFocusToken += 1
 	}
@@ -238,10 +254,15 @@ final class GameViewModel: ObservableObject {
 		}
 	}
 
-	private static func displayItems(from entries: [PrizeShelfEntry]) -> [String] {
+	private static func displayItems(from entries: [PrizeShelfEntry]) -> [PrizeShelfDisplayItem] {
 		entries.enumerated().map { index, entry in
 			let baseLabel = entry.quantity > 1 ? "\(entry.label), x\(entry.quantity)" : entry.label
-			return "\(index + 1). \(baseLabel)"
+			return PrizeShelfDisplayItem(
+				id: entry.label,
+				label: entry.label,
+				quantity: entry.quantity,
+				displayText: "\(index + 1). \(baseLabel)"
+			)
 		}
 	}
 
