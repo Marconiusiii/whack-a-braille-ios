@@ -49,7 +49,7 @@ function buildSwift(prizes) {
 	for (const prize of prizes) {
 		const maxTickets = prize.maxTickets === null ? "nil" : String(prize.maxTickets);
 		lines.push(
-			`\t\tPrize(id: "${swiftString(prize.id)}", label: "${swiftString(prize.label)}", minTickets: ${prize.minTickets}, maxTickets: ${maxTickets}, category: "${swiftString(prize.category)}"),`
+			`\t\tPrize(id: "${swiftString(prize.id)}", label: "${swiftString(prize.label)}", minTickets: ${prize.minTickets}, maxTickets: ${maxTickets}, category: "${swiftString(prize.category)}", flavorText: "${swiftString(prize.flavorText ?? "")}"),`
 		);
 	}
 

@@ -14,6 +14,7 @@ struct Prize: Identifiable, Equatable {
 	let minTickets: Int
 	let maxTickets: Int?
 	let category: String
+	let flavorText: String
 
 	var ticketCost: Int {
 		max(1, minTickets)
