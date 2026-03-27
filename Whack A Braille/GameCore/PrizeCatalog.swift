@@ -145,7 +145,7 @@ enum PrizeCatalog {
 		Prize(id: "tier5_hallJoystick", label: "Hall of Fame Joystick", minTickets: 100, maxTickets: nil, category: "legend"),
 		Prize(id: "tier5_stylusSet", label: "Collector Edition Louis Braille Stylus Set", minTickets: 100, maxTickets: nil, category: "legend"),
 		Prize(id: "tier5_platinumGlide", label: "A Platinum Glide", minTickets: 100, maxTickets: nil, category: "legend"),
-		Prize(id: "tier5_guideDogSnacks2", label: "Premium Guide Dog Snacks", minTickets: 100, maxTickets: nil, category: "legend"),
+		Prize(id: "tier5_guideDogSnacks2", label: "Premium Guide Dog Toys", minTickets: 100, maxTickets: nil, category: "legend"),
 		Prize(id: "tier5_glideTips", label: "Lifetime Supply of Metal Glide Tips", minTickets: 100, maxTickets: nil, category: "legend"),
 		Prize(id: "tier5_moleskinNotebook", label: "Moleskin Tactile Notebook", minTickets: 100, maxTickets: nil, category: "legend"),
 		Prize(id: "tier5_platinumNLS", label: "A Platinum NLS e-Reader", minTickets: 100, maxTickets: nil, category: "legend"),
