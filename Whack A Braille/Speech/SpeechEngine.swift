@@ -8,6 +8,7 @@ final class SpeechEngine {
 	private let synthesizer = AVSpeechSynthesizer()
 	private var currentVoice: AVSpeechSynthesisVoice?
 	private var currentRate: Float = AVSpeechUtteranceDefaultSpeechRate
+	private var currentVolume: Float = 0.85
 	private var sessionObservers: [NSObjectProtocol] = []
 
 	private init() {
@@ -25,13 +26,18 @@ final class SpeechEngine {
 		}
 	}
 
-	func configure(voice: AVSpeechSynthesisVoice?, rate: Float) {
+	func configure(voice: AVSpeechSynthesisVoice?, rate: Float, volume: Float) {
 		currentVoice = voice ?? AVSpeechSynthesisVoice(language: Locale.current.identifier) ?? AVSpeechSynthesisVoice(language: "en-US")
 		currentRate = rate
+		currentVolume = min(max(volume, 0.0), 1.0)
 	}
 
-	func playVoiceSample(voice: AVSpeechSynthesisVoice?, ratePercent: Int) {
-		configure(voice: voice, rate: speechRateForPercent(ratePercent))
+	func playVoiceSample(voice: AVSpeechSynthesisVoice?, ratePercent: Int, volumePercent: Int) {
+		configure(
+			voice: voice,
+			rate: speechRateForPercent(ratePercent),
+			volume: speechVolumeForPercent(volumePercent)
+		)
 		_ = speak("Welcome to Whack A Braille!", interrupt: true)
 	}
 
@@ -49,6 +55,7 @@ final class SpeechEngine {
 		let utterance = AVSpeechUtterance(string: normalized)
 		utterance.voice = currentVoice
 		utterance.rate = currentRate
+		utterance.volume = currentVolume
 		utterance.prefersAssistiveTechnologySettings = false
 		synthesizer.speak(utterance)
 
@@ -126,5 +133,10 @@ final class SpeechEngine {
 		let clamped = min(max(percent, 1), 100)
 		let progress = Float(clamped - 1) / 99.0
 		return AVSpeechUtteranceMinimumSpeechRate + ((AVSpeechUtteranceMaximumSpeechRate - AVSpeechUtteranceMinimumSpeechRate) * progress)
+	}
+
+	private func speechVolumeForPercent(_ percent: Int) -> Float {
+		let clamped = min(max(percent, 5), 100)
+		return Float(clamped) / 100.0
 	}
 }

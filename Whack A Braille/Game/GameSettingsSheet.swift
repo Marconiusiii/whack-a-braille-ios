@@ -13,6 +13,7 @@ struct GameSettingsSheet: View {
 	@Binding var speakBrailleDots: Bool
 	@Binding var characterEcho: Bool
 	@Binding var speechRatePercent: Int
+	@Binding var speechVolumePercent: Int
 	@Binding var selectedVoiceId: String
 
 	@Environment(\.dismiss) private var dismiss
@@ -97,9 +98,27 @@ struct GameSettingsSheet: View {
 						.accessibilityValue("\(speechRatePercent) percent")
 					}
 
+					VStack(alignment: .leading, spacing: 8) {
+						Text("Speech Volume: \(speechVolumePercent) percent")
+							.accessibilityHidden(true)
+							.fixedSize(horizontal: false, vertical: true)
+
+						Slider(
+							value: speechVolumeBinding,
+							in: 5...100,
+							step: 5
+						)
+						.accessibilityLabel("Speech Volume")
+						.accessibilityValue("\(speechVolumePercent) percent")
+					}
+
 					Button("Play Voice Sample") {
 						let voice = selectedVoiceId.isEmpty ? nil : AVSpeechSynthesisVoice(identifier: selectedVoiceId)
-						SpeechEngine.shared.playVoiceSample(voice: voice, ratePercent: speechRatePercent)
+						SpeechEngine.shared.playVoiceSample(
+							voice: voice,
+							ratePercent: speechRatePercent,
+							volumePercent: speechVolumePercent
+						)
 					}
 
 					Button("Send Game Feedback") {
@@ -182,6 +201,13 @@ struct GameSettingsSheet: View {
 		Binding(
 			get: { Double(speechRatePercent) },
 			set: { speechRatePercent = Int($0.rounded()) }
+		)
+	}
+
+	private var speechVolumeBinding: Binding<Double> {
+		Binding(
+			get: { Double(speechVolumePercent) },
+			set: { speechVolumePercent = Int($0.rounded()) }
 		)
 	}
 

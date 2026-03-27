@@ -33,6 +33,7 @@ struct GameView: View {
 	@AppStorage("whackABraille.speakBrailleDots") private var speakBrailleDots = false
 	@AppStorage("whackABraille.characterEcho") private var characterEcho = false
 	@AppStorage("whackABraille.speechRatePercent") private var speechRatePercent = 35
+	@AppStorage("whackABraille.speechVolumePercent") private var speechVolumePercent = 85
 	@AppStorage("whackABraille.selectedVoiceId") private var selectedVoiceId = ""
 
 	@State private var isShowingSettings = false
@@ -88,6 +89,7 @@ struct GameView: View {
 				speakBrailleDots: $speakBrailleDots,
 				characterEcho: $characterEcho,
 				speechRatePercent: $speechRatePercent,
+				speechVolumePercent: $speechVolumePercent,
 				selectedVoiceId: $selectedVoiceId
 			)
 		}
@@ -129,6 +131,7 @@ struct GameView: View {
 		}
 		.onChange(of: selectedVoiceId) { applySpeechSettings() }
 		.onChange(of: speechRatePercent) { applySpeechSettings() }
+		.onChange(of: speechVolumePercent) { applySpeechSettings() }
 	}
 
 	private var difficulty: Difficulty {
@@ -175,7 +178,8 @@ struct GameView: View {
 	private func applySpeechSettings() {
 		SpeechEngine.shared.configure(
 			voice: selectedVoiceId.isEmpty ? nil : AVSpeechSynthesisVoice(identifier: selectedVoiceId),
-			rate: speechRateForPercent(speechRatePercent)
+			rate: speechRateForPercent(speechRatePercent),
+			volume: speechVolumeForPercent(speechVolumePercent)
 		)
 	}
 
@@ -273,5 +277,10 @@ struct GameView: View {
 		let clamped = min(max(percent, 1), 100)
 		let progress = Float(clamped - 1) / 99.0
 		return AVSpeechUtteranceMinimumSpeechRate + ((AVSpeechUtteranceMaximumSpeechRate - AVSpeechUtteranceMinimumSpeechRate) * progress)
+	}
+
+	private func speechVolumeForPercent(_ percent: Int) -> Float {
+		let clamped = min(max(percent, 5), 100)
+		return Float(clamped) / 100.0
 	}
 }

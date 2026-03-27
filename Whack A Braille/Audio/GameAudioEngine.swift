@@ -28,9 +28,11 @@ final class GameAudioEngine {
 	private lazy var openingCueData: Data? = makeStartFlourishData()
 	private lazy var everythingCueData: Data? = makeEverythingStingerData()
 	private lazy var endCueData: Data? = makeEndCueData()
-	private lazy var prizeFanfareVariantAData: Data? = makePrizeFanfareData(seed: 1)
-	private lazy var prizeFanfareVariantBData: Data? = makePrizeFanfareData(seed: 2)
-	private lazy var prizeFanfareVariantCData: Data? = makePrizeFanfareData(seed: 3)
+	private lazy var tier1PrizeFanfareData: [Data] = [1, 2, 3].compactMap { makeTier1PrizeFanfareData(seed: $0) }
+	private lazy var tier2PrizeFanfareData: [Data] = [1, 2, 3].compactMap { makeTier2PrizeFanfareData(seed: $0) }
+	private lazy var tier3PrizeFanfareData: [Data] = [1, 2, 3].compactMap { makeTier3PrizeFanfareData(seed: $0) }
+	private lazy var tier4PrizeFanfareData: [Data] = [1, 2, 3].compactMap { makeTier4PrizeFanfareData(seed: $0) }
+	private lazy var tier5PrizeFanfareData: [Data] = [1, 2, 3].compactMap { makeTier5PrizeFanfareData(seed: $0) }
 
 	private init() {
 		observeAudioSession()
@@ -67,9 +69,11 @@ final class GameAudioEngine {
 			_ = self.openingCueData
 			_ = self.everythingCueData
 			_ = self.endCueData
-			_ = self.prizeFanfareVariantAData
-			_ = self.prizeFanfareVariantBData
-			_ = self.prizeFanfareVariantCData
+			_ = self.tier1PrizeFanfareData
+			_ = self.tier2PrizeFanfareData
+			_ = self.tier3PrizeFanfareData
+			_ = self.tier4PrizeFanfareData
+			_ = self.tier5PrizeFanfareData
 
 			DispatchQueue.main.async {
 				self.hasFinishedPrewarm = true
@@ -99,13 +103,29 @@ final class GameAudioEngine {
 		playGeneratedSound(endCueData, volume: 1.0, pan: 0)
 	}
 
-	func playPrizeFanfare() {
-		let variants = [
-			prizeFanfareVariantAData,
-			prizeFanfareVariantBData,
-			prizeFanfareVariantCData
-		].compactMap { $0 }
-		playGeneratedSound(variants.randomElement(), volume: 1.05, pan: 0)
+	func playPrizeFanfare(for tier: PrizeTier) {
+		let variants: [Data]
+		let volume: Float
+
+		switch tier {
+		case .tier1:
+			variants = tier1PrizeFanfareData
+			volume = 0.98
+		case .tier2:
+			variants = tier2PrizeFanfareData
+			volume = 1.02
+		case .tier3:
+			variants = tier3PrizeFanfareData
+			volume = 1.05
+		case .tier4:
+			variants = tier4PrizeFanfareData
+			volume = 1.05
+		case .tier5:
+			variants = tier5PrizeFanfareData
+			volume = 1.12
+		}
+
+		playGeneratedSound(variants.randomElement(), volume: volume, pan: 0)
 	}
 
 	func startRoundAudio(progressProvider: @escaping () -> Double, timerMusicEnabled: Bool) {
@@ -469,7 +489,106 @@ final class GameAudioEngine {
 		}
 	}
 
-	private func makePrizeFanfareData(seed: Int) -> Data? {
+	private func makeTier1PrizeFanfareData(seed: Int) -> Data? {
+		let baseMidi = 62 + seed
+		let melodyChoices: [[Int]] = [
+			[0, 4],
+			[0, 5],
+			[0, 7]
+		]
+		let melody = melodyChoices[(seed - 1) % melodyChoices.count]
+		let noteStarts = [0.0, 0.16]
+		let duration = 0.48
+
+		return makeWaveFile(duration: duration) { time in
+			var sample = 0.0
+
+			for (index, start) in noteStarts.enumerated() {
+				let localTime = time - start
+				guard localTime >= 0 else { continue }
+				let noteDuration = index == noteStarts.count - 1 ? 0.28 : 0.2
+				let freq = 440.0 * pow(2.0, Double(baseMidi + melody[index] - 69) / 12.0)
+				let env = linearEnvelope(localTime, attack: 0.008, release: noteDuration, peak: 0.26)
+				let horn = triangle(freq, localTime) + (sine(freq * 0.5, localTime) * 0.3)
+				sample += horn * env
+			}
+
+			return clampSample(sample * 0.66)
+		}
+	}
+
+	private func makeTier2PrizeFanfareData(seed: Int) -> Data? {
+		let baseMidi = 58 + seed
+		let melodyChoices: [[Int]] = [
+			[0, 4, 7],
+			[0, 5, 9],
+			[0, 3, 7]
+		]
+		let melody = melodyChoices[(seed - 1) % melodyChoices.count]
+		let noteStarts = [0.0, 0.12, 0.26]
+		let duration = 0.7
+
+		return makeWaveFile(duration: duration) { time in
+			var sample = 0.0
+
+			for (index, start) in noteStarts.enumerated() {
+				let localTime = time - start
+				guard localTime >= 0 else { continue }
+				let noteDuration = index == noteStarts.count - 1 ? 0.34 : 0.18
+				let trumpetFreq = 440.0 * pow(2.0, Double(baseMidi + melody[index] + 12 - 69) / 12.0)
+				let tromboneFreq = 440.0 * pow(2.0, Double(baseMidi + melody[index] - 69) / 12.0)
+				let env = linearEnvelope(localTime, attack: 0.01, release: noteDuration, peak: 0.2)
+				let trumpet = sine(trumpetFreq, localTime) + (triangle(trumpetFreq * 2.0, localTime) * 0.14)
+				let trombone = triangle(tromboneFreq, localTime) + (sine(tromboneFreq * 0.5, localTime) * 0.18)
+				sample += (trumpet * 0.74 + trombone * 0.62) * env
+			}
+
+			let flourish = envelope(time, attack: 0.006, release: 0.1, peak: 0.11) *
+				sine(lerpExp(start: 900, end: 520, progress: min(time / 0.1, 1)), time)
+			return clampSample((sample + flourish) * 0.7)
+		}
+	}
+
+	private func makeTier3PrizeFanfareData(seed: Int) -> Data? {
+		let baseMidi = 61 + seed
+		let melodyChoices: [[Int]] = [
+			[0, 4, 7, 11],
+			[0, 5, 9, 12],
+			[0, 3, 7, 10]
+		]
+		let melody = melodyChoices[(seed - 1) % melodyChoices.count]
+		let noteStarts = [0.0, 0.12, 0.24, 0.36]
+		let duration = 0.92
+
+		return makeWaveFile(duration: duration) { time in
+			var sample = 0.0
+
+			for (index, start) in noteStarts.enumerated() {
+				let localTime = time - start
+				guard localTime >= 0 else { continue }
+				let noteDuration = index == noteStarts.count - 1 ? 0.46 : 0.2
+				let midi = baseMidi + melody[index]
+				let freq = 440.0 * pow(2.0, Double(midi - 69) / 12.0)
+				let env = linearEnvelope(localTime, attack: 0.01, release: noteDuration, peak: 0.28)
+				let body = sine(freq, localTime) + (triangle(freq * 2.0, localTime) * 0.18)
+				sample += body * env
+			}
+
+			let sparkleOffsets = [0.18, 0.27, 0.34, 0.42]
+			for (index, start) in sparkleOffsets.enumerated() {
+				let localTime = time - start
+				guard localTime >= 0 else { continue }
+				let sparkleFreq = 440.0 * pow(2.0, Double(baseMidi + 19 + index + seed - 69) / 12.0)
+				let env = linearEnvelope(localTime, attack: 0.008, release: 0.18, peak: 0.08)
+				let bell = sine(sparkleFreq, localTime) + (triangle(sparkleFreq * 1.6, localTime) * 0.2)
+				sample += bell * env
+			}
+
+			return clampSample(sample * 0.72)
+		}
+	}
+
+	private func makeTier4PrizeFanfareData(seed: Int) -> Data? {
 		let baseMidi = 60 + seed
 		let chordChoices: [[Int]] = [
 			[0, 4, 7, 12],
@@ -569,6 +688,98 @@ final class GameAudioEngine {
 			}
 
 			return clampSample((sample + reverbTail + snap + shimmer + chimeGliss) * 0.72 * endingFade)
+		}
+	}
+
+	private func makeTier5PrizeFanfareData(seed: Int) -> Data? {
+		let baseMidi = 64 + seed
+		let melodyChoices: [[Int]] = [
+			[0, 4, 7, 11, 16, 19],
+			[0, 5, 9, 12, 16, 21],
+			[0, 7, 11, 14, 19, 23]
+		]
+		let melody = melodyChoices[(seed - 1) % melodyChoices.count]
+		let noteStarts = [0.0, 0.11, 0.23, 0.36, 0.5, 0.68]
+		let duration = 1.56
+
+		return makeWaveFile(duration: duration) { time in
+			var sample = 0.0
+			var finalNoteSample = 0.0
+
+			for (index, start) in noteStarts.enumerated() {
+				let localTime = time - start
+				guard localTime >= 0 else { continue }
+				let noteDuration = index == noteStarts.count - 1 ? 0.72 : 0.22
+				let midi = baseMidi + melody[index]
+				let baseFreq = 440.0 * pow(2.0, Double(midi - 69) / 12.0)
+				let freq: Double
+				if index == noteStarts.count - 1 {
+					let vibrato = sin(2 * .pi * 4.2 * localTime) * 1.6
+					freq = baseFreq + vibrato
+				} else {
+					freq = baseFreq
+				}
+				let env = linearEnvelope(localTime, attack: 0.01, release: noteDuration, peak: 0.33)
+				let body = sine(freq, localTime) + (triangle(freq * 2.0, localTime) * 0.24)
+				let silly = sine(freq * 3.0, localTime) * 0.1
+				let noteSample = (body + silly) * env
+				sample += noteSample
+
+				if index == noteStarts.count - 1 {
+					finalNoteSample = noteSample
+				}
+			}
+
+			let padChord = [0, 7, 12, 16]
+			for step in padChord {
+				let localTime = max(0, time - 0.04)
+				let freq = 440.0 * pow(2.0, Double(baseMidi + step - 69) / 12.0)
+				let env = linearEnvelope(localTime, attack: 0.02, release: 0.72, peak: 0.11)
+				let pad = sine(freq, localTime) + (triangle(freq * 0.5, localTime) * 0.14)
+				sample += pad * env
+			}
+
+			let sparkleStarts = [0.16, 0.28, 0.44, 0.58, 0.82, 0.96]
+			for (index, start) in sparkleStarts.enumerated() {
+				let localTime = time - start
+				guard localTime >= 0 else { continue }
+				let progress = Double(index) / Double(max(sparkleStarts.count - 1, 1))
+				let freq = lerpExp(start: 900 + Double(seed * 30), end: 1_850 + Double(seed * 40), progress: progress)
+				let env = linearEnvelope(localTime, attack: 0.008, release: 0.22, peak: 0.08)
+				let bell = sine(freq, localTime) + (triangle(freq * 1.8, localTime) * 0.24)
+				sample += bell * env
+			}
+
+			let glissStart = 0.52
+			let glissDuration = 0.44
+			if time >= glissStart, time <= glissStart + glissDuration {
+				let localTime = time - glissStart
+				let progress = min(max(localTime / glissDuration, 0), 1)
+				let startFreq = 440.0 * pow(2.0, Double(baseMidi + 12 - 69) / 12.0)
+				let endFreq = 440.0 * pow(2.0, Double(baseMidi + 31 - 69) / 12.0)
+				let glissFreq = lerpExp(start: startFreq, end: endFreq, progress: progress)
+				let env = linearEnvelope(localTime, attack: 0.01, release: glissDuration, peak: 0.13)
+				let gliss = sine(glissFreq, localTime) + (triangle(glissFreq * 1.5, localTime) * 0.22)
+				sample += gliss * env
+			}
+
+			let reflectionOffsets = [0.08, 0.15, 0.23, 0.31]
+			let reflectionGains = [0.12, 0.08, 0.05, 0.03]
+			let finalStart = noteStarts.last ?? 0.68
+			var tail = 0.0
+			if time >= finalStart {
+				for (offset, gain) in zip(reflectionOffsets, reflectionGains) {
+					let reflectedTime = time - offset
+					if reflectedTime >= finalStart {
+						let local = reflectedTime - finalStart
+						let fade = max(0.0, 1.0 - (local / 0.7))
+						tail += finalNoteSample * gain * fade
+					}
+				}
+			}
+
+			let endingFade = time > 1.04 ? max(0.0, 1.0 - ((time - 1.04) / 0.52)) : 1.0
+			return clampSample((sample + tail) * 0.76 * endingFade)
 		}
 	}
 
