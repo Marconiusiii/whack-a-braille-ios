@@ -116,6 +116,7 @@ struct HomeView: View {
 							.font(.headline)
 							.accessibilityLabel("Prize Shelf")
 							.accessibilityValue(prizeShelfAccessibilityValue)
+							.accessibilityAddTraits(.isHeader)
 					}
 				)
 				.tint(AppTheme.heading)
