@@ -10,9 +10,10 @@ final class GameAudioEngine {
 
 	private var timerMusicEnabled = true
 	private var activePlayers: [AVAudioPlayer] = []
-	private var hasStartedPrewarm = false
-	private var hasFinishedPrewarm = false
-	private var pendingPrewarmHandlers: [() -> Void] = []
+	private var hasStartedGameplayPrewarm = false
+	private var hasFinishedGameplayPrewarm = false
+	private var pendingGameplayPrewarmHandlers: [() -> Void] = []
+	private var hasStartedExtendedPrewarm = false
 	private var sessionObservers: [NSObjectProtocol] = []
 	private var roundBeatWorkItem: DispatchWorkItem?
 	private var roundBeatProgressProvider: (() -> Double)?
@@ -47,17 +48,17 @@ final class GameAudioEngine {
 	func prewarm(completion: (() -> Void)? = nil) {
 		configureAudioSession()
 
-		if hasFinishedPrewarm {
+		if hasFinishedGameplayPrewarm {
 			completion?()
 			return
 		}
 
 		if let completion {
-			pendingPrewarmHandlers.append(completion)
+			pendingGameplayPrewarmHandlers.append(completion)
 		}
 
-		guard !hasStartedPrewarm else { return }
-		hasStartedPrewarm = true
+		guard !hasStartedGameplayPrewarm else { return }
+		hasStartedGameplayPrewarm = true
 
 		DispatchQueue.global(qos: .userInitiated).async { [weak self] in
 			guard let self else { return }
@@ -69,30 +70,30 @@ final class GameAudioEngine {
 			_ = self.openingCueData
 			_ = self.everythingCueData
 			_ = self.endCueData
-			_ = self.tier1PrizeFanfareData
-			_ = self.tier2PrizeFanfareData
-			_ = self.tier3PrizeFanfareData
-			_ = self.tier4PrizeFanfareData
-			_ = self.tier5PrizeFanfareData
 
 			DispatchQueue.main.async {
-				self.hasFinishedPrewarm = true
-				let handlers = self.pendingPrewarmHandlers
-				self.pendingPrewarmHandlers.removeAll()
+				self.hasFinishedGameplayPrewarm = true
+				let handlers = self.pendingGameplayPrewarmHandlers
+				self.pendingGameplayPrewarmHandlers.removeAll()
 				for handler in handlers {
 					handler()
 				}
+				self.prewarmExtendedAudioIfNeeded()
 			}
 		}
 	}
 
 	var isReadyForGameplay: Bool {
-		hasFinishedPrewarm
+		hasFinishedGameplayPrewarm
 	}
 
 	func configure(timerMusicEnabled: Bool) {
 		self.timerMusicEnabled = timerMusicEnabled
 		configureAudioSession()
+	}
+
+	func prewarmForHomeScreen() {
+		prewarm()
 	}
 
 	func playOpeningCue(playEverythingIntro: Bool) {
@@ -224,6 +225,20 @@ final class GameAudioEngine {
 			purgeFinishedPlayers()
 		} catch {
 			// Keep gameplay running even if a generated sound cannot be played.
+		}
+	}
+
+	private func prewarmExtendedAudioIfNeeded() {
+		guard !hasStartedExtendedPrewarm else { return }
+		hasStartedExtendedPrewarm = true
+
+		DispatchQueue.global(qos: .utility).async { [weak self] in
+			guard let self else { return }
+			_ = self.tier1PrizeFanfareData
+			_ = self.tier2PrizeFanfareData
+			_ = self.tier3PrizeFanfareData
+			_ = self.tier4PrizeFanfareData
+			_ = self.tier5PrizeFanfareData
 		}
 	}
 

@@ -133,6 +133,11 @@ struct GameView: View {
 		.onChange(of: selectedVoiceId) { applySpeechSettings() }
 		.onChange(of: speechRatePercent) { applySpeechSettings() }
 		.onChange(of: speechVolumePercent) { applySpeechSettings() }
+		.onAppear {
+			applySpeechSettings()
+			SpeechEngine.shared.prewarm()
+			GameAudioEngine.shared.prewarmForHomeScreen()
+		}
 	}
 
 	private var difficulty: Difficulty {
