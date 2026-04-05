@@ -208,7 +208,7 @@ final class GameViewModel: ObservableObject {
 	}
 
 	func removePrizeShelfItem(id: String) {
-		guard let index = prizeShelfEntries.firstIndex(where: { $0.label == id }) else { return }
+		guard let index = prizeShelfEntries.firstIndex(where: { $0.prizeID == id }) else { return }
 		prizeShelfEntries.remove(at: index)
 		savePrizeShelfEntries()
 		prizeShelfItems = Self.displayItems(from: prizeShelfEntries)
@@ -221,11 +221,11 @@ final class GameViewModel: ObservableObject {
 	}
 
 	private func addPrizeToShelf(_ prize: Prize) {
-		if let index = prizeShelfEntries.firstIndex(where: { $0.label == prize.label }) {
+		if let index = prizeShelfEntries.firstIndex(where: { $0.prizeID == prize.id }) {
 			prizeShelfEntries[index].quantity += 1
 			prizeShelfEntries[index].latestClaimedAt = .now
 		} else {
-			prizeShelfEntries.append(PrizeShelfEntry(label: prize.label, quantity: 1, latestClaimedAt: .now))
+			prizeShelfEntries.append(PrizeShelfEntry(prizeID: prize.id, quantity: 1, latestClaimedAt: .now))
 		}
 
 		savePrizeShelfEntries()
@@ -251,21 +251,22 @@ final class GameViewModel: ObservableObject {
 		let legacyItems = UserDefaults.standard.stringArray(forKey: StorageKey.prizeShelf) ?? []
 		var counts: [String: Int] = [:]
 		for item in legacyItems {
-			counts[item, default: 0] += 1
+			guard let prizeID = PrizeCatalog.all.first(where: { $0.label == item })?.id else { continue }
+			counts[prizeID, default: 0] += 1
 		}
 
 		return counts.keys.sorted().map { key in
-			PrizeShelfEntry(label: key, quantity: counts[key] ?? 1)
+			PrizeShelfEntry(prizeID: key, quantity: counts[key] ?? 1)
 		}
 	}
 
 	private static func displayItems(from entries: [PrizeShelfEntry]) -> [PrizeShelfDisplayItem] {
 		entries.enumerated().compactMap { index, entry in
-			guard let prize = PrizeCatalog.all.first(where: { $0.label == entry.label }) else { return nil }
-			let baseLabel = entry.quantity > 1 ? "\(entry.label), x\(entry.quantity)" : entry.label
+			guard let prize = PrizeCatalog.all.first(where: { $0.id == entry.prizeID }) else { return nil }
+			let baseLabel = entry.quantity > 1 ? "\(prize.label), x\(entry.quantity)" : prize.label
 			return PrizeShelfDisplayItem(
-				id: entry.label,
-				label: entry.label,
+				id: prize.id,
+				label: prize.label,
 				quantity: entry.quantity,
 				displayText: "\(index + 1). \(baseLabel)",
 				flavorText: prize.flavorText,

@@ -58,17 +58,18 @@ struct Prize: Identifiable, Equatable {
 }
 
 struct PrizeShelfEntry: Codable, Equatable {
-	let label: String
+	let prizeID: String
 	var quantity: Int
 	var latestClaimedAt: Date?
 
-	init(label: String, quantity: Int, latestClaimedAt: Date? = nil) {
-		self.label = label
+	init(prizeID: String, quantity: Int, latestClaimedAt: Date? = nil) {
+		self.prizeID = prizeID
 		self.quantity = quantity
 		self.latestClaimedAt = latestClaimedAt
 	}
 
 	private enum CodingKeys: String, CodingKey {
+		case prizeID
 		case label
 		case quantity
 		case latestClaimedAt
@@ -76,8 +77,22 @@ struct PrizeShelfEntry: Codable, Equatable {
 
 	init(from decoder: Decoder) throws {
 		let container = try decoder.container(keyedBy: CodingKeys.self)
-		label = try container.decode(String.self, forKey: .label)
 		quantity = try container.decode(Int.self, forKey: .quantity)
 		latestClaimedAt = try container.decodeIfPresent(Date.self, forKey: .latestClaimedAt)
+
+		if let prizeID = try container.decodeIfPresent(String.self, forKey: .prizeID) {
+			self.prizeID = prizeID
+			return
+		}
+
+		let legacyLabel = try container.decode(String.self, forKey: .label)
+		self.prizeID = PrizeCatalog.all.first(where: { $0.label == legacyLabel })?.id ?? legacyLabel
+	}
+
+	func encode(to encoder: Encoder) throws {
+		var container = encoder.container(keyedBy: CodingKeys.self)
+		try container.encode(prizeID, forKey: .prizeID)
+		try container.encode(quantity, forKey: .quantity)
+		try container.encodeIfPresent(latestClaimedAt, forKey: .latestClaimedAt)
 	}
 }
