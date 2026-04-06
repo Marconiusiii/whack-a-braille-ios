@@ -4,6 +4,21 @@ enum BrailleRegistry {
 
 	typealias ModeOption = (id: String, label: String)
 
+	struct ReferenceRow: Identifiable {
+		let id: String
+		let displayLabel: String
+		let dotsText: String
+		let unicodeText: String
+	}
+
+	struct ReferenceSection: Identifiable {
+		let id: String
+		let title: String
+		let rows: [ReferenceRow]
+	}
+
+	private static let braillePatternBase = 0x2800
+
 	private static func dotsToMask(_ dots: [Int]) -> Int {
 		var mask = 0
 		for dot in dots {
@@ -24,6 +39,43 @@ enum BrailleRegistry {
 		return dots.compactMap { map[$0] }
 	}
 
+	private static func normalizePerkinsSequence(_ rawSequence: [[Int]]?, fallbackDots: [Int]) -> [[Int]] {
+		let source = (rawSequence?.isEmpty == false) ? rawSequence! : [fallbackDots]
+		return source.map { $0.sorted() }
+	}
+
+	private static func normalizeTokens(_ tokens: [String]) -> [String] {
+		tokens
+			.map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
+			.filter { !$0.isEmpty }
+	}
+
+	private static func dedupeInputs(_ inputs: [String]) -> [String] {
+		var seen = Set<String>()
+		var result: [String] = []
+
+		for input in normalizeTokens(inputs) where seen.insert(input).inserted {
+			result.append(input)
+		}
+
+		return result
+	}
+
+	private static func dedupeTokenSequences(_ sequences: [[String]]) -> [[String]] {
+		var seen = Set<String>()
+		var result: [[String]] = []
+
+		for sequence in sequences {
+			let normalized = normalizeTokens(sequence)
+			guard !normalized.isEmpty else { continue }
+			let key = normalized.joined(separator: "\u{1F}")
+			guard seen.insert(key).inserted else { continue }
+			result.append(normalized)
+		}
+
+		return result
+	}
+
 	private static func makeItem(
 		id: String,
 		announce: String,
@@ -31,6 +83,8 @@ enum BrailleRegistry {
 		modes: [String],
 		standardKey: String? = nil,
 		acceptedInputs: [String] = [],
+		textTokenSequences: [[String]]? = nil,
+		perkinsSequence: [[Int]]? = nil,
 		nato: String? = nil
 	) -> BrailleItem {
 		var acceptedTextInputs = [id]
@@ -39,6 +93,12 @@ enum BrailleRegistry {
 		}
 		acceptedTextInputs.append(contentsOf: acceptedInputs)
 
+		let normalizedAcceptedInputs = dedupeInputs(acceptedTextInputs)
+		let normalizedPerkinsSequence = normalizePerkinsSequence(perkinsSequence, fallbackDots: dots)
+		let normalizedTokenSequences = dedupeTokenSequences(
+			textTokenSequences ?? normalizedAcceptedInputs.map { [$0] }
+		)
+
 		return BrailleItem(
 			id: id,
 			displayLabel: id,
@@ -46,8 +106,12 @@ enum BrailleRegistry {
 			dots: dots,
 			dotMask: dotsToMask(dots),
 			perkinsKeys: dotsToPerkinsKeys(dots),
+			perkinsSequenceDots: normalizedPerkinsSequence,
+			perkinsSequenceMasks: normalizedPerkinsSequence.map(dotsToMask),
+			expectedPerkinsCellCount: normalizedPerkinsSequence.count,
 			standardKey: standardKey,
-			acceptedTextInputs: dedupeInputs(acceptedTextInputs),
+			acceptedTextInputs: normalizedAcceptedInputs,
+			textInputTokenSequences: normalizedTokenSequences,
 			modeTags: Set(modes),
 			nato: nato
 		)
@@ -65,24 +129,64 @@ enum BrailleRegistry {
 			dots: [],
 			dotMask: 0,
 			perkinsKeys: [],
+			perkinsSequenceDots: [],
+			perkinsSequenceMasks: [],
+			expectedPerkinsCellCount: 1,
 			standardKey: key,
 			acceptedTextInputs: [key],
+			textInputTokenSequences: [[key.lowercased()]],
 			modeTags: Set(modes),
 			nato: nil
 		)
 	}
 
-	private static func dedupeInputs(_ inputs: [String]) -> [String] {
-		var seen = Set<String>()
-		var result: [String] = []
+	private static func makeSequenceItem(
+		id: String,
+		announce: String,
+		sequenceDots: [[Int]],
+		modes: [String],
+		acceptedInputs: [String] = [],
+		textTokenSequences: [[String]] = []
+	) -> BrailleItem {
+		let finalDots = sequenceDots.last ?? []
+		return makeItem(
+			id: id,
+			announce: announce,
+			dots: finalDots,
+			modes: modes,
+			acceptedInputs: acceptedInputs,
+			textTokenSequences: textTokenSequences,
+			perkinsSequence: sequenceDots
+		)
+	}
 
-		for input in inputs.map({ $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }) where !input.isEmpty {
-			if seen.insert(input).inserted {
-				result.append(input)
-			}
+	private static func brailleUnicode(for dots: [Int]) -> String {
+		let mask = dotsToMask(dots)
+		guard let scalar = UnicodeScalar(braillePatternBase + mask) else { return "" }
+		return String(Character(scalar))
+	}
+
+	private static func dotsText(for sequence: [[Int]]) -> String {
+		sequence
+			.map { step in step.map(String.init).joined() }
+			.joined(separator: ", ")
+	}
+
+	private static func unicodeText(for sequence: [[Int]]) -> String {
+		sequence
+			.map(brailleUnicode(for:))
+			.joined()
+	}
+
+	private static func referenceRows(for items: [BrailleItem]) -> [ReferenceRow] {
+		items.map { item in
+			ReferenceRow(
+				id: item.id,
+				displayLabel: item.displayLabel,
+				dotsText: dotsText(for: item.perkinsSequenceDots.isEmpty ? [item.dots] : item.perkinsSequenceDots),
+				unicodeText: unicodeText(for: item.perkinsSequenceDots.isEmpty ? [item.dots] : item.perkinsSequenceDots)
+			)
 		}
-
-		return result
 	}
 
 	static let grade1Letters: [BrailleItem] = [
@@ -115,16 +219,16 @@ enum BrailleRegistry {
 	]
 
 	static let grade1Numbers: [BrailleItem] = [
-		makeItem(id: "1", announce: "1", dots: [1], modes: ["grade1Numbers", "grade1LettersNumbers"], standardKey: "1"),
-		makeItem(id: "2", announce: "2", dots: [1, 2], modes: ["grade1Numbers", "grade1LettersNumbers"], standardKey: "2"),
-		makeItem(id: "3", announce: "3", dots: [1, 4], modes: ["grade1Numbers", "grade1LettersNumbers"], standardKey: "3"),
-		makeItem(id: "4", announce: "4", dots: [1, 4, 5], modes: ["grade1Numbers", "grade1LettersNumbers"], standardKey: "4"),
-		makeItem(id: "5", announce: "5", dots: [1, 5], modes: ["grade1Numbers", "grade1LettersNumbers"], standardKey: "5"),
-		makeItem(id: "6", announce: "6", dots: [1, 2, 4], modes: ["grade1Numbers", "grade1LettersNumbers"], standardKey: "6"),
-		makeItem(id: "7", announce: "7", dots: [1, 2, 4, 5], modes: ["grade1Numbers", "grade1LettersNumbers"], standardKey: "7"),
-		makeItem(id: "8", announce: "8", dots: [1, 2, 5], modes: ["grade1Numbers", "grade1LettersNumbers"], standardKey: "8"),
-		makeItem(id: "9", announce: "9", dots: [2, 4], modes: ["grade1Numbers", "grade1LettersNumbers"], standardKey: "9"),
-		makeItem(id: "0", announce: "0", dots: [2, 4, 5], modes: ["grade1Numbers", "grade1LettersNumbers"], standardKey: "0")
+		makeItem(id: "1", announce: "1", dots: [1], modes: ["grade1Numbers", "grade1LettersNumbers"], standardKey: "1", acceptedInputs: ["#a"], textTokenSequences: [["1"], ["#", "a"]], perkinsSequence: [[3, 4, 5, 6], [1]]),
+		makeItem(id: "2", announce: "2", dots: [1, 2], modes: ["grade1Numbers", "grade1LettersNumbers"], standardKey: "2", acceptedInputs: ["#b"], textTokenSequences: [["2"], ["#", "b"]], perkinsSequence: [[3, 4, 5, 6], [1, 2]]),
+		makeItem(id: "3", announce: "3", dots: [1, 4], modes: ["grade1Numbers", "grade1LettersNumbers"], standardKey: "3", acceptedInputs: ["#c"], textTokenSequences: [["3"], ["#", "c"]], perkinsSequence: [[3, 4, 5, 6], [1, 4]]),
+		makeItem(id: "4", announce: "4", dots: [1, 4, 5], modes: ["grade1Numbers", "grade1LettersNumbers"], standardKey: "4", acceptedInputs: ["#d"], textTokenSequences: [["4"], ["#", "d"]], perkinsSequence: [[3, 4, 5, 6], [1, 4, 5]]),
+		makeItem(id: "5", announce: "5", dots: [1, 5], modes: ["grade1Numbers", "grade1LettersNumbers"], standardKey: "5", acceptedInputs: ["#e"], textTokenSequences: [["5"], ["#", "e"]], perkinsSequence: [[3, 4, 5, 6], [1, 5]]),
+		makeItem(id: "6", announce: "6", dots: [1, 2, 4], modes: ["grade1Numbers", "grade1LettersNumbers"], standardKey: "6", acceptedInputs: ["#f"], textTokenSequences: [["6"], ["#", "f"]], perkinsSequence: [[3, 4, 5, 6], [1, 2, 4]]),
+		makeItem(id: "7", announce: "7", dots: [1, 2, 4, 5], modes: ["grade1Numbers", "grade1LettersNumbers"], standardKey: "7", acceptedInputs: ["#g"], textTokenSequences: [["7"], ["#", "g"]], perkinsSequence: [[3, 4, 5, 6], [1, 2, 4, 5]]),
+		makeItem(id: "8", announce: "8", dots: [1, 2, 5], modes: ["grade1Numbers", "grade1LettersNumbers"], standardKey: "8", acceptedInputs: ["#h"], textTokenSequences: [["8"], ["#", "h"]], perkinsSequence: [[3, 4, 5, 6], [1, 2, 5]]),
+		makeItem(id: "9", announce: "9", dots: [2, 4], modes: ["grade1Numbers", "grade1LettersNumbers"], standardKey: "9", acceptedInputs: ["#i"], textTokenSequences: [["9"], ["#", "i"]], perkinsSequence: [[3, 4, 5, 6], [2, 4]]),
+		makeItem(id: "0", announce: "0", dots: [2, 4, 5], modes: ["grade1Numbers", "grade1LettersNumbers"], standardKey: "0", acceptedInputs: ["#j"], textTokenSequences: [["0"], ["#", "j"]], perkinsSequence: [[3, 4, 5, 6], [2, 4, 5]])
 	]
 
 	static let grade2Symbols: [BrailleItem] = [
@@ -175,6 +279,56 @@ enum BrailleRegistry {
 		makeItem(id: "which", announce: "Which", dots: [1, 5, 6], modes: ["grade2Words"], acceptedInputs: ["w", ":"]),
 		makeItem(id: "child", announce: "Child", dots: [1, 6], modes: ["grade2Words"], acceptedInputs: ["c", "*"]),
 		makeItem(id: "shall", announce: "Shall", dots: [1, 4, 6], modes: ["grade2Words"], acceptedInputs: ["s", "%"])
+	]
+
+	static let grade2Dot5Initials: [BrailleItem] = [
+		makeSequenceItem(id: "day", announce: "Day", sequenceDots: [[5], [1, 4, 5]], modes: ["grade2Dot5Initials"], textTokenSequences: [["'", "d"]]),
+		makeSequenceItem(id: "ever", announce: "Ever", sequenceDots: [[5], [1, 5]], modes: ["grade2Dot5Initials"], textTokenSequences: [["'", "e"]]),
+		makeSequenceItem(id: "father", announce: "Father", sequenceDots: [[5], [1, 2, 4]], modes: ["grade2Dot5Initials"], textTokenSequences: [["'", "f"]]),
+		makeSequenceItem(id: "here", announce: "Here", sequenceDots: [[5], [1, 2, 5]], modes: ["grade2Dot5Initials"], textTokenSequences: [["'", "h"]]),
+		makeSequenceItem(id: "know", announce: "Know", sequenceDots: [[5], [1, 3]], modes: ["grade2Dot5Initials"], textTokenSequences: [["'", "k"]]),
+		makeSequenceItem(id: "lord", announce: "Lord", sequenceDots: [[5], [1, 2, 3]], modes: ["grade2Dot5Initials"], textTokenSequences: [["'", "l"]]),
+		makeSequenceItem(id: "mother", announce: "Mother", sequenceDots: [[5], [1, 3, 4]], modes: ["grade2Dot5Initials"], textTokenSequences: [["'", "m"]]),
+		makeSequenceItem(id: "name", announce: "Name", sequenceDots: [[5], [1, 3, 4, 5]], modes: ["grade2Dot5Initials"], textTokenSequences: [["'", "n"]]),
+		makeSequenceItem(id: "one", announce: "One", sequenceDots: [[5], [1, 3, 5]], modes: ["grade2Dot5Initials"], textTokenSequences: [["'", "o"]]),
+		makeSequenceItem(id: "part", announce: "Part", sequenceDots: [[5], [1, 2, 3, 4]], modes: ["grade2Dot5Initials"], textTokenSequences: [["'", "p"]]),
+		makeSequenceItem(id: "question", announce: "Question", sequenceDots: [[5], [1, 2, 3, 4, 5]], modes: ["grade2Dot5Initials"], textTokenSequences: [["'", "q"]]),
+		makeSequenceItem(id: "right", announce: "Right", sequenceDots: [[5], [1, 2, 3, 5]], modes: ["grade2Dot5Initials"], textTokenSequences: [["'", "r"]]),
+		makeSequenceItem(id: "some", announce: "Some", sequenceDots: [[5], [2, 3, 4]], modes: ["grade2Dot5Initials"], textTokenSequences: [["'", "s"]]),
+		makeSequenceItem(id: "time", announce: "Time", sequenceDots: [[5], [2, 3, 4, 5]], modes: ["grade2Dot5Initials"], textTokenSequences: [["'", "t"]]),
+		makeSequenceItem(id: "there", announce: "There", sequenceDots: [[5], [2, 3, 4, 6]], modes: ["grade2Dot5Initials"], textTokenSequences: [["'", "!"]]),
+		makeSequenceItem(id: "under", announce: "Under", sequenceDots: [[5], [1, 3, 6]], modes: ["grade2Dot5Initials"], textTokenSequences: [["'", "u"]]),
+		makeSequenceItem(id: "work", announce: "Work", sequenceDots: [[5], [2, 4, 5, 6]], modes: ["grade2Dot5Initials"], textTokenSequences: [["'", "w"]]),
+		makeSequenceItem(id: "young", announce: "Young", sequenceDots: [[5], [1, 3, 4, 5, 6]], modes: ["grade2Dot5Initials"], textTokenSequences: [["'", "y"]])
+	]
+
+	static let grade2Dot45Initials: [BrailleItem] = [
+		makeSequenceItem(id: "upon", announce: "Upon", sequenceDots: [[4, 5], [1, 3, 6]], modes: ["grade2Dot45Initials"], textTokenSequences: [["~", "u"]]),
+		makeSequenceItem(id: "word", announce: "Word", sequenceDots: [[4, 5], [2, 4, 5, 6]], modes: ["grade2Dot45Initials"], textTokenSequences: [["~", "w"]]),
+		makeSequenceItem(id: "these", announce: "These", sequenceDots: [[4, 5], [2, 3, 4, 6]], modes: ["grade2Dot45Initials"], textTokenSequences: [["~", "!"]]),
+		makeSequenceItem(id: "through", announce: "Through", sequenceDots: [[4, 5], [1, 4, 5, 6]], modes: ["grade2Dot45Initials"], textTokenSequences: [["~", "?"]]),
+		makeSequenceItem(id: "character", announce: "Character", sequenceDots: [[4, 5], [1, 6]], modes: ["grade2Dot45Initials"], textTokenSequences: [["~", "*"]]),
+		makeSequenceItem(id: "where", announce: "Where", sequenceDots: [[4, 5], [1, 5, 6]], modes: ["grade2Dot45Initials"], textTokenSequences: [["~", ":"]]),
+		makeSequenceItem(id: "ought", announce: "Ought", sequenceDots: [[4, 5], [1, 2, 5, 6]], modes: ["grade2Dot45Initials"], textTokenSequences: [["~", "|"]])
+	]
+
+	static let grade2Dot46Finals: [BrailleItem] = [
+		makeSequenceItem(id: "ance", announce: "A N C E", sequenceDots: [[4, 6], [1, 5]], modes: ["grade2Dot46Finals"], acceptedInputs: ["-ance", "ε"], textTokenSequences: [[".", "e"]]),
+		makeSequenceItem(id: "sion", announce: "S I O N", sequenceDots: [[4, 6], [1, 3, 4, 5]], modes: ["grade2Dot46Finals"], acceptedInputs: ["-sion"], textTokenSequences: [[".", "n"]]),
+		makeSequenceItem(id: "less", announce: "L E S S", sequenceDots: [[4, 6], [2, 3, 4]], modes: ["grade2Dot46Finals"], acceptedInputs: ["-less"], textTokenSequences: [[".", "s"]]),
+		makeSequenceItem(id: "ound", announce: "O U N D", sequenceDots: [[4, 6], [1, 4, 5]], modes: ["grade2Dot46Finals"], acceptedInputs: ["-ound"], textTokenSequences: [[".", "d"]]),
+		makeSequenceItem(id: "ount", announce: "O U N T", sequenceDots: [[4, 6], [2, 3, 4, 5]], modes: ["grade2Dot46Finals"], acceptedInputs: ["-ount"], textTokenSequences: [[".", "t"]])
+	]
+
+	static let grade2Dot456Initials: [BrailleItem] = [
+		makeSequenceItem(id: "those", announce: "Those", sequenceDots: [[4, 5, 6], [1, 4, 5, 6]], modes: ["grade2Dot456Initials"], textTokenSequences: [["?"]]),
+		makeSequenceItem(id: "whose", announce: "Whose", sequenceDots: [[4, 5, 6], [1, 5, 6]], modes: ["grade2Dot456Initials"], textTokenSequences: [[":"]]),
+		makeSequenceItem(id: "cannot", announce: "Cannot", sequenceDots: [[4, 5, 6], [1, 4]], modes: ["grade2Dot456Initials"], textTokenSequences: [["c"]]),
+		makeSequenceItem(id: "had", announce: "Had", sequenceDots: [[4, 5, 6], [1, 2, 5]], modes: ["grade2Dot456Initials"], textTokenSequences: [["h"]]),
+		makeSequenceItem(id: "many", announce: "Many", sequenceDots: [[4, 5, 6], [1, 3, 4]], modes: ["grade2Dot456Initials"], textTokenSequences: [["m"]]),
+		makeSequenceItem(id: "spirit", announce: "Spirit", sequenceDots: [[4, 5, 6], [2, 3, 4]], modes: ["grade2Dot456Initials"], textTokenSequences: [["s"]]),
+		makeSequenceItem(id: "their", announce: "Their", sequenceDots: [[4, 5, 6], [2, 3, 4, 6]], modes: ["grade2Dot456Initials"], textTokenSequences: [["!"]]),
+		makeSequenceItem(id: "world", announce: "World", sequenceDots: [[4, 5, 6], [2, 4, 5, 6]], modes: ["grade2Dot456Initials"], textTokenSequences: [["w"]])
 	]
 
 	static let typingSimpleHomeRowItems: [BrailleItem] = [
@@ -231,10 +385,31 @@ enum BrailleRegistry {
 		makeTypingItem(key: "/", announce: "slash", modes: ["typingHomeBottomRow"])
 	]
 
-	static let brailleOnlyRegistry: [BrailleItem] = grade1Letters + grade1Numbers + grade2Symbols + grade2Words
+	static let brailleOnlyRegistry: [BrailleItem] =
+		grade1Letters +
+		grade1Numbers +
+		grade2Symbols +
+		grade2Words +
+		grade2Dot5Initials +
+		grade2Dot45Initials +
+		grade2Dot46Finals +
+		grade2Dot456Initials
+
 	static let grade1MoleInvasionItems: [BrailleItem] = grade1Letters + grade1Numbers
-	static let grade2MoleInvasionItems: [BrailleItem] = grade2Symbols + grade2Words
-	static let allItems: [BrailleItem] = brailleOnlyRegistry + typingSimpleHomeRowItems + typingHomeRowItems + typingTopRowItems + typingBottomRowItems
+	static let grade2MoleInvasionItems: [BrailleItem] =
+		grade2Symbols +
+		grade2Words +
+		grade2Dot5Initials +
+		grade2Dot45Initials +
+		grade2Dot46Finals +
+		grade2Dot456Initials
+
+	static let allItems: [BrailleItem] =
+		brailleOnlyRegistry +
+		typingSimpleHomeRowItems +
+		typingHomeRowItems +
+		typingTopRowItems +
+		typingBottomRowItems
 
 	static let modeOptions: [ModeOption] = [
 		("typingSimpleHomeRow", "Simple Home Row"),
@@ -249,6 +424,10 @@ enum BrailleRegistry {
 		("grade1MoleInvasion", "Grade 1 Mole Invasion!"),
 		("grade2Symbols", "Grade 2 contractions (symbols)"),
 		("grade2Words", "Grade 2 whole-word contractions"),
+		("grade2Dot5Initials", "Grade 2 dot 5 initials"),
+		("grade2Dot45Initials", "Grade 2 dot 45 initials"),
+		("grade2Dot46Finals", "Grade 2 dot 46 finals"),
+		("grade2Dot456Initials", "Grade 2 dot 456 initials"),
 		("grade2MoleInvasion", "Grade 2 Mole Invasion!")
 	]
 
@@ -259,10 +438,7 @@ enum BrailleRegistry {
 		"typingHomeBottomRow"
 	]
 
-	private static let bsiExcludedModeIDs: Set<String> = qwertyModeIDs.union([
-		"grade1Numbers",
-		"grade1LettersNumbers"
-	])
+	private static let bsiExcludedModeIDs: Set<String> = qwertyModeIDs
 
 	private static func letterInRange(_ item: BrailleItem, end: Character) -> Bool {
 		guard let first = item.id.uppercased().first else { return false }
@@ -293,9 +469,7 @@ enum BrailleRegistry {
 		switch inputMode {
 		case .qwerty:
 			return modeId
-		case .perkins:
-			return "grade1Letters"
-		case .brailleText:
+		case .perkins, .brailleText:
 			return "grade1Letters"
 		}
 	}
@@ -307,7 +481,7 @@ enum BrailleRegistry {
 		case "letters-at":
 			return grade1Letters.filter { letterInRange($0, end: "T") }
 		case "grade1MoleInvasion":
-			return inputMode == .brailleText ? grade1Letters : grade1MoleInvasionItems
+			return grade1MoleInvasionItems
 		case "grade2MoleInvasion":
 			return grade2MoleInvasionItems
 		default:
@@ -318,4 +492,26 @@ enum BrailleRegistry {
 	static func label(for modeId: String) -> String {
 		modeOptions.first(where: { $0.id == modeId })?.label ?? "Letters and numbers (Grade 1)"
 	}
+
+	static let grade1ReferenceSections: [ReferenceSection] = [
+		ReferenceSection(
+			id: "grade1Letters",
+			title: "Grade 1 Letters",
+			rows: referenceRows(for: grade1Letters)
+		),
+		ReferenceSection(
+			id: "grade1Numbers",
+			title: "Grade 1 Numbers",
+			rows: referenceRows(for: grade1Numbers)
+		)
+	]
+
+	static let grade2ReferenceSections: [ReferenceSection] = [
+		ReferenceSection(id: "grade2Symbols", title: "Grade 2 Symbols", rows: referenceRows(for: grade2Symbols)),
+		ReferenceSection(id: "grade2Words", title: "Grade 2 Whole-Word Contractions", rows: referenceRows(for: grade2Words)),
+		ReferenceSection(id: "grade2Dot5Initials", title: "Grade 2 Dot 5 Initials", rows: referenceRows(for: grade2Dot5Initials)),
+		ReferenceSection(id: "grade2Dot45Initials", title: "Grade 2 Dot 45 Initials", rows: referenceRows(for: grade2Dot45Initials)),
+		ReferenceSection(id: "grade2Dot46Finals", title: "Grade 2 Dot 46 Finals", rows: referenceRows(for: grade2Dot46Finals)),
+		ReferenceSection(id: "grade2Dot456Initials", title: "Grade 2 Dot 456 Initials", rows: referenceRows(for: grade2Dot456Initials))
+	]
 }

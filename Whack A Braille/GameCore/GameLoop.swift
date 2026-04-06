@@ -95,6 +95,8 @@ final class GameLoop {
 	private var sameLaneRunCount = 0
 	private var lastItemID: String?
 	private var sameItemRunCount = 0
+	private var pendingTextTokens: [String] = []
+	private var pendingPerkinsMasks: [Int] = []
 
 	private var roundTimer: DispatchSourceTimer?
 	private var moleTimer: DispatchSourceTimer?
@@ -139,6 +141,8 @@ final class GameLoop {
 		missRegisteredForMole = false
 		activeMoleShownAtMs = 0
 		activeMoleUpTimeMs = 0
+		pendingTextTokens = []
+		pendingPerkinsMasks = []
 
 		isRunning = true
 		roundEnding = false
@@ -189,30 +193,14 @@ final class GameLoop {
 			return
 		}
 
-		let hit: Bool
-
 		switch attempt.type {
 		case .perkins:
-			hit = attempt.dotMask == currentItem.dotMask
+			handlePerkinsAttempt(attempt.dotMask, currentItem: currentItem)
 		case .qwerty:
-			hit = matchesInput(normalize(attempt.key), item: currentItem)
+			handleTextAttemptToken(normalize(attempt.key), currentItem: currentItem)
 		case .brailleText:
-			hit = matchesInput(normalize(attempt.char), item: currentItem)
+			handleSubmittedText(normalize(attempt.char), currentItem: currentItem)
 		}
-
-		if hit {
-			handleHit()
-			return
-		}
-
-		if currentOptions.difficulty == .training {
-			handleTrainingMiss()
-			return
-		}
-
-		guard !missRegisteredForMole else { return }
-		missRegisteredForMole = true
-		handleMiss()
 	}
 
 	private var currentItem: BrailleItem? {
@@ -395,6 +383,7 @@ final class GameLoop {
 		}
 
 		activeMoleUpTimeMs = computeMoleWindowMs(
+			item: item,
 			baseUpTimeMs: baseUpTimeMs,
 			speechDurationMs: speechDurationMs
 		)
@@ -493,6 +482,76 @@ final class GameLoop {
 		onScoreUpdated?(score, hitStreak)
 	}
 
+	private func handlePerkinsAttempt(_ dotMask: Int?, currentItem: BrailleItem) {
+		guard let dotMask else { return }
+
+		let updatedSequence = pendingPerkinsMasks + [dotMask]
+
+		if currentItem.expectedPerkinsCellCount <= 1 {
+			pendingPerkinsMasks.removeAll()
+			resolveAttemptOutcome(updatedSequence == [currentItem.dotMask])
+			return
+		}
+
+		if currentItem.perkinsSequenceMasks.starts(with: updatedSequence) {
+			pendingPerkinsMasks = updatedSequence
+
+			if updatedSequence.count == currentItem.perkinsSequenceMasks.count {
+				pendingPerkinsMasks.removeAll()
+				resolveAttemptOutcome(true)
+			}
+
+			return
+		}
+
+		pendingPerkinsMasks.removeAll()
+		resolveAttemptOutcome(false)
+	}
+
+	private func handleTextAttemptToken(_ token: String, currentItem: BrailleItem) {
+		guard !token.isEmpty else { return }
+
+		let updatedTokens = pendingTextTokens + [token]
+		let sequences = currentItem.textInputTokenSequences
+
+		if sequences.contains(updatedTokens) {
+			pendingTextTokens.removeAll()
+			resolveAttemptOutcome(true)
+			return
+		}
+
+		if sequences.contains(where: { $0.starts(with: updatedTokens) }) {
+			pendingTextTokens = updatedTokens
+			return
+		}
+
+		pendingTextTokens.removeAll()
+		resolveAttemptOutcome(false)
+	}
+
+	private func handleSubmittedText(_ input: String, currentItem: BrailleItem) {
+		guard !input.isEmpty else { return }
+		pendingTextTokens.removeAll()
+		pendingPerkinsMasks.removeAll()
+		resolveAttemptOutcome(matchesInput(input, item: currentItem))
+	}
+
+	private func resolveAttemptOutcome(_ hit: Bool) {
+		if hit {
+			handleHit()
+			return
+		}
+
+		if currentOptions.difficulty == .training {
+			handleTrainingMiss()
+			return
+		}
+
+		guard !missRegisteredForMole else { return }
+		missRegisteredForMole = true
+		handleMiss()
+	}
+
 	private func buildAnnounceText(for item: BrailleItem) -> String {
 		var text = item.announceText
 
@@ -500,11 +559,12 @@ final class GameLoop {
 			text += ", \(nato)"
 		}
 
-		if currentOptions.difficulty == .training, currentOptions.speakBrailleDots, !item.dots.isEmpty {
-			if item.dots.count == 1 {
-				text += ", Dot \(item.dots[0])"
-			} else {
-				text += ", Dots \(item.dots.map(String.init).joined(separator: " "))"
+		if currentOptions.difficulty == .training, currentOptions.speakBrailleDots {
+			let cells = item.perkinsSequenceDots.isEmpty ? [item.dots] : item.perkinsSequenceDots
+			let spokenCells = cells.compactMap { dotsPhrase(for: $0) }
+
+			if !spokenCells.isEmpty {
+				text += ", " + spokenCells.joined(separator: ", then ")
 			}
 		}
 
@@ -628,6 +688,8 @@ final class GameLoop {
 		activeLane = nil
 		invasionActiveItem = nil
 		activeMoleShownAtMs = 0
+		pendingTextTokens.removeAll()
+		pendingPerkinsMasks.removeAll()
 		onActiveMoleChanged?(nil, nil)
 	}
 
@@ -664,16 +726,17 @@ final class GameLoop {
 		return Int(Double(base) * multiplier)
 	}
 
-	private func computeMoleWindowMs(baseUpTimeMs: Int, speechDurationMs: Int) -> Int {
+	private func computeMoleWindowMs(item: BrailleItem, baseUpTimeMs: Int, speechDurationMs: Int) -> Int {
 		let reactionBufferMs = 380
 		let minUpTimeMs = 550
-		let maxUpTimeMs = 2_200
+		let maxUpTimeMs = 2_700
 		let effectiveSpeechDurationMs = max(300, speechDurationMs)
 		let brailleScreenInputSubmissionBufferMs = currentOptions.inputMode == .brailleText ? 220 : 0
+		let additionalCellBufferMs = max(0, item.expectedPerkinsCellCount - 1) * 240
 
 		return min(
 			max(
-				baseUpTimeMs + effectiveSpeechDurationMs + reactionBufferMs + brailleScreenInputSubmissionBufferMs,
+				baseUpTimeMs + effectiveSpeechDurationMs + reactionBufferMs + brailleScreenInputSubmissionBufferMs + additionalCellBufferMs,
 				minUpTimeMs
 			),
 			maxUpTimeMs
@@ -750,6 +813,16 @@ final class GameLoop {
 
 	private func normalize(_ value: String?) -> String {
 		String(value ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+	}
+
+	private func dotsPhrase(for dots: [Int]) -> String? {
+		guard !dots.isEmpty else { return nil }
+
+		if dots.count == 1, let first = dots.first {
+			return "Dot \(first)"
+		}
+
+		return "Dots \(dots.map(String.init).joined(separator: " "))"
 	}
 
 	private func matchesInput(_ input: String, item: BrailleItem) -> Bool {

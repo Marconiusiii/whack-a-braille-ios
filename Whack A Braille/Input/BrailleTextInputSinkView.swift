@@ -15,6 +15,7 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 
 	func makeUIView(context: Context) -> GameInputTextField {
 		let textField = GameInputTextField()
+		textField.delegate = textField
 		textField.borderStyle = .roundedRect
 		textField.clearButtonMode = .never
 		textField.autocorrectionType = .no
@@ -147,7 +148,7 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 		}
 	}
 
-	final class GameInputTextField: UITextField {
+	final class GameInputTextField: UITextField, UITextFieldDelegate {
 
 		var inputModeSelection: InputMode = .qwerty
 		var shouldAutoFocus = false
@@ -240,6 +241,11 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 
 			onTextInput?(text)
 			clearBufferedText()
+		}
+
+		func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+			submitBufferedText()
+			return false
 		}
 
 		override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {

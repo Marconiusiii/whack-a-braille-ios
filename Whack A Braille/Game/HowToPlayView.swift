@@ -12,14 +12,15 @@ struct HowToPlayView: View {
 	@Environment(\.colorScheme) private var colorScheme
 	@AccessibilityFocusState private var focusedElement: FocusTarget?
 	@State private var isInputInstructionsExpanded = false
+	@State private var isBrailleReferenceExpanded = false
 
 	var body: some View {
 		NavigationStack {
 			ScrollView {
 				VStack(alignment: .leading, spacing: 20) {
 					VStack(alignment: .leading, spacing: 12) {
-						Text("How to Play")
-							.font(.system(.largeTitle, design: .rounded, weight: .heavy))
+						Text("Quick Start")
+							.font(.system(.title2, design: .rounded, weight: .bold))
 							.foregroundStyle(AppTheme.heading)
 							.accessibilityAddTraits(.isHeader)
 							.accessibilityFocused($focusedElement, equals: .heading)
@@ -34,7 +35,7 @@ struct HowToPlayView: View {
 						title: "Mole Chooser",
 						rows: [
 							"Each mole set changes what pops up for you to type, from Grade 1 letters and numbers to Grade 2 contractions and whole-word signs.",
-							"Invasion modes keep things wild by pulling from the full set each time a mole appears instead of sticking to five round favorites."
+							"Invasion mode keeps things wild by picking random characters out of the entire set when each mole appears rather than using just 5 chosen at the start of a normal round."
 						]
 					)
 
@@ -70,11 +71,17 @@ struct HowToPlayView: View {
 									.foregroundStyle(secondaryTextColor)
 									.fixedSize(horizontal: false, vertical: true)
 
+								Text("When numbers are part of the current mole set, use the literary braille number sign before the number cell. The game gives number targets and other multi-cell answers a little more time so you can enter them accurately.")
+									.foregroundStyle(secondaryTextColor)
+									.fixedSize(horizontal: false, vertical: true)
+
 								inputInstructionSection(
 									title: "Braille Display",
 									rows: [
 										"Use the 8-dot braille table for best results.",
-										"Using Contracted or Uncontracted tables will require you to press Dot 8 or Space Bar to whack a mole after typing the right chord or character."
+										"Computer Braille can work for some symbols and chords, but general UEB-style entry is preferred and expected.",
+										"Using Contracted or Uncontracted tables will require you to press Dot 8 or Space Bar to whack a mole after typing the right chord or character.",
+										"If a 4 5 6 initial does not emit anything on your display in the two-cell Grade 2 modes, the game will accept the matching second cell so the round can keep moving."
 									]
 								)
 
@@ -103,6 +110,36 @@ struct HowToPlayView: View {
 							Text("Input Instructions")
 								.font(.headline)
 								.foregroundStyle(AppTheme.heading)
+								.accessibilityAddTraits(.isHeader)
+						}
+					)
+					.tint(AppTheme.heading)
+					.foregroundStyle(AppTheme.heading)
+					.appCard()
+
+					DisclosureGroup(
+						isExpanded: $isBrailleReferenceExpanded,
+						content: {
+							VStack(alignment: .leading, spacing: 16) {
+								Text("Use this as a quick guide for the Grade 1 and Grade 2 patterns used in the game.")
+									.foregroundStyle(secondaryTextColor)
+									.fixedSize(horizontal: false, vertical: true)
+
+								ForEach(BrailleRegistry.grade1ReferenceSections) { section in
+									referenceSection(section)
+								}
+
+								ForEach(BrailleRegistry.grade2ReferenceSections) { section in
+									referenceSection(section)
+								}
+							}
+							.padding(.top, 8)
+						},
+						label: {
+							Text("Braille Reference")
+								.font(.headline)
+								.foregroundStyle(AppTheme.heading)
+								.accessibilityAddTraits(.isHeader)
 						}
 					)
 					.tint(AppTheme.heading)
@@ -163,6 +200,42 @@ struct HowToPlayView: View {
 				.accessibilityElement(children: .combine)
 			}
 		}
+	}
+
+	private func referenceSection(_ section: BrailleRegistry.ReferenceSection) -> some View {
+		VStack(alignment: .leading, spacing: 12) {
+			Text(section.title)
+				.font(.title3.weight(.bold))
+				.foregroundStyle(AppTheme.heading)
+				.accessibilityAddTraits(.isHeader)
+
+			ForEach(section.rows) { row in
+				VStack(alignment: .leading, spacing: 4) {
+					Text(row.displayLabel)
+						.font(.headline)
+						.foregroundStyle(primaryTextColor)
+
+					Text("Braille Dots: \(row.dotsText)")
+						.foregroundStyle(secondaryTextColor)
+						.fixedSize(horizontal: false, vertical: true)
+
+					Text("Braille Unicode: \(row.unicodeText)")
+						.foregroundStyle(secondaryTextColor)
+						.fixedSize(horizontal: false, vertical: true)
+				}
+				.frame(maxWidth: .infinity, alignment: .leading)
+				.padding(12)
+				.background(
+					RoundedRectangle(cornerRadius: 16, style: .continuous)
+						.fill(colorScheme == .dark ? AppTheme.darkCard : AppTheme.lightCard)
+				)
+				.accessibilityElement(children: .combine)
+			}
+		}
+	}
+
+	private var primaryTextColor: Color {
+		colorScheme == .dark ? AppTheme.darkText : AppTheme.lightText
 	}
 
 	private var secondaryTextColor: Color {

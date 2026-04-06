@@ -7,8 +7,12 @@ struct BrailleItem {
 	let dots: [Int]
 	let dotMask: Int
 	let perkinsKeys: [String]
+	let perkinsSequenceDots: [[Int]]
+	let perkinsSequenceMasks: [Int]
+	let expectedPerkinsCellCount: Int
 	let standardKey: String?
 	let acceptedTextInputs: [String]
+	let textInputTokenSequences: [[String]]
 	let modeTags: Set<String>
 	let nato: String?
 }
