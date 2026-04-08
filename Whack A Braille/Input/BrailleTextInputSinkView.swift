@@ -116,7 +116,7 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 			if inputMode.usesBufferedTextEntry {
 				let attempt = Attempt(
 					moleId: gameLoop.currentMoleId,
-					type: .brailleText,
+					type: inputMode,
 					dotMask: nil,
 					key: nil,
 					char: normalized
@@ -224,6 +224,11 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 		}
 
 		override func insertText(_ text: String) {
+			if inputModeSelection == .brailleDisplayInput {
+				super.insertText(text)
+				return
+			}
+
 			if text == "\n" || text == "\r" || text == " " {
 				submitBufferedText()
 				return
@@ -244,6 +249,13 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 		}
 
 		func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+			if inputModeSelection == .brailleDisplayInput {
+				DispatchQueue.main.async { [weak self] in
+					self?.submitBufferedText()
+				}
+				return true
+			}
+
 			submitBufferedText()
 			return false
 		}
@@ -307,6 +319,9 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 					let input = key.charactersIgnoringModifiers.lowercased()
 
 					if inputModeSelection.usesBufferedTextEntry {
+						if inputModeSelection == .brailleDisplayInput {
+							continue
+						}
 						if input == " " || input == "\n" || input == "\r" {
 							submitBufferedText()
 						}
@@ -375,6 +390,8 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 			}
 
 			if inputModeSelection == .brailleDisplayInput {
+				guard buffered.contains(where: \.isWhitespace) else { return }
+				submitBufferedText()
 				return
 			}
 
