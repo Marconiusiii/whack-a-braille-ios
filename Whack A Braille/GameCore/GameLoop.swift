@@ -200,6 +200,8 @@ final class GameLoop {
 			handleTextAttemptToken(normalize(attempt.key), currentItem: currentItem)
 		case .brailleText:
 			handleSubmittedText(normalize(attempt.char), currentItem: currentItem)
+		case .brailleDisplayInput:
+			handleSubmittedText(normalize(attempt.char), currentItem: currentItem)
 		}
 	}
 
@@ -731,12 +733,12 @@ final class GameLoop {
 		let minUpTimeMs = 550
 		let maxUpTimeMs = 2_700
 		let effectiveSpeechDurationMs = max(300, speechDurationMs)
-		let brailleScreenInputSubmissionBufferMs = currentOptions.inputMode == .brailleText ? 220 : 0
+		let submissionBufferMs = isBufferedTextInputMode(currentOptions.inputMode) ? 220 : 0
 		let additionalCellBufferMs = max(0, item.expectedPerkinsCellCount - 1) * 240
 
 		return min(
 			max(
-				baseUpTimeMs + effectiveSpeechDurationMs + reactionBufferMs + brailleScreenInputSubmissionBufferMs + additionalCellBufferMs,
+				baseUpTimeMs + effectiveSpeechDurationMs + reactionBufferMs + submissionBufferMs + additionalCellBufferMs,
 				minUpTimeMs
 			),
 			maxUpTimeMs
@@ -813,6 +815,10 @@ final class GameLoop {
 
 	private func normalize(_ value: String?) -> String {
 		String(value ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+	}
+
+	private func isBufferedTextInputMode(_ inputMode: InputMode) -> Bool {
+		inputMode == .brailleText || inputMode == .brailleDisplayInput
 	}
 
 	private func dotsPhrase(for dots: [Int]) -> String? {

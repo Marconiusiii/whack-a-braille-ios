@@ -321,14 +321,14 @@ enum BrailleRegistry {
 	]
 
 	static let grade2Dot456Initials: [BrailleItem] = [
-		makeSequenceItem(id: "those", announce: "Those", sequenceDots: [[4, 5, 6], [1, 4, 5, 6]], modes: ["grade2Dot456Initials"], textTokenSequences: [["?"]]),
-		makeSequenceItem(id: "whose", announce: "Whose", sequenceDots: [[4, 5, 6], [1, 5, 6]], modes: ["grade2Dot456Initials"], textTokenSequences: [[":"]]),
-		makeSequenceItem(id: "cannot", announce: "Cannot", sequenceDots: [[4, 5, 6], [1, 4]], modes: ["grade2Dot456Initials"], textTokenSequences: [["c"]]),
-		makeSequenceItem(id: "had", announce: "Had", sequenceDots: [[4, 5, 6], [1, 2, 5]], modes: ["grade2Dot456Initials"], textTokenSequences: [["h"]]),
-		makeSequenceItem(id: "many", announce: "Many", sequenceDots: [[4, 5, 6], [1, 3, 4]], modes: ["grade2Dot456Initials"], textTokenSequences: [["m"]]),
-		makeSequenceItem(id: "spirit", announce: "Spirit", sequenceDots: [[4, 5, 6], [2, 3, 4]], modes: ["grade2Dot456Initials"], textTokenSequences: [["s"]]),
-		makeSequenceItem(id: "their", announce: "Their", sequenceDots: [[4, 5, 6], [2, 3, 4, 6]], modes: ["grade2Dot456Initials"], textTokenSequences: [["!"]]),
-		makeSequenceItem(id: "world", announce: "World", sequenceDots: [[4, 5, 6], [2, 4, 5, 6]], modes: ["grade2Dot456Initials"], textTokenSequences: [["w"]])
+		makeSequenceItem(id: "those", announce: "Those", sequenceDots: [[4, 5, 6], [1, 4, 5, 6]], modes: ["grade2Dot456Initials"], textTokenSequences: [["those"]]),
+		makeSequenceItem(id: "whose", announce: "Whose", sequenceDots: [[4, 5, 6], [1, 5, 6]], modes: ["grade2Dot456Initials"], textTokenSequences: [["whose"]]),
+		makeSequenceItem(id: "cannot", announce: "Cannot", sequenceDots: [[4, 5, 6], [1, 4]], modes: ["grade2Dot456Initials"], textTokenSequences: [["cannot"]]),
+		makeSequenceItem(id: "had", announce: "Had", sequenceDots: [[4, 5, 6], [1, 2, 5]], modes: ["grade2Dot456Initials"], textTokenSequences: [["had"]]),
+		makeSequenceItem(id: "many", announce: "Many", sequenceDots: [[4, 5, 6], [1, 3, 4]], modes: ["grade2Dot456Initials"], textTokenSequences: [["many"]]),
+		makeSequenceItem(id: "spirit", announce: "Spirit", sequenceDots: [[4, 5, 6], [2, 3, 4]], modes: ["grade2Dot456Initials"], textTokenSequences: [["spirit"]]),
+		makeSequenceItem(id: "their", announce: "Their", sequenceDots: [[4, 5, 6], [2, 3, 4, 6]], modes: ["grade2Dot456Initials"], textTokenSequences: [["their"]]),
+		makeSequenceItem(id: "world", announce: "World", sequenceDots: [[4, 5, 6], [2, 4, 5, 6]], modes: ["grade2Dot456Initials"], textTokenSequences: [["world"]])
 	]
 
 	static let typingSimpleHomeRowItems: [BrailleItem] = [
@@ -438,6 +438,10 @@ enum BrailleRegistry {
 		"typingHomeBottomRow"
 	]
 
+	private static let qwertyUnsupportedBrailleModeIDs: Set<String> = [
+		"grade2Dot456Initials"
+	]
+
 	private static let bsiExcludedModeIDs: Set<String> = qwertyModeIDs
 
 	private static func letterInRange(_ item: BrailleItem, end: Character) -> Bool {
@@ -451,8 +455,8 @@ enum BrailleRegistry {
 		modeOptions.filter { option in
 			switch inputMode {
 			case .qwerty:
-				return true
-			case .perkins:
+				return !qwertyUnsupportedBrailleModeIDs.contains(option.id)
+			case .perkins, .brailleDisplayInput:
 				return !qwertyModeIDs.contains(option.id)
 			case .brailleText:
 				return !bsiExcludedModeIDs.contains(option.id)
@@ -468,8 +472,8 @@ enum BrailleRegistry {
 
 		switch inputMode {
 		case .qwerty:
-			return modeId
-		case .perkins, .brailleText:
+			return qwertyUnsupportedBrailleModeIDs.contains(modeId) ? "grade2Symbols" : modeId
+		case .perkins, .brailleText, .brailleDisplayInput:
 			return "grade1Letters"
 		}
 	}
@@ -483,7 +487,9 @@ enum BrailleRegistry {
 		case "grade1MoleInvasion":
 			return grade1MoleInvasionItems
 		case "grade2MoleInvasion":
-			return grade2MoleInvasionItems
+			return inputMode == .qwerty
+				? grade2MoleInvasionItems.filter { !$0.modeTags.contains("grade2Dot456Initials") }
+				: grade2MoleInvasionItems
 		default:
 			return allItems.filter { $0.modeTags.contains(modeId) }
 		}

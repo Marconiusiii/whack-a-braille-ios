@@ -54,8 +54,8 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 		context.coordinator.inputMode = inputMode
 
 		uiView.inputModeSelection = inputMode
-		uiView.isAccessibilityElement = inputMode == .brailleText
-		uiView.accessibilityElementsHidden = inputMode != .brailleText
+		uiView.isAccessibilityElement = inputMode.usesBufferedTextEntry
+		uiView.accessibilityElementsHidden = !inputMode.usesBufferedTextEntry
 		uiView.isEnabled = isEnabled
 		uiView.alpha = isEnabled ? 1.0 : 0.45
 		uiView.shouldAutoFocus = isEnabled && autoFocus
@@ -113,7 +113,7 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 				return
 			}
 
-			if normalized.count > 1 {
+			if inputMode.usesBufferedTextEntry {
 				let attempt = Attempt(
 					moleId: gameLoop.currentMoleId,
 					type: .brailleText,
@@ -229,7 +229,7 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 				return
 			}
 
-			if inputModeSelection == .brailleText {
+			if inputModeSelection.usesBufferedTextEntry {
 				super.insertText(text)
 				return
 			}
@@ -306,7 +306,7 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 					guard let key = press.key else { continue }
 					let input = key.charactersIgnoringModifiers.lowercased()
 
-					if inputModeSelection == .brailleText {
+					if inputModeSelection.usesBufferedTextEntry {
 						if input == " " || input == "\n" || input == "\r" {
 							submitBufferedText()
 						}
@@ -371,6 +371,10 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 			if inputModeSelection == .brailleText {
 				guard buffered.contains(where: \.isWhitespace) else { return }
 				submitBufferedText()
+				return
+			}
+
+			if inputModeSelection == .brailleDisplayInput {
 				return
 			}
 
