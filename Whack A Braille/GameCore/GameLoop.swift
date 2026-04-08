@@ -733,8 +733,16 @@ final class GameLoop {
 		let minUpTimeMs = 550
 		let maxUpTimeMs = 2_700
 		let effectiveSpeechDurationMs = max(300, speechDurationMs)
-		let submissionBufferMs = isBufferedTextInputMode(currentOptions.inputMode) ? 220 : 0
-		let additionalCellBufferMs = max(0, item.expectedPerkinsCellCount - 1) * 240
+		let submissionBufferMs: Int
+		switch currentOptions.inputMode {
+		case .brailleDisplayInput:
+			submissionBufferMs = 520
+		case .brailleText:
+			submissionBufferMs = 320
+		case .qwerty, .perkins:
+			submissionBufferMs = 0
+		}
+		let additionalCellBufferMs = max(0, item.expectedPerkinsCellCount - 1) * 320
 
 		return min(
 			max(

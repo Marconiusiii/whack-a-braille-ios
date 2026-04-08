@@ -297,19 +297,21 @@ enum BrailleRegistry {
 		makeSequenceItem(id: "some", announce: "Some", sequenceDots: [[5], [2, 3, 4]], modes: ["grade2Dot5Initials"], textTokenSequences: [["'", "s"]]),
 		makeSequenceItem(id: "time", announce: "Time", sequenceDots: [[5], [2, 3, 4, 5]], modes: ["grade2Dot5Initials"], textTokenSequences: [["'", "t"]]),
 		makeSequenceItem(id: "there", announce: "There", sequenceDots: [[5], [2, 3, 4, 6]], modes: ["grade2Dot5Initials"], textTokenSequences: [["'", "!"]]),
+		makeSequenceItem(id: "through", announce: "Through", sequenceDots: [[5], [1, 4, 5, 6]], modes: ["grade2Dot5Initials"], textTokenSequences: [["'", "?"]]),
 		makeSequenceItem(id: "under", announce: "Under", sequenceDots: [[5], [1, 3, 6]], modes: ["grade2Dot5Initials"], textTokenSequences: [["'", "u"]]),
+		makeSequenceItem(id: "where", announce: "Where", sequenceDots: [[5], [1, 5, 6]], modes: ["grade2Dot5Initials"], textTokenSequences: [["'", ":"]]),
 		makeSequenceItem(id: "work", announce: "Work", sequenceDots: [[5], [2, 4, 5, 6]], modes: ["grade2Dot5Initials"], textTokenSequences: [["'", "w"]]),
-		makeSequenceItem(id: "young", announce: "Young", sequenceDots: [[5], [1, 3, 4, 5, 6]], modes: ["grade2Dot5Initials"], textTokenSequences: [["'", "y"]])
+		makeSequenceItem(id: "young", announce: "Young", sequenceDots: [[5], [1, 3, 4, 5, 6]], modes: ["grade2Dot5Initials"], textTokenSequences: [["'", "y"]]),
+		makeSequenceItem(id: "character", announce: "Character", sequenceDots: [[5], [1, 6]], modes: ["grade2Dot5Initials"], textTokenSequences: [["'", "*"]]),
+		makeSequenceItem(id: "ought", announce: "Ought", sequenceDots: [[5], [1, 2, 5, 6]], modes: ["grade2Dot5Initials"], textTokenSequences: [["'", "|"]])
 	]
 
 	static let grade2Dot45Initials: [BrailleItem] = [
 		makeSequenceItem(id: "upon", announce: "Upon", sequenceDots: [[4, 5], [1, 3, 6]], modes: ["grade2Dot45Initials"], textTokenSequences: [["~", "u"]]),
 		makeSequenceItem(id: "word", announce: "Word", sequenceDots: [[4, 5], [2, 4, 5, 6]], modes: ["grade2Dot45Initials"], textTokenSequences: [["~", "w"]]),
 		makeSequenceItem(id: "these", announce: "These", sequenceDots: [[4, 5], [2, 3, 4, 6]], modes: ["grade2Dot45Initials"], textTokenSequences: [["~", "!"]]),
-		makeSequenceItem(id: "through", announce: "Through", sequenceDots: [[4, 5], [1, 4, 5, 6]], modes: ["grade2Dot45Initials"], textTokenSequences: [["~", "?"]]),
-		makeSequenceItem(id: "character", announce: "Character", sequenceDots: [[4, 5], [1, 6]], modes: ["grade2Dot45Initials"], textTokenSequences: [["~", "*"]]),
-		makeSequenceItem(id: "where", announce: "Where", sequenceDots: [[4, 5], [1, 5, 6]], modes: ["grade2Dot45Initials"], textTokenSequences: [["~", ":"]]),
-		makeSequenceItem(id: "ought", announce: "Ought", sequenceDots: [[4, 5], [1, 2, 5, 6]], modes: ["grade2Dot45Initials"], textTokenSequences: [["~", "|"]])
+		makeSequenceItem(id: "those", announce: "Those", sequenceDots: [[4, 5], [1, 4, 5, 6]], modes: ["grade2Dot45Initials"], textTokenSequences: [["~", "?"]]),
+		makeSequenceItem(id: "whose", announce: "Whose", sequenceDots: [[4, 5], [1, 5, 6]], modes: ["grade2Dot45Initials"], textTokenSequences: [["~", ":"]])
 	]
 
 	static let grade2Dot46Finals: [BrailleItem] = [
@@ -321,8 +323,6 @@ enum BrailleRegistry {
 	]
 
 	static let grade2Dot456Initials: [BrailleItem] = [
-		makeSequenceItem(id: "those", announce: "Those", sequenceDots: [[4, 5, 6], [1, 4, 5, 6]], modes: ["grade2Dot456Initials"], textTokenSequences: [["those"]]),
-		makeSequenceItem(id: "whose", announce: "Whose", sequenceDots: [[4, 5, 6], [1, 5, 6]], modes: ["grade2Dot456Initials"], textTokenSequences: [["whose"]]),
 		makeSequenceItem(id: "cannot", announce: "Cannot", sequenceDots: [[4, 5, 6], [1, 4]], modes: ["grade2Dot456Initials"], textTokenSequences: [["cannot"]]),
 		makeSequenceItem(id: "had", announce: "Had", sequenceDots: [[4, 5, 6], [1, 2, 5]], modes: ["grade2Dot456Initials"], textTokenSequences: [["had"]]),
 		makeSequenceItem(id: "many", announce: "Many", sequenceDots: [[4, 5, 6], [1, 3, 4]], modes: ["grade2Dot456Initials"], textTokenSequences: [["many"]]),
