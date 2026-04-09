@@ -97,6 +97,7 @@ struct HowToPlayView: View {
 										"Set the correct braille table before starting a round. Use Contracted for the Grade 2 moles and Uncontracted for the Grade 1 moles.",
 										"Type the answer, then swipe right with one or two fingers to whack the mole. You can whack with Space, Return, or the Translation gesture.",
 										"This mode gives you a little more time to enter the correct characters before whacking the mole.",
+										"Not all Grade 2 suffixes will be available in this mode.",
 										"When the round ends, make sure to turn braille screen input mode off in the Round Results screen."
 									]
 								)

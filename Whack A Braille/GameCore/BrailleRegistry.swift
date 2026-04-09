@@ -351,18 +351,18 @@ enum BrailleRegistry {
 	]
 
 	static let grade2Suffixes: [BrailleItem] = [
-		makeSequenceItem(id: "ance", announce: "A N C E", sequenceDots: [[4, 6], [1, 5]], modes: ["grade2Suffixes"], acceptedInputs: ["-ance", "ε"], textTokenSequences: [[".", "e"]]),
-		makeSequenceItem(id: "sion", announce: "S I O N", sequenceDots: [[4, 6], [1, 3, 4, 5]], modes: ["grade2Suffixes"], acceptedInputs: ["-sion"], textTokenSequences: [[".", "n"]]),
-		makeSequenceItem(id: "less", announce: "L E S S", sequenceDots: [[4, 6], [2, 3, 4]], modes: ["grade2Suffixes"], acceptedInputs: ["-less"], textTokenSequences: [[".", "s"]]),
-		makeSequenceItem(id: "ound", announce: "O U N D", sequenceDots: [[4, 6], [1, 4, 5]], modes: ["grade2Suffixes"], acceptedInputs: ["-ound"], textTokenSequences: [[".", "d"]]),
-		makeSequenceItem(id: "ount", announce: "O U N T", sequenceDots: [[4, 6], [2, 3, 4, 5]], modes: ["grade2Suffixes"], acceptedInputs: ["-ount"], textTokenSequences: [[".", "t"]]),
-		makeSequenceItem(id: "ence", announce: "E N C E", sequenceDots: [[5, 6], [1, 5]], modes: ["grade2Suffixes"], acceptedInputs: ["-ence"], textTokenSequences: [[";", "e"]]),
-		makeSequenceItem(id: "ong", announce: "O N G", sequenceDots: [[5, 6], [1, 2, 4, 5]], modes: ["grade2Suffixes"], acceptedInputs: ["-ong"], textTokenSequences: [[";", "g"]]),
-		makeSequenceItem(id: "ful", announce: "F U L", sequenceDots: [[5, 6], [1, 2, 4]], modes: ["grade2Suffixes"], acceptedInputs: ["-ful"], textTokenSequences: [[";", "f"]]),
-		makeSequenceItem(id: "tion", announce: "T I O N", sequenceDots: [[5, 6], [2, 3, 4, 5]], modes: ["grade2Suffixes"], acceptedInputs: ["-tion"], textTokenSequences: [[";", "t"]]),
-		makeSequenceItem(id: "ness", announce: "N E S S", sequenceDots: [[5, 6], [1, 3, 4, 5]], modes: ["grade2Suffixes"], acceptedInputs: ["-ness"], textTokenSequences: [[";", "n"]]),
-		makeSequenceItem(id: "ment", announce: "M E N T", sequenceDots: [[5, 6], [1, 3, 4]], modes: ["grade2Suffixes"], acceptedInputs: ["-ment"], textTokenSequences: [[";", "m"]]),
-		makeSequenceItem(id: "ity", announce: "I T Y", sequenceDots: [[5, 6], [1, 3, 4, 5, 6]], modes: ["grade2Suffixes"], acceptedInputs: ["-ity"], textTokenSequences: [[";", "y"]])
+		makeSequenceItem(id: "ance", announce: "A N C E", sequenceDots: [[4, 6], [1, 5]], modes: ["grade2Suffixes"], acceptedInputs: ["-ance", "ε", ".e"], textTokenSequences: [[".", "e"]]),
+		makeSequenceItem(id: "sion", announce: "S I O N", sequenceDots: [[4, 6], [1, 3, 4, 5]], modes: ["grade2Suffixes"], acceptedInputs: ["-sion", ".n"], textTokenSequences: [[".", "n"]]),
+		makeSequenceItem(id: "less", announce: "L E S S", sequenceDots: [[4, 6], [2, 3, 4]], modes: ["grade2Suffixes"], acceptedInputs: ["-less", ".s"], textTokenSequences: [[".", "s"]]),
+		makeSequenceItem(id: "ound", announce: "O U N D", sequenceDots: [[4, 6], [1, 4, 5]], modes: ["grade2Suffixes"], acceptedInputs: ["-ound", ".d"], textTokenSequences: [[".", "d"]]),
+		makeSequenceItem(id: "ount", announce: "O U N T", sequenceDots: [[4, 6], [2, 3, 4, 5]], modes: ["grade2Suffixes"], acceptedInputs: ["-ount", ".t"], textTokenSequences: [[".", "t"]]),
+		makeSequenceItem(id: "ence", announce: "E N C E", sequenceDots: [[5, 6], [1, 5]], modes: ["grade2Suffixes"], acceptedInputs: ["-ence", ";e", "e"], textTokenSequences: [[";", "e"]]),
+		makeSequenceItem(id: "ong", announce: "O N G", sequenceDots: [[5, 6], [1, 2, 4, 5]], modes: ["grade2Suffixes"], acceptedInputs: ["-ong", ";g", "g"], textTokenSequences: [[";", "g"]]),
+		makeSequenceItem(id: "ful", announce: "F U L", sequenceDots: [[5, 6], [1, 2, 4]], modes: ["grade2Suffixes"], acceptedInputs: ["-ful", ";f", "f"], textTokenSequences: [[";", "f"]]),
+		makeSequenceItem(id: "tion", announce: "T I O N", sequenceDots: [[5, 6], [2, 3, 4, 5]], modes: ["grade2Suffixes"], acceptedInputs: ["-tion", ";t", "t"], textTokenSequences: [[";", "t"]]),
+		makeSequenceItem(id: "ness", announce: "N E S S", sequenceDots: [[5, 6], [1, 3, 4, 5]], modes: ["grade2Suffixes"], acceptedInputs: ["-ness", ";n", "n"], textTokenSequences: [[";", "n"]]),
+		makeSequenceItem(id: "ment", announce: "M E N T", sequenceDots: [[5, 6], [1, 3, 4]], modes: ["grade2Suffixes"], acceptedInputs: ["-ment", ";m", "m"], textTokenSequences: [[";", "m"]]),
+		makeSequenceItem(id: "ity", announce: "I T Y", sequenceDots: [[5, 6], [1, 3, 4, 5, 6]], modes: ["grade2Suffixes"], acceptedInputs: ["-ity", ";y", "y"], textTokenSequences: [[";", "y"]])
 	]
 
 	static let grade2Dot456Initials: [BrailleItem] = [
@@ -489,6 +489,15 @@ enum BrailleRegistry {
 	]
 
 	private static let bsiExcludedModeIDs: Set<String> = qwertyModeIDs
+	private static let bsiUnsupportedSuffixIDs: Set<String> = [
+		"ence",
+		"ong",
+		"ful",
+		"tion",
+		"ness",
+		"ment",
+		"ity"
+	]
 
 	private static func letterInRange(_ item: BrailleItem, end: Character) -> Bool {
 		guard let first = item.id.uppercased().first else { return false }
@@ -533,11 +542,26 @@ enum BrailleRegistry {
 		case "grade1MoleInvasion":
 			return grade1MoleInvasionItems
 		case "grade2MoleInvasion":
-			return inputMode == .qwerty
-				? grade2MoleInvasionItems.filter { !$0.modeTags.contains("grade2Dot456Initials") }
-				: grade2MoleInvasionItems
+			return filteredGrade2InvasionItems(for: inputMode)
+		case "grade2Suffixes":
+			return inputMode == .brailleText
+				? grade2Suffixes.filter { !bsiUnsupportedSuffixIDs.contains($0.id) }
+				: grade2Suffixes
 		default:
 			return allItems.filter { $0.modeTags.contains(modeId) }
+		}
+	}
+
+	private static func filteredGrade2InvasionItems(for inputMode: InputMode) -> [BrailleItem] {
+		switch inputMode {
+		case .qwerty:
+			return grade2MoleInvasionItems.filter { !$0.modeTags.contains("grade2Dot456Initials") }
+		case .brailleText:
+			return grade2MoleInvasionItems.filter {
+				!bsiUnsupportedSuffixIDs.contains($0.id)
+			}
+		case .perkins, .brailleDisplayInput:
+			return grade2MoleInvasionItems
 		}
 	}
 
