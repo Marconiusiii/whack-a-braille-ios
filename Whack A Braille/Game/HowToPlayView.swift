@@ -228,6 +228,7 @@ struct HowToPlayView: View {
 					Text("Braille Unicode: \(row.unicodeText)")
 						.foregroundStyle(secondaryTextColor)
 						.fixedSize(horizontal: false, vertical: true)
+						.accessibilityHidden(true)
 				}
 				.frame(maxWidth: .infinity, alignment: .leading)
 				.padding(12)

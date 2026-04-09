@@ -168,7 +168,7 @@ enum BrailleRegistry {
 
 	private static func dotsText(for sequence: [[Int]]) -> String {
 		sequence
-			.map { step in step.map(String.init).joined() }
+			.map { step in step.map(String.init).joined(separator: " ") }
 			.joined(separator: ", ")
 	}
 
