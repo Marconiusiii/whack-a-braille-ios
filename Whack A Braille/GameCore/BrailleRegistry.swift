@@ -281,6 +281,42 @@ enum BrailleRegistry {
 		makeItem(id: "shall", announce: "Shall", dots: [1, 4, 6], modes: ["grade2Words"], acceptedInputs: ["s", "%"])
 	]
 
+	static let grade2ShortformWords: [BrailleItem] = [
+		makeItem(id: "be", announce: "Be", dots: [2, 3], modes: ["grade2Shortforms"], acceptedInputs: ["2"], textTokenSequences: [["2"]]),
+		makeItem(id: "in", announce: "In", dots: [3, 5], modes: ["grade2Shortforms"], acceptedInputs: ["9"], textTokenSequences: [["9"]]),
+		makeItem(id: "enough", announce: "Enough", dots: [2, 6], modes: ["grade2Shortforms"], acceptedInputs: ["5"], textTokenSequences: [["5"]]),
+		makeItem(id: "his", announce: "His", dots: [2, 3, 6], modes: ["grade2Shortforms"], acceptedInputs: ["8"], textTokenSequences: [["8"]]),
+		makeItem(id: "was", announce: "Was", dots: [3, 5, 6], modes: ["grade2Shortforms"], acceptedInputs: ["7"], textTokenSequences: [["7"]]),
+		makeItem(id: "were", announce: "Were", dots: [2, 3, 5, 6], modes: ["grade2Shortforms"], acceptedInputs: ["0"], textTokenSequences: [["0"]]),
+		makeSequenceItem(id: "children", announce: "Children", sequenceDots: [[1, 6], [1, 3, 4, 5]], modes: ["grade2Shortforms"], textTokenSequences: [["*", "n"]]),
+		makeSequenceItem(id: "could", announce: "Could", sequenceDots: [[1, 4], [1, 4, 5]], modes: ["grade2Shortforms"], textTokenSequences: [["c", "d"]]),
+		makeSequenceItem(id: "first", announce: "First", sequenceDots: [[1, 2, 4], [3, 4]], modes: ["grade2Shortforms"], textTokenSequences: [["f", "/"]]),
+		makeSequenceItem(id: "good", announce: "Good", sequenceDots: [[1, 2, 4, 5], [1, 4, 5]], modes: ["grade2Shortforms"], textTokenSequences: [["g", "d"]]),
+		makeSequenceItem(id: "letter", announce: "Letter", sequenceDots: [[1, 2, 3], [1, 2, 3, 5]], modes: ["grade2Shortforms"], textTokenSequences: [["l", "r"]]),
+		makeSequenceItem(id: "must", announce: "Must", sequenceDots: [[1, 3, 4], [3, 4]], modes: ["grade2Shortforms"], textTokenSequences: [["m", "/"]]),
+		makeSequenceItem(id: "quick", announce: "Quick", sequenceDots: [[1, 2, 3, 4, 5], [1, 3]], modes: ["grade2Shortforms"], textTokenSequences: [["q", "k"]]),
+		makeSequenceItem(id: "paid", announce: "Paid", sequenceDots: [[1, 2, 3, 4], [1, 4, 5]], modes: ["grade2Shortforms"], textTokenSequences: [["p", "d"]]),
+		makeSequenceItem(id: "said", announce: "Said", sequenceDots: [[2, 3, 4], [1, 4, 5]], modes: ["grade2Shortforms"], textTokenSequences: [["s", "d"]]),
+		makeSequenceItem(id: "would", announce: "Would", sequenceDots: [[2, 4, 5, 6], [1, 4, 5]], modes: ["grade2Shortforms"], textTokenSequences: [["w", "d"]]),
+		makeSequenceItem(id: "should", announce: "Should", sequenceDots: [[1, 4, 6], [1, 4, 5]], modes: ["grade2Shortforms"], textTokenSequences: [["%", "d"]]),
+		makeSequenceItem(id: "its", announce: "Its", sequenceDots: [[1, 3, 4, 6], [2, 3, 4]], modes: ["grade2Shortforms"], textTokenSequences: [["x", "s"]]),
+		makeSequenceItem(id: "your", announce: "Your", sequenceDots: [[1, 3, 4, 5, 6], [1, 2, 3, 5]], modes: ["grade2Shortforms"], textTokenSequences: [["y", "r"]]),
+		makeSequenceItem(id: "him", announce: "Him", sequenceDots: [[1, 2, 5], [1, 3, 4]], modes: ["grade2Shortforms"], textTokenSequences: [["h", "m"]]),
+		makeSequenceItem(id: "much", announce: "Much", sequenceDots: [[1, 3, 4], [1, 6]], modes: ["grade2Shortforms"], textTokenSequences: [["m", "*"]]),
+		makeSequenceItem(id: "such", announce: "Such", sequenceDots: [[2, 3, 4], [1, 6]], modes: ["grade2Shortforms"], textTokenSequences: [["s", "*"]]),
+		makeSequenceItem(id: "because", announce: "Because", sequenceDots: [[2, 3], [1, 4]], modes: ["grade2Shortforms"], textTokenSequences: [["2", "c"]]),
+		makeSequenceItem(id: "before", announce: "Before", sequenceDots: [[2, 3], [1, 2, 4]], modes: ["grade2Shortforms"], textTokenSequences: [["2", "f"]]),
+		makeSequenceItem(id: "behind", announce: "Behind", sequenceDots: [[2, 3], [1, 2, 5]], modes: ["grade2Shortforms"], textTokenSequences: [["2", "h"]]),
+		makeSequenceItem(id: "below", announce: "Below", sequenceDots: [[2, 3], [1, 2, 3]], modes: ["grade2Shortforms"], textTokenSequences: [["2", "l"]]),
+		makeSequenceItem(id: "beneath", announce: "Beneath", sequenceDots: [[2, 3], [1, 3, 4, 5]], modes: ["grade2Shortforms"], textTokenSequences: [["2", "n"]]),
+		makeSequenceItem(id: "beside", announce: "Beside", sequenceDots: [[2, 3], [2, 3, 4]], modes: ["grade2Shortforms"], textTokenSequences: [["2", "s"]]),
+		makeSequenceItem(id: "between", announce: "Between", sequenceDots: [[2, 3], [2, 3, 4, 5]], modes: ["grade2Shortforms"], textTokenSequences: [["2", "t"]]),
+		makeSequenceItem(id: "beyond", announce: "Beyond", sequenceDots: [[2, 3], [1, 3, 4, 5, 6]], modes: ["grade2Shortforms"], textTokenSequences: [["2", "y"]]),
+		makeSequenceItem(id: "today", announce: "Today", sequenceDots: [[2, 3, 4, 5], [1, 4, 5]], modes: ["grade2Shortforms"], textTokenSequences: [["t", "d"]]),
+		makeSequenceItem(id: "tomorrow", announce: "Tomorrow", sequenceDots: [[2, 3, 4, 5], [1, 3, 4]], modes: ["grade2Shortforms"], textTokenSequences: [["t", "m"]]),
+		makeSequenceItem(id: "tonight", announce: "Tonight", sequenceDots: [[2, 3, 4, 5], [1, 3, 4, 5]], modes: ["grade2Shortforms"], textTokenSequences: [["t", "n"]])
+	]
+
 	static let grade2Dot5Initials: [BrailleItem] = [
 		makeSequenceItem(id: "day", announce: "Day", sequenceDots: [[5], [1, 4, 5]], modes: ["grade2Dot5Initials"], textTokenSequences: [["'", "d"]]),
 		makeSequenceItem(id: "ever", announce: "Ever", sequenceDots: [[5], [1, 5]], modes: ["grade2Dot5Initials"], textTokenSequences: [["'", "e"]]),
@@ -390,6 +426,7 @@ enum BrailleRegistry {
 		grade1Numbers +
 		grade2Symbols +
 		grade2Words +
+		grade2ShortformWords +
 		grade2Dot5Initials +
 		grade2Dot45Initials +
 		grade2Dot46Finals +
@@ -399,6 +436,7 @@ enum BrailleRegistry {
 	static let grade2MoleInvasionItems: [BrailleItem] =
 		grade2Symbols +
 		grade2Words +
+		grade2ShortformWords +
 		grade2Dot5Initials +
 		grade2Dot45Initials +
 		grade2Dot46Finals +
@@ -424,6 +462,7 @@ enum BrailleRegistry {
 		("grade1MoleInvasion", "Grade 1 Mole Invasion!"),
 		("grade2Symbols", "Grade 2 contractions (symbols)"),
 		("grade2Words", "Grade 2 whole-word contractions"),
+		("grade2Shortforms", "Grade 2 shortform words"),
 		("grade2Dot5Initials", "Grade 2 dot 5 initials"),
 		("grade2Dot45Initials", "Grade 2 dot 45 initials"),
 		("grade2Dot46Finals", "Grade 2 dot 46 finals"),
@@ -515,6 +554,7 @@ enum BrailleRegistry {
 	static let grade2ReferenceSections: [ReferenceSection] = [
 		ReferenceSection(id: "grade2Symbols", title: "Grade 2 Symbols", rows: referenceRows(for: grade2Symbols)),
 		ReferenceSection(id: "grade2Words", title: "Grade 2 Whole-Word Contractions", rows: referenceRows(for: grade2Words)),
+		ReferenceSection(id: "grade2Shortforms", title: "Grade 2 Shortform Words", rows: referenceRows(for: grade2ShortformWords)),
 		ReferenceSection(id: "grade2Dot5Initials", title: "Grade 2 Dot 5 Initials", rows: referenceRows(for: grade2Dot5Initials)),
 		ReferenceSection(id: "grade2Dot45Initials", title: "Grade 2 Dot 45 Initials", rows: referenceRows(for: grade2Dot45Initials)),
 		ReferenceSection(id: "grade2Dot46Finals", title: "Grade 2 Dot 46 Finals", rows: referenceRows(for: grade2Dot46Finals)),
