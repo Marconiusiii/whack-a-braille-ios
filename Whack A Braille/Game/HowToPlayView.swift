@@ -78,37 +78,35 @@ struct HowToPlayView: View {
 								inputInstructionSection(
 									title: "Standard Keyboard or 8-Dot Braille",
 									rows: [
-										"This is the fast lane. Type the answer and the mole gets bonked right away.",
-										"If you are using an 8-dot braille display, uncontracted-style entry works best here because every little dot pattern needs to show up quickly.",
-										"The tricky Grade 2 contractions that start with dots 4 5 6 are left out of this direct mode on purpose, since some displays never send that opening cell clearly enough for a fair whack."
+										"Test your speed and reflexes with this mode! Type the correct characters and the mole gets bonked right away.",
+										"8-dot has limitations for Grade 2 Dots 4 5 6 contractions, so these will be filtered out in this mode."
 									]
 								)
 
 								inputInstructionSection(
 									title: "Braille Display Input",
 									rows: [
-										"Use this mode when you want your braille display to type into the entry box and let iOS handle the translation.",
-										"Pick the braille table that fits the mole set you are playing, then type the full answer and press Dot 8, Space, or Return to whack the mole.",
-										"This is the best choice for contracted braille play, longer Grade 2 answers, and the dot 4 5 6 families that do not behave nicely in the fast direct mode."
+										"Use this mode when using an external braille display with Uncontracted and Contracted braille tables.",
+										"Pick the correct braille table for the mole set before starting the round, then press Space, Return, or Dot 8 after typing the correct characters to whack the mole."
 									]
 								)
 
 								inputInstructionSection(
 									title: "Braille Screen Input",
 									rows: [
-										"Set the table that matches the moles before you start. Contracted is great for Grade 2, and uncontracted is the right fit for Grade 1.",
-										"Type the answer, then swipe right with one or two fingers to whack the current mole.",
-										"The moles wait a little longer in this mode so you have time to finish the answer and still land the bonk.",
-										"When the round ends, remember to turn Braille Screen Input back off so the results and prize screens behave normally."
+										"Set the correct braille table before starting a round. Use Contracted for the Grade 2 moles and Uncontracted for the Grade 1 moles.",
+										"Type the answer, then swipe right with one or two fingers to whack the mole. You can whack with Space, Return, or the Translation gesture.",
+										"This mode gives you a little more time to enter the correct characters before whacking the mole.",
+										"When the round ends, make sure to turn braille screen input mode off in the Round Results screen."
 									]
 								)
 
 								inputInstructionSection(
 									title: "Perkins Home Row",
 									rows: [
-										"Think of this as turning the keyboard into a tiny braille writer. S, D, and F make dots 3, 2, and 1, while J, K, and L make dots 4, 5, and 6.",
-										"For numbers and the longer Grade 2 sets, enter each cell in order and let the game keep track of the sequence for you.",
-										"If you want the full literary braille workout without changing input tables, this is a wonderfully stubborn way to play."
+										"This turns an external keyboard into a Perkins Brailler!",
+										"Letters S, D, and F are Dots 3, 2, and 1 respectively, Letters J, K, and L are dots 4 , 5, and 6.",
+										"Great for fast entry and practicing tabletop and Perkins entry."
 									]
 								)
 							}
