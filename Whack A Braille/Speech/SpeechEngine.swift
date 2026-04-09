@@ -1,11 +1,12 @@
 import AVFoundation
+import UIKit
 
 @MainActor
 final class SpeechEngine {
 
 	static let shared = SpeechEngine()
 
-	private let synthesizer = AVSpeechSynthesizer()
+	private var synthesizer = AVSpeechSynthesizer()
 	private var currentVoice: AVSpeechSynthesisVoice?
 	private var currentRate: Float = AVSpeechUtteranceDefaultSpeechRate
 	private var currentVolume: Float = 0.85
@@ -90,6 +91,15 @@ final class SpeechEngine {
 		}
 	}
 
+	private func recoverSpeechSystem(rebuildSynthesizer: Bool) {
+		activateAudioSession()
+
+		guard rebuildSynthesizer else { return }
+
+		synthesizer.stopSpeaking(at: .immediate)
+		synthesizer = AVSpeechSynthesizer()
+	}
+
 	private func observeAudioSession() {
 		let session = AVAudioSession.sharedInstance()
 		let center = NotificationCenter.default
@@ -101,7 +111,7 @@ final class SpeechEngine {
 				queue: .main
 			) { [weak self] _ in
 				Task { @MainActor [weak self] in
-					self?.activateAudioSession()
+					self?.recoverSpeechSystem(rebuildSynthesizer: false)
 				}
 			}
 		)
@@ -122,8 +132,44 @@ final class SpeechEngine {
 
 				if type == .ended {
 					Task { @MainActor [weak self] in
-						self?.activateAudioSession()
+						self?.recoverSpeechSystem(rebuildSynthesizer: true)
 					}
+				}
+			}
+		)
+
+		sessionObservers.append(
+			center.addObserver(
+				forName: UIApplication.didBecomeActiveNotification,
+				object: nil,
+				queue: .main
+			) { [weak self] _ in
+				Task { @MainActor [weak self] in
+					self?.recoverSpeechSystem(rebuildSynthesizer: true)
+				}
+			}
+		)
+
+		sessionObservers.append(
+			center.addObserver(
+				forName: UIApplication.willEnterForegroundNotification,
+				object: nil,
+				queue: .main
+			) { [weak self] _ in
+				Task { @MainActor [weak self] in
+					self?.recoverSpeechSystem(rebuildSynthesizer: false)
+				}
+			}
+		)
+
+		sessionObservers.append(
+			center.addObserver(
+				forName: AVAudioSession.mediaServicesWereResetNotification,
+				object: session,
+				queue: .main
+			) { [weak self] _ in
+				Task { @MainActor [weak self] in
+					self?.recoverSpeechSystem(rebuildSynthesizer: true)
 				}
 			}
 		)

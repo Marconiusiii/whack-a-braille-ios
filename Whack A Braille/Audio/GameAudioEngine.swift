@@ -1,4 +1,5 @@
 import AVFoundation
+import UIKit
 
 final class GameAudioEngine {
 
@@ -207,6 +208,36 @@ final class GameAudioEngine {
 				if type == .ended {
 					self?.configureAudioSession()
 				}
+			}
+		)
+
+		sessionObservers.append(
+			center.addObserver(
+				forName: UIApplication.didBecomeActiveNotification,
+				object: nil,
+				queue: .main
+			) { [weak self] _ in
+				self?.configureAudioSession()
+			}
+		)
+
+		sessionObservers.append(
+			center.addObserver(
+				forName: UIApplication.willEnterForegroundNotification,
+				object: nil,
+				queue: .main
+			) { [weak self] _ in
+				self?.configureAudioSession()
+			}
+		)
+
+		sessionObservers.append(
+			center.addObserver(
+				forName: AVAudioSession.mediaServicesWereResetNotification,
+				object: session,
+				queue: .main
+			) { [weak self] _ in
+				self?.configureAudioSession()
 			}
 		)
 	}
