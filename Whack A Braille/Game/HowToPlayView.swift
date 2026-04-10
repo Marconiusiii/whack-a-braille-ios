@@ -87,7 +87,8 @@ struct HowToPlayView: View {
 									title: "Braille Display Input",
 									rows: [
 										"Use this mode when using an external braille display with Uncontracted and Contracted braille tables.",
-										"Pick the correct braille table for the mole set before starting the round, then press Space, Return, or Dot 8 after typing the correct characters to whack the mole."
+										"Pick the correct braille table for the mole set before starting the round, then press Space, Return, or Dot 8 after typing the correct characters to whack the mole.",
+										"Grade 2 suffixes will not be available in this mode."
 									]
 								)
 
@@ -97,7 +98,7 @@ struct HowToPlayView: View {
 										"Set the correct braille table before starting a round. Use Contracted for the Grade 2 moles and Uncontracted for the Grade 1 moles.",
 										"Type the answer, then swipe right with one or two fingers to whack the mole. You can whack with Space, Return, or the Translation gesture.",
 										"This mode gives you a little more time to enter the correct characters before whacking the mole.",
-										"Not all Grade 2 suffixes will be available in this mode.",
+										"Grade 2 suffixes will not be available in this mode.",
 										"When the round ends, make sure to turn braille screen input mode off in the Round Results screen."
 									]
 								)

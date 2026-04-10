@@ -489,14 +489,8 @@ enum BrailleRegistry {
 	]
 
 	private static let bsiExcludedModeIDs: Set<String> = qwertyModeIDs
-	private static let bsiUnsupportedSuffixIDs: Set<String> = [
-		"ence",
-		"ong",
-		"ful",
-		"tion",
-		"ness",
-		"ment",
-		"ity"
+	private static let bufferedTextUnsupportedModeIDs: Set<String> = [
+		"grade2Suffixes"
 	]
 
 	private static func letterInRange(_ item: BrailleItem, end: Character) -> Bool {
@@ -511,10 +505,10 @@ enum BrailleRegistry {
 			switch inputMode {
 			case .qwerty:
 				return !qwertyUnsupportedBrailleModeIDs.contains(option.id)
-			case .perkins, .brailleDisplayInput:
+			case .perkins:
 				return !qwertyModeIDs.contains(option.id)
-			case .brailleText:
-				return !bsiExcludedModeIDs.contains(option.id)
+			case .brailleDisplayInput, .brailleText:
+				return !bsiExcludedModeIDs.contains(option.id) && !bufferedTextUnsupportedModeIDs.contains(option.id)
 			}
 		}
 	}
@@ -543,10 +537,6 @@ enum BrailleRegistry {
 			return grade1MoleInvasionItems
 		case "grade2MoleInvasion":
 			return filteredGrade2InvasionItems(for: inputMode)
-		case "grade2Suffixes":
-			return inputMode == .brailleText
-				? grade2Suffixes.filter { !bsiUnsupportedSuffixIDs.contains($0.id) }
-				: grade2Suffixes
 		default:
 			return allItems.filter { $0.modeTags.contains(modeId) }
 		}
@@ -556,11 +546,9 @@ enum BrailleRegistry {
 		switch inputMode {
 		case .qwerty:
 			return grade2MoleInvasionItems.filter { !$0.modeTags.contains("grade2Dot456Initials") }
-		case .brailleText:
-			return grade2MoleInvasionItems.filter {
-				!bsiUnsupportedSuffixIDs.contains($0.id)
-			}
-		case .perkins, .brailleDisplayInput:
+		case .brailleText, .brailleDisplayInput:
+			return grade2MoleInvasionItems.filter { !$0.modeTags.contains("grade2Suffixes") }
+		case .perkins:
 			return grade2MoleInvasionItems
 		}
 	}
