@@ -131,6 +131,8 @@ struct GameSettingsSheet: View {
 					.accessibilityHint("Opens Mail so you can send feedback about the game.")
 				}
 
+				externalLink(title: "Privacy Policy", url: "https://marconius.com/wabPrivacy/")
+
 				Section {
 					Text(appFooterText)
 						.font(.footnote)
@@ -268,6 +270,16 @@ struct GameSettingsSheet: View {
 		let subject = "Whack a Braille iOS Feedback".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
 		guard let mailURL = URL(string: "mailto:marco@marconius.com?subject=\(subject)") else { return }
 		openURL(mailURL)
+	}
+
+	private func externalLink(title: String, url: String) -> some View {
+		Link(title, destination: URL(string: url)!)
+			.font(.body)
+			.foregroundStyle(secondaryTextColor)
+			.underline()
+			.accessibilityAddTraits(.isLink)
+			.accessibilityRemoveTraits(.isButton)
+			.accessibilityHint("Opens in external browser")
 	}
 
 	private func sanitizeModeSelection() {
