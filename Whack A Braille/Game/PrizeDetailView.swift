@@ -10,7 +10,7 @@ struct PrizeDetailView: View {
 	var body: some View {
 		NavigationStack {
 			ScrollView {
-				VStack(alignment: .leading, spacing: 20) {
+				VStack(alignment: .leading, spacing: 0) {
 					VStack(alignment: .leading, spacing: 12) {
 						Text(item.label)
 							.font(.system(.largeTitle, design: .rounded, weight: .heavy))
@@ -31,11 +31,17 @@ struct PrizeDetailView: View {
 							Text("Total Owned: \(item.quantity)")
 								.foregroundStyle(AppTheme.heading)
 						}
-
-						Button("Back to Shelf", action: dismissToShelf)
-							.buttonStyle(SecondaryGameButton())
 					}
 					.appCard()
+					.accessibilityTouchRegion(minHeight: 0, verticalPadding: 10, alignment: .leading)
+
+					VStack(alignment: .leading, spacing: 0) {
+						Button("Back to Shelf", action: dismissToShelf)
+							.buttonStyle(SecondaryGameButton())
+							.accessibilityTouchRegion(minHeight: 76, topPadding: 20, bottomPadding: 20, horizontalPadding: 20)
+					}
+					.appActionCard()
+					.accessibilityTouchRegion(minHeight: 0, verticalPadding: 10, alignment: .leading)
 				}
 				.padding(24)
 			}

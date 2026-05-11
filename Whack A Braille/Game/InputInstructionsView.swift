@@ -10,9 +10,10 @@ struct InputInstructionsView: View {
 
 	var body: some View {
 		ScrollView {
-			VStack(alignment: .leading, spacing: 20) {
+			VStack(alignment: .leading, spacing: 0) {
 				Button("Back", action: goBack)
 					.buttonStyle(SecondaryGameButton())
+					.accessibilityTouchRegion(verticalPadding: 10)
 
 				VStack(alignment: .leading, spacing: 12) {
 					Text("How to Whack Moles")
@@ -26,6 +27,7 @@ struct InputInstructionsView: View {
 						.fixedSize(horizontal: false, vertical: true)
 				}
 				.appCard()
+				.accessibilityTouchRegion(minHeight: 0, verticalPadding: 10, alignment: .leading)
 
 				VStack(alignment: .leading, spacing: 12) {
 					Text("Braille Display")
@@ -37,6 +39,7 @@ struct InputInstructionsView: View {
 					instructionRow("Using Contracted or Uncontracted tables will require you to press Dot 8 or Space Bar to whack a mole after typing the right chord or character.")
 				}
 				.appCard()
+				.accessibilityTouchRegion(minHeight: 0, verticalPadding: 10, alignment: .leading)
 
 				VStack(alignment: .leading, spacing: 12) {
 					Text("Braille Screen Input")
@@ -50,6 +53,7 @@ struct InputInstructionsView: View {
 					instructionRow("Remember to turn off Braille Screen input once you are in the Round Results screen!")
 				}
 				.appCard()
+				.accessibilityTouchRegion(minHeight: 0, verticalPadding: 10, alignment: .leading)
 
 				VStack(alignment: .leading, spacing: 12) {
 					Text("External Keyboard")
@@ -62,6 +66,7 @@ struct InputInstructionsView: View {
 					instructionRow("Perkins Home Row is defaulted to On for the Grade 2 modes.")
 				}
 				.appCard()
+				.accessibilityTouchRegion(minHeight: 0, verticalPadding: 10, alignment: .leading)
 			}
 			.padding(24)
 		}

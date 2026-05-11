@@ -98,6 +98,33 @@ struct AppCard: ViewModifier {
 	}
 }
 
+struct AppActionCard: ViewModifier {
+	@Environment(\.colorScheme) private var colorScheme
+
+	func body(content: Content) -> some View {
+		content
+			.frame(maxWidth: .infinity, alignment: .leading)
+			.background(
+				ZStack {
+					(colorScheme == .dark ? AppTheme.darkCard : AppTheme.lightCard)
+					LinearGradient(
+						colors: colorScheme == .dark
+							? [AppTheme.darkCardOverlay, .clear]
+							: [AppTheme.lightCardOverlay, .clear],
+						startPoint: .topLeading,
+						endPoint: .bottomTrailing
+					)
+				}
+			)
+			.clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+			.overlay(
+				RoundedRectangle(cornerRadius: 22, style: .continuous)
+					.stroke(colorScheme == .dark ? AppTheme.darkBorder : AppTheme.lightBorder, lineWidth: 1)
+			)
+			.shadow(color: Color.black.opacity(colorScheme == .dark ? 0.22 : 0.08), radius: 18, x: 0, y: 10)
+	}
+}
+
 struct PrimaryGameButton: ButtonStyle {
 	func makeBody(configuration: Configuration) -> some View {
 		configuration.label
@@ -144,6 +171,84 @@ struct SecondaryGameButton: ButtonStyle {
 	}
 }
 
+struct FullRegionPrimaryGameButton: ButtonStyle {
+	let visibleMinHeight: CGFloat
+	let horizontalInset: CGFloat
+	let verticalInset: CGFloat
+
+	init(visibleMinHeight: CGFloat = 52, horizontalInset: CGFloat = 20, verticalInset: CGFloat = 12) {
+		self.visibleMinHeight = visibleMinHeight
+		self.horizontalInset = horizontalInset
+		self.verticalInset = verticalInset
+	}
+
+	func makeBody(configuration: Configuration) -> some View {
+		ZStack {
+			configuration.label
+				.font(.headline)
+				.multilineTextAlignment(.center)
+				.frame(maxWidth: .infinity)
+				.frame(minHeight: visibleMinHeight)
+				.padding(.horizontal, 16)
+				.padding(.vertical, 8)
+				.background(configuration.isPressed ? AppTheme.primaryButtonPressed : AppTheme.primaryButton)
+				.foregroundStyle(AppTheme.primaryButtonText)
+				.clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+				.overlay(
+					RoundedRectangle(cornerRadius: 14, style: .continuous)
+						.stroke(AppTheme.primaryButtonText.opacity(0.08), lineWidth: 1)
+				)
+				.shadow(color: AppTheme.primaryButton.opacity(configuration.isPressed ? 0.18 : 0.3), radius: configuration.isPressed ? 8 : 14, x: 0, y: configuration.isPressed ? 4 : 8)
+				.scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+				.padding(.horizontal, horizontalInset)
+				.padding(.vertical, verticalInset)
+		}
+		.frame(maxWidth: .infinity, maxHeight: .infinity)
+		.contentShape(Rectangle())
+	}
+}
+
+struct FullRegionSecondaryGameButton: ButtonStyle {
+	@Environment(\.colorScheme) private var colorScheme
+
+	let visibleMinHeight: CGFloat
+	let horizontalInset: CGFloat
+	let verticalInset: CGFloat
+
+	init(visibleMinHeight: CGFloat = 52, horizontalInset: CGFloat = 12, verticalInset: CGFloat = 12) {
+		self.visibleMinHeight = visibleMinHeight
+		self.horizontalInset = horizontalInset
+		self.verticalInset = verticalInset
+	}
+
+	func makeBody(configuration: Configuration) -> some View {
+		ZStack {
+			configuration.label
+				.font(.headline)
+				.multilineTextAlignment(.center)
+				.frame(maxWidth: .infinity)
+				.frame(minHeight: visibleMinHeight)
+				.padding(.horizontal, 12)
+				.padding(.vertical, 8)
+				.background(
+					RoundedRectangle(cornerRadius: 14, style: .continuous)
+						.fill((colorScheme == .dark ? AppTheme.darkCard : Color.white).opacity(configuration.isPressed ? 0.82 : 0.96))
+				)
+				.overlay(
+					RoundedRectangle(cornerRadius: 14, style: .continuous)
+						.stroke(AppTheme.focus.opacity(0.45), lineWidth: 2)
+				)
+				.foregroundStyle(colorScheme == .dark ? AppTheme.darkText : AppTheme.lightText)
+				.shadow(color: Color.black.opacity(colorScheme == .dark ? 0.12 : 0.06), radius: 10, x: 0, y: 6)
+				.scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+				.padding(.horizontal, horizontalInset)
+				.padding(.vertical, verticalInset)
+		}
+		.frame(maxWidth: .infinity, maxHeight: .infinity)
+		.contentShape(Rectangle())
+	}
+}
+
 extension View {
 	func appBackground() -> some View {
 		modifier(AppBackground())
@@ -151,6 +256,36 @@ extension View {
 
 	func appCard() -> some View {
 		modifier(AppCard())
+	}
+
+	func appActionCard() -> some View {
+		modifier(AppActionCard())
+	}
+
+	func accessibilityTouchRegion(
+		minHeight: CGFloat = 64,
+		verticalPadding: CGFloat = 0,
+		horizontalPadding: CGFloat = 0,
+		alignment: Alignment = .center
+	) -> some View {
+		padding(.horizontal, horizontalPadding)
+			.padding(.vertical, verticalPadding)
+			.frame(maxWidth: .infinity, minHeight: minHeight, alignment: alignment)
+			.contentShape(Rectangle())
+	}
+
+	func accessibilityTouchRegion(
+		minHeight: CGFloat = 64,
+		topPadding: CGFloat,
+		bottomPadding: CGFloat,
+		horizontalPadding: CGFloat = 0,
+		alignment: Alignment = .center
+	) -> some View {
+		padding(.horizontal, horizontalPadding)
+			.padding(.top, topPadding)
+			.padding(.bottom, bottomPadding)
+			.frame(maxWidth: .infinity, minHeight: minHeight, alignment: alignment)
+			.contentShape(Rectangle())
 	}
 }
 

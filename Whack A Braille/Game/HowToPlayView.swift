@@ -17,19 +17,14 @@ struct HowToPlayView: View {
 	var body: some View {
 		NavigationStack {
 			ScrollView {
-				VStack(alignment: .leading, spacing: 20) {
+				VStack(alignment: .leading, spacing: 0) {
 					VStack(alignment: .leading, spacing: 12) {
-						Text("Quick Start")
-							.font(.system(.title2, design: .rounded, weight: .bold))
-							.foregroundStyle(AppTheme.heading)
-							.accessibilityAddTraits(.isHeader)
-							.accessibilityFocused($focusedElement, equals: .heading)
-
 						Text("Listen for the mole, type the right answer before it ducks away, and keep the tickets rolling in. The tougher the challenge, the shinier the bragging rights.")
 							.foregroundStyle(secondaryTextColor)
 							.fixedSize(horizontal: false, vertical: true)
 					}
 					.appCard()
+					.accessibilityTouchRegion(minHeight: 0, verticalPadding: 10, alignment: .leading)
 
 					section(
 						title: "Mole Chooser",
@@ -153,6 +148,7 @@ struct HowToPlayView: View {
 					.tint(AppTheme.heading)
 					.foregroundStyle(AppTheme.heading)
 					.appCard()
+					.accessibilityTouchRegion(minHeight: 0, verticalPadding: 10, alignment: .leading)
 				}
 				.padding(24)
 			}
@@ -187,6 +183,7 @@ struct HowToPlayView: View {
 			}
 		}
 		.appCard()
+		.accessibilityTouchRegion(minHeight: 96, verticalPadding: 10, alignment: .leading)
 	}
 
 	private func inputInstructionSection(title: String, rows: [String]) -> some View {
@@ -234,6 +231,7 @@ struct HowToPlayView: View {
 				}
 				.frame(maxWidth: .infinity, alignment: .leading)
 				.padding(12)
+				.accessibilityTouchRegion(minHeight: 72, verticalPadding: 5, alignment: .leading)
 				.background(
 					RoundedRectangle(cornerRadius: 16, style: .continuous)
 						.fill(colorScheme == .dark ? AppTheme.darkCard : AppTheme.lightCard)

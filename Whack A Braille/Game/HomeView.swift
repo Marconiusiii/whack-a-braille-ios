@@ -31,7 +31,7 @@ struct HomeView: View {
 
 	var body: some View {
 		ScrollView {
-			VStack(alignment: .leading, spacing: 20) {
+			VStack(alignment: .leading, spacing: 0) {
 				VStack(alignment: .leading, spacing: 12) {
 					Text("Whack A Braille")
 						.font(.system(.largeTitle, design: .rounded, weight: .heavy))
@@ -48,14 +48,17 @@ struct HomeView: View {
 					}
 				}
 				.appCard()
+				.accessibilityTouchRegion(minHeight: 0, verticalPadding: 10, alignment: .leading)
 
-				VStack(alignment: .leading, spacing: 12) {
+				VStack(alignment: .leading, spacing: 0) {
 					Button("How to Play", action: openHowToPlay)
 						.buttonStyle(SecondaryGameButton())
+						.accessibilityTouchRegion(topPadding: 20, bottomPadding: 6, horizontalPadding: 20)
 						.accessibilityFocused($focusedElement, equals: .howToPlay)
 
 					Button("Game Settings", action: openSettings)
 						.buttonStyle(SecondaryGameButton())
+						.accessibilityTouchRegion(topPadding: 6, bottomPadding: 6, horizontalPadding: 20)
 
 					Button(action: openPrizeCounter) {
 						HStack(spacing: 12) {
@@ -74,25 +77,29 @@ struct HomeView: View {
 						}
 					}
 						.buttonStyle(SecondaryGameButton())
+						.accessibilityTouchRegion(topPadding: 6, bottomPadding: 6, horizontalPadding: 20)
 						.accessibilityValue("\(totalTickets) available")
 						.accessibilityHint("Opens Prize Counter")
 
 					Button("Start Whacking", action: startGame)
 						.buttonStyle(PrimaryGameButton())
+						.accessibilityTouchRegion(minHeight: 116, topPadding: 6, bottomPadding: 30, horizontalPadding: 20)
 				}
-				.appCard()
+				.appActionCard()
+				.accessibilityTouchRegion(minHeight: 0, verticalPadding: 10, alignment: .leading)
 
 				DisclosureGroup(
 					isExpanded: $isPrizeShelfExpanded,
 					content: {
-					VStack(alignment: .leading, spacing: 12) {
+					VStack(alignment: .leading, spacing: 0) {
 						if prizeShelfItems.isEmpty {
 							Text("Your shelf is empty. Go bonk some moles and win something shiny!")
 								.foregroundStyle(secondaryTextColor)
 								.fixedSize(horizontal: false, vertical: true)
+								.accessibilityTouchRegion(minHeight: 72, verticalPadding: 6, alignment: .leading)
 								.accessibilityFocused($focusedElement, equals: .emptyShelfMessage)
 						} else {
-							VStack(alignment: .leading, spacing: 10) {
+							VStack(alignment: .leading, spacing: 0) {
 								ForEach(prizeShelfItems) { item in
 									prizeShelfRow(item)
 								}
@@ -107,6 +114,7 @@ struct HomeView: View {
 							}
 						}
 							.buttonStyle(SecondaryGameButton())
+							.accessibilityTouchRegion(verticalPadding: 6)
 							.accessibilityFocused($focusedElement, equals: .clearPrizeShelf)
 					}
 					.padding(.top, 8)
@@ -122,6 +130,7 @@ struct HomeView: View {
 				.tint(AppTheme.heading)
 				.foregroundStyle(AppTheme.heading)
 				.modifier(PrizeShelfCard())
+				.accessibilityTouchRegion(minHeight: 0, verticalPadding: 10, alignment: .leading)
 			}
 			.padding(24)
 		}
@@ -187,6 +196,7 @@ struct HomeView: View {
 			}
 			.padding(.horizontal, 14)
 			.padding(.vertical, 12)
+			.frame(maxWidth: .infinity, minHeight: 64, alignment: .leading)
 			.background(plaqueBackground)
 			.clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 			.overlay(
@@ -197,6 +207,7 @@ struct HomeView: View {
 			.contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 		}
 		.buttonStyle(.plain)
+		.accessibilityTouchRegion(minHeight: 74, verticalPadding: 5, alignment: .leading)
 		.accessibilityFocused($focusedElement, equals: .prizeShelfRow(item.id))
 		.swipeActions(edge: .trailing, allowsFullSwipe: false) {
 			Button(role: .destructive) {

@@ -277,6 +277,7 @@ struct GameSettingsSheet: View {
 			.font(.body)
 			.foregroundStyle(secondaryTextColor)
 			.underline()
+			.accessibilityTouchRegion(minHeight: 60, verticalPadding: 4, alignment: .leading)
 			.accessibilityAddTraits(.isLink)
 			.accessibilityRemoveTraits(.isButton)
 			.accessibilityHint("Opens in external browser")

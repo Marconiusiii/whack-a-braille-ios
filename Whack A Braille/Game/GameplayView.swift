@@ -14,7 +14,7 @@ struct GameplayView: View {
 
 	var body: some View {
 		ScrollView {
-			VStack(alignment: .leading, spacing: 20) {
+			VStack(alignment: .leading, spacing: 0) {
 				VStack(alignment: .leading, spacing: 14) {
 					Text("Whack the Braille!")
 						.font(.system(.largeTitle, design: .rounded, weight: .heavy))
@@ -40,10 +40,12 @@ struct GameplayView: View {
 					}
 				}
 				.appCard()
+				.accessibilityTouchRegion(minHeight: 0, verticalPadding: 10, alignment: .leading)
 
-				VStack(alignment: .leading, spacing: 16) {
+				VStack(alignment: .leading, spacing: 0) {
 					gameBoard
 						.accessibilityHidden(true)
+						.accessibilityTouchRegion(minHeight: 0, verticalPadding: 8)
 
 					VStack(alignment: .leading, spacing: 8) {
 						Text("Braille Entry")
@@ -60,11 +62,14 @@ struct GameplayView: View {
 						.frame(height: 48)
 					}
 					.gameplayInputCard()
+					.accessibilityTouchRegion(minHeight: 0, verticalPadding: 8, alignment: .leading)
 
 					Button("Exit Game", action: exitGame)
 						.buttonStyle(SecondaryGameButton())
+						.accessibilityTouchRegion(verticalPadding: 6)
 				}
 				.appCard()
+				.accessibilityTouchRegion(minHeight: 0, verticalPadding: 10, alignment: .leading)
 			}
 			.padding(24)
 		}
