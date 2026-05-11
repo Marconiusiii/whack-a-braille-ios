@@ -84,10 +84,11 @@ struct GameSettingsSheet: View {
 					Toggle("Character Echo", isOn: $characterEcho)
 						.accessibilityHint("Speaks NATO word for single letters")
 
-					VStack(alignment: .leading, spacing: 8) {
+					VStack(alignment: .leading, spacing: 0) {
 						Text("Speech Rate: \(speechRatePercent) percent")
 							.accessibilityHidden(true)
 							.fixedSize(horizontal: false, vertical: true)
+							.accessibilityTouchRegion(minHeight: 0, topPadding: 0, bottomPadding: 8, alignment: .leading)
 
 						Slider(
 							value: speechRateBinding,
@@ -96,12 +97,15 @@ struct GameSettingsSheet: View {
 						)
 						.accessibilityLabel("Speech Rate")
 						.accessibilityValue("\(speechRatePercent) percent")
+						.accessibilityTouchRegion(minHeight: 44, alignment: .leading)
 					}
+					.accessibilityTouchRegion(minHeight: 72, alignment: .leading)
 
-					VStack(alignment: .leading, spacing: 8) {
+					VStack(alignment: .leading, spacing: 0) {
 						Text("Speech Volume: \(speechVolumePercent) percent")
 							.accessibilityHidden(true)
 							.fixedSize(horizontal: false, vertical: true)
+							.accessibilityTouchRegion(minHeight: 0, topPadding: 0, bottomPadding: 8, alignment: .leading)
 
 						Slider(
 							value: speechVolumeBinding,
@@ -110,7 +114,9 @@ struct GameSettingsSheet: View {
 						)
 						.accessibilityLabel("Speech Volume")
 						.accessibilityValue("\(speechVolumePercent) percent")
+						.accessibilityTouchRegion(minHeight: 44, alignment: .leading)
 					}
+					.accessibilityTouchRegion(minHeight: 72, alignment: .leading)
 
 					Button("Play Voice Sample") {
 						let voice = selectedVoiceId.isEmpty ? nil : AVSpeechSynthesisVoice(identifier: selectedVoiceId)
@@ -120,6 +126,7 @@ struct GameSettingsSheet: View {
 							volumePercent: speechVolumePercent
 						)
 					}
+					.accessibilityTouchRegion(minHeight: 54, alignment: .leading)
 
 					Button("Send Game Feedback") {
 						if MFMailComposeViewController.canSendMail() {
@@ -128,10 +135,13 @@ struct GameSettingsSheet: View {
 							openMailFallback()
 						}
 					}
+					.accessibilityTouchRegion(minHeight: 54, alignment: .leading)
 					.accessibilityHint("Opens Mail so you can send feedback about the game.")
 				}
 
-				externalLink(title: "Privacy Policy", url: "https://marconius.com/wabPrivacy/")
+				Section {
+					externalLink(title: "Privacy Policy", url: "https://marconius.com/wabPrivacy/")
+				}
 
 				Section {
 					Text(appFooterText)
@@ -139,14 +149,15 @@ struct GameSettingsSheet: View {
 						.multilineTextAlignment(.center)
 						.frame(maxWidth: .infinity, alignment: .center)
 						.foregroundStyle(secondaryTextColor)
+						.accessibilityTouchRegion(minHeight: 60)
 				}
 			}
 			.scrollContentBackground(.hidden)
-			.listSectionSpacing(20)
+			.listSectionSpacing(0)
 			.background(backgroundView)
 			.tint(AppTheme.focus)
 			.foregroundStyle(primaryTextColor)
-			.environment(\.defaultMinListRowHeight, 54)
+			.environment(\.defaultMinListRowHeight, 60)
 			.navigationTitle("Game Settings")
 			.navigationBarTitleDisplayMode(.inline)
 			.toolbarBackground(.visible, for: .navigationBar)

@@ -18,13 +18,13 @@ struct HowToPlayView: View {
 		NavigationStack {
 			ScrollView {
 				VStack(alignment: .leading, spacing: 0) {
-					VStack(alignment: .leading, spacing: 12) {
+					VStack(alignment: .leading, spacing: 0) {
 						Text("Listen for the mole, type the right answer before it ducks away, and keep the tickets rolling in. The tougher the challenge, the shinier the bragging rights.")
 							.foregroundStyle(secondaryTextColor)
 							.fixedSize(horizontal: false, vertical: true)
+							.accessibilityTouchRegion(minHeight: 0, topPadding: 20, bottomPadding: 20, horizontalPadding: 20, alignment: .leading)
 					}
-					.appCard()
-					.accessibilityTouchRegion(minHeight: 0, verticalPadding: 10, alignment: .leading)
+					.appActionCard()
 
 					section(
 						title: "Mole Chooser",
@@ -61,14 +61,16 @@ struct HowToPlayView: View {
 					DisclosureGroup(
 						isExpanded: $isInputInstructionsExpanded,
 						content: {
-							VStack(alignment: .leading, spacing: 16) {
+							VStack(alignment: .leading, spacing: 0) {
 								Text("You can use an external keyboard, a braille display, or braille screen input to whack the moles as they appear.")
 									.foregroundStyle(secondaryTextColor)
 									.fixedSize(horizontal: false, vertical: true)
+									.accessibilityTouchRegion(minHeight: 0, topPadding: 8, bottomPadding: 8, alignment: .leading)
 
 								Text("When numbers are part of the current mole set, use the literary braille number sign before the number cell. The game gives number targets and other multi-cell answers a little more time so you can enter them accurately.")
 									.foregroundStyle(secondaryTextColor)
 									.fixedSize(horizontal: false, vertical: true)
+									.accessibilityTouchRegion(minHeight: 0, verticalPadding: 8, alignment: .leading)
 
 								inputInstructionSection(
 									title: "Standard Keyboard or 8-Dot Braille",
@@ -107,26 +109,27 @@ struct HowToPlayView: View {
 									]
 								)
 							}
-							.padding(.top, 8)
 						},
 						label: {
 							Text("Input Instructions")
 								.font(.headline)
 								.foregroundStyle(AppTheme.heading)
+								.accessibilityTouchRegion(minHeight: 0, topPadding: 20, bottomPadding: 8, alignment: .leading)
 								.accessibilityAddTraits(.isHeader)
 						}
 					)
 					.tint(AppTheme.heading)
 					.foregroundStyle(AppTheme.heading)
-					.appCard()
+					.appActionCard()
 
 					DisclosureGroup(
 						isExpanded: $isBrailleReferenceExpanded,
 						content: {
-							VStack(alignment: .leading, spacing: 16) {
+							VStack(alignment: .leading, spacing: 0) {
 								Text("Use this as a quick guide for the Grade 1 and Grade 2 patterns used in the game.")
 									.foregroundStyle(secondaryTextColor)
 									.fixedSize(horizontal: false, vertical: true)
+									.accessibilityTouchRegion(minHeight: 0, topPadding: 8, bottomPadding: 8, alignment: .leading)
 
 								ForEach(BrailleRegistry.grade1ReferenceSections) { section in
 									referenceSection(section)
@@ -136,19 +139,18 @@ struct HowToPlayView: View {
 									referenceSection(section)
 								}
 							}
-							.padding(.top, 8)
 						},
 						label: {
 							Text("Braille Reference")
 								.font(.headline)
 								.foregroundStyle(AppTheme.heading)
+								.accessibilityTouchRegion(minHeight: 0, topPadding: 20, bottomPadding: 8, alignment: .leading)
 								.accessibilityAddTraits(.isHeader)
 						}
 					)
 					.tint(AppTheme.heading)
 					.foregroundStyle(AppTheme.heading)
-					.appCard()
-					.accessibilityTouchRegion(minHeight: 0, verticalPadding: 10, alignment: .leading)
+					.appActionCard()
 				}
 				.padding(24)
 			}
@@ -170,27 +172,29 @@ struct HowToPlayView: View {
 	}
 
 	private func section(title: String, rows: [String]) -> some View {
-		VStack(alignment: .leading, spacing: 12) {
+		VStack(alignment: .leading, spacing: 0) {
 			Text(title)
 				.font(.title3.weight(.bold))
 				.foregroundStyle(AppTheme.heading)
+				.accessibilityTouchRegion(minHeight: 0, topPadding: 20, bottomPadding: 8, alignment: .leading)
 				.accessibilityAddTraits(.isHeader)
 
 			ForEach(rows, id: \.self) { row in
 				Text(row)
 					.foregroundStyle(secondaryTextColor)
 					.fixedSize(horizontal: false, vertical: true)
+					.accessibilityTouchRegion(minHeight: 0, verticalPadding: 8, alignment: .leading)
 			}
 		}
-		.appCard()
-		.accessibilityTouchRegion(minHeight: 96, verticalPadding: 10, alignment: .leading)
+		.appActionCard()
 	}
 
 	private func inputInstructionSection(title: String, rows: [String]) -> some View {
-		VStack(alignment: .leading, spacing: 12) {
+		VStack(alignment: .leading, spacing: 0) {
 			Text(title)
 				.font(.title3.weight(.bold))
 				.foregroundStyle(AppTheme.heading)
+				.accessibilityTouchRegion(minHeight: 0, topPadding: 12, bottomPadding: 8, alignment: .leading)
 				.accessibilityAddTraits(.isHeader)
 
 			ForEach(rows, id: \.self) { row in
@@ -202,16 +206,18 @@ struct HowToPlayView: View {
 						.fixedSize(horizontal: false, vertical: true)
 						.frame(maxWidth: .infinity, alignment: .leading)
 				}
+				.accessibilityTouchRegion(minHeight: 0, verticalPadding: 8, alignment: .leading)
 				.accessibilityElement(children: .combine)
 			}
 		}
 	}
 
 	private func referenceSection(_ section: BrailleRegistry.ReferenceSection) -> some View {
-		VStack(alignment: .leading, spacing: 12) {
+		VStack(alignment: .leading, spacing: 0) {
 			Text(section.title)
 				.font(.title3.weight(.bold))
 				.foregroundStyle(AppTheme.heading)
+				.accessibilityTouchRegion(minHeight: 0, topPadding: 12, bottomPadding: 8, alignment: .leading)
 				.accessibilityAddTraits(.isHeader)
 
 			ForEach(section.rows) { row in

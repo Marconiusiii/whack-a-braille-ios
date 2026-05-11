@@ -19,7 +19,7 @@ enum BrailleRegistry {
 
 	private static let braillePatternBase = 0x2800
 
-	private static func dotsToMask(_ dots: [Int]) -> Int {
+	private nonisolated static func dotsToMask(_ dots: [Int]) -> Int {
 		var mask = 0
 		for dot in dots {
 			mask |= 1 << (dot - 1)
@@ -160,7 +160,7 @@ enum BrailleRegistry {
 		)
 	}
 
-	private static func brailleUnicode(for dots: [Int]) -> String {
+	private nonisolated static func brailleUnicode(for dots: [Int]) -> String {
 		let mask = dotsToMask(dots)
 		guard let scalar = UnicodeScalar(braillePatternBase + mask) else { return "" }
 		return String(Character(scalar))
