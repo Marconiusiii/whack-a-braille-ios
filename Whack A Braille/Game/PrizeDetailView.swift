@@ -9,48 +9,60 @@ struct PrizeDetailView: View {
 
 	var body: some View {
 		NavigationStack {
-			ScrollView {
+			VStack(alignment: .leading, spacing: 0) {
 				VStack(alignment: .leading, spacing: 0) {
-					VStack(alignment: .leading, spacing: 12) {
-						Text(item.label)
-							.font(.system(.largeTitle, design: .rounded, weight: .heavy))
-							.foregroundStyle(AppTheme.title)
-							.accessibilityAddTraits(.isHeader)
+					Text(item.label)
+						.font(.system(.largeTitle, design: .rounded, weight: .heavy))
+						.foregroundStyle(AppTheme.title)
+						.accessibilityTouchRegion(minHeight: 0, topPadding: 20, bottomPadding: 8, horizontalPadding: 20, alignment: .leading)
+						.accessibilityAddTraits(.isHeader)
 
-						Text(dateClaimedText)
-							.foregroundStyle(secondaryTextColor)
+					Text(dateClaimedText)
+						.foregroundStyle(secondaryTextColor)
+						.accessibilityTouchRegion(minHeight: 0, verticalPadding: 8, horizontalPadding: 20, alignment: .leading)
 
-						Text(tierAndTicketText)
+					Text(tierAndTicketText)
+						.foregroundStyle(AppTheme.heading)
+						.accessibilityTouchRegion(minHeight: 0, verticalPadding: 8, horizontalPadding: 20, alignment: .leading)
+
+					Text(item.flavorText)
+						.foregroundStyle(secondaryTextColor)
+						.fixedSize(horizontal: false, vertical: true)
+						.accessibilityTouchRegion(minHeight: 0, verticalPadding: 8, horizontalPadding: 20, alignment: .leading)
+
+					if item.quantity >= 2 {
+						Text("Total Owned: \(item.quantity)")
 							.foregroundStyle(AppTheme.heading)
-
-						Text(item.flavorText)
-							.foregroundStyle(secondaryTextColor)
-							.fixedSize(horizontal: false, vertical: true)
-
-						if item.quantity >= 2 {
-							Text("Total Owned: \(item.quantity)")
-								.foregroundStyle(AppTheme.heading)
-						}
+							.accessibilityTouchRegion(minHeight: 0, topPadding: 8, bottomPadding: 20, horizontalPadding: 20, alignment: .leading)
 					}
-					.appCard()
-					.accessibilityTouchRegion(minHeight: 0, verticalPadding: 10, alignment: .leading)
-
-					VStack(alignment: .leading, spacing: 0) {
-						Button("Back to Shelf", action: dismissToShelf)
-							.buttonStyle(SecondaryGameButton())
-							.accessibilityTouchRegion(minHeight: 76, topPadding: 20, bottomPadding: 20, horizontalPadding: 20)
-					}
-					.appActionCard()
-					.accessibilityTouchRegion(minHeight: 0, verticalPadding: 10, alignment: .leading)
 				}
-				.padding(24)
+				.appActionCard()
+
+				Button("Back to Shelf", action: dismissToShelf)
+					.buttonStyle(FullRegionSecondaryGameButton(horizontalInset: 20, verticalInset: 20))
+					.frame(maxWidth: .infinity, maxHeight: .infinity)
+					.appActionCard()
 			}
+			.padding(24)
 			.appBackground()
 			.navigationBarTitleDisplayMode(.inline)
+			.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+			.background(backgroundView)
 		}
 		.accessibilityAction(.escape) {
 			dismissToShelf()
 		}
+	}
+
+	private var backgroundView: some View {
+		LinearGradient(
+			colors: colorScheme == .dark
+				? [AppTheme.darkBackgroundTop, AppTheme.darkBackgroundBottom]
+				: [AppTheme.lightBackgroundTop, AppTheme.lightBackgroundBottom],
+			startPoint: .top,
+			endPoint: .bottom
+		)
+		.ignoresSafeArea()
 	}
 
 	private var dateClaimedText: String {
