@@ -332,7 +332,7 @@ enum BrailleRegistry {
 		makeSequenceItem(id: "right", announce: "Right", sequenceDots: [[5], [1, 2, 3, 5]], modes: ["grade2Dot5Initials"], textTokenSequences: [["'", "r"]]),
 		makeSequenceItem(id: "some", announce: "Some", sequenceDots: [[5], [2, 3, 4]], modes: ["grade2Dot5Initials"], textTokenSequences: [["'", "s"]]),
 		makeSequenceItem(id: "time", announce: "Time", sequenceDots: [[5], [2, 3, 4, 5]], modes: ["grade2Dot5Initials"], textTokenSequences: [["'", "t"]]),
-		makeSequenceItem(id: "there", announce: "There", sequenceDots: [[5], [2, 3, 4, 6]], modes: ["grade2Dot5Initials"], textTokenSequences: [["'", "!"]]),
+		makeSequenceItem(id: "there", announce: "T H E R E", sequenceDots: [[5], [2, 3, 4, 6]], modes: ["grade2Dot5Initials"], textTokenSequences: [["'", "!"]]),
 		makeSequenceItem(id: "through", announce: "Through", sequenceDots: [[5], [1, 4, 5, 6]], modes: ["grade2Dot5Initials"], textTokenSequences: [["'", "?"]]),
 		makeSequenceItem(id: "under", announce: "Under", sequenceDots: [[5], [1, 3, 6]], modes: ["grade2Dot5Initials"], textTokenSequences: [["'", "u"]]),
 		makeSequenceItem(id: "where", announce: "Where", sequenceDots: [[5], [1, 5, 6]], modes: ["grade2Dot5Initials"], textTokenSequences: [["'", ":"]]),
@@ -370,7 +370,7 @@ enum BrailleRegistry {
 		makeSequenceItem(id: "had", announce: "Had", sequenceDots: [[4, 5, 6], [1, 2, 5]], modes: ["grade2Dot456Initials"], textTokenSequences: [["had"]]),
 		makeSequenceItem(id: "many", announce: "Many", sequenceDots: [[4, 5, 6], [1, 3, 4]], modes: ["grade2Dot456Initials"], textTokenSequences: [["many"]]),
 		makeSequenceItem(id: "spirit", announce: "Spirit", sequenceDots: [[4, 5, 6], [2, 3, 4]], modes: ["grade2Dot456Initials"], textTokenSequences: [["spirit"]]),
-		makeSequenceItem(id: "their", announce: "Their", sequenceDots: [[4, 5, 6], [2, 3, 4, 6]], modes: ["grade2Dot456Initials"], textTokenSequences: [["their"]]),
+		makeSequenceItem(id: "their", announce: "T H E I R", sequenceDots: [[4, 5, 6], [2, 3, 4, 6]], modes: ["grade2Dot456Initials"], textTokenSequences: [["their"]]),
 		makeSequenceItem(id: "world", announce: "World", sequenceDots: [[4, 5, 6], [2, 4, 5, 6]], modes: ["grade2Dot456Initials"], textTokenSequences: [["world"]])
 	]
 
