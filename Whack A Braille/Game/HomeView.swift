@@ -4,9 +4,6 @@ struct HomeView: View {
 
 	private enum FocusTarget: Hashable {
 		case howToPlay
-		case clearPrizeShelf
-		case emptyShelfMessage
-		case prizeShelfRow(String)
 	}
 
 	let totalTickets: Int
@@ -22,11 +19,7 @@ struct HomeView: View {
 	let removePrizeShelfItem: (String) -> Void
 
 	@Environment(\.colorScheme) private var colorScheme
-	@State private var isPrizeShelfExpanded = false
-	@State private var isShowingClearShelfConfirmation = false
-	@State private var isShowingEmptyShelfAlert = false
-	@State private var selectedPrizeItem: GameViewModel.PrizeShelfDisplayItem?
-	@State private var lastPresentedPrizeItemID: String?
+	@State private var isShowingPrizeShelf = false
 	@AccessibilityFocusState private var focusedElement: FocusTarget?
 
 	var body: some View {
@@ -88,21 +81,107 @@ struct HomeView: View {
 				.appActionCard()
 				.accessibilityTouchRegion(minHeight: 0, verticalPadding: 10, alignment: .leading)
 
-				DisclosureGroup(
-					isExpanded: $isPrizeShelfExpanded,
-					content: {
+				Button("Prize Shelf") {
+					isShowingPrizeShelf = true
+				}
+				.buttonStyle(SecondaryGameButton())
+				.accessibilityValue(prizeShelfAccessibilityValue)
+				.accessibilityHint("Opens a list of all your prizes!")
+				.modifier(PrizeShelfCard())
+				.accessibilityTouchRegion(minHeight: 0, verticalPadding: 10, alignment: .leading)
+			}
+			.padding(24)
+		}
+		.appBackground()
+		.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+		.sheet(isPresented: $isShowingPrizeShelf) {
+			PrizeShelfSheet(
+				prizeShelfItems: prizeShelfItems,
+				prizeShelfCount: prizeShelfCount,
+				clearPrizeShelf: clearPrizeShelf,
+				removePrizeShelfItem: removePrizeShelfItem
+			)
+		}
+		.onChange(of: howToPlayFocusToken, initial: true) { _, _ in
+			guard howToPlayFocusToken > 0 else { return }
+			DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+				focusedElement = .howToPlay
+			}
+		}
+	}
+
+	private var secondaryTextColor: Color {
+		colorScheme == .dark ? AppTheme.darkSecondaryText : AppTheme.lightSecondaryText
+	}
+
+	private var prizeShelfAccessibilityValue: String {
+		"\(prizeShelfCount) " + (prizeShelfCount == 1 ? "Prize" : "Prizes")
+	}
+}
+
+private struct PrizeShelfCard: ViewModifier {
+	func body(content: Content) -> some View {
+		content
+			.padding(20)
+			.frame(maxWidth: .infinity, alignment: .leading)
+			.background(
+				LinearGradient(
+					colors: [AppTheme.prizeShelfTop, AppTheme.prizeShelfBottom],
+					startPoint: .topLeading,
+					endPoint: .bottomTrailing
+				)
+			)
+			.clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+			.overlay(
+				RoundedRectangle(cornerRadius: 22, style: .continuous)
+					.stroke(AppTheme.focus.opacity(0.16), lineWidth: 2)
+			)
+			.shadow(color: Color.black.opacity(0.3), radius: 18, x: 0, y: 10)
+	}
+}
+
+private struct PrizeShelfSheet: View {
+
+	private enum FocusTarget: Hashable {
+		case clearPrizeShelf
+		case emptyShelfMessage
+		case prizeShelfRow(String)
+	}
+
+	let prizeShelfItems: [GameViewModel.PrizeShelfDisplayItem]
+	let prizeShelfCount: Int
+	let clearPrizeShelf: () -> Void
+	let removePrizeShelfItem: (String) -> Void
+
+	@Environment(\.dismiss) private var dismiss
+	@Environment(\.colorScheme) private var colorScheme
+	@State private var isShowingClearShelfConfirmation = false
+	@State private var isShowingEmptyShelfAlert = false
+	@State private var selectedPrizeItem: GameViewModel.PrizeShelfDisplayItem?
+	@State private var lastPresentedPrizeItemID: String?
+	@AccessibilityFocusState private var focusedElement: FocusTarget?
+
+	var body: some View {
+		NavigationStack {
+			ScrollView {
+				VStack(alignment: .leading, spacing: 0) {
+					VStack(alignment: .leading, spacing: 0) {
+						Text(prizeShelfAccessibilityValue)
+							.foregroundStyle(secondaryTextColor)
+							.accessibilityTouchRegion(minHeight: 0, topPadding: 8, bottomPadding: 20, horizontalPadding: 20, alignment: .leading)
+					}
+					.appActionCard()
+
 					VStack(alignment: .leading, spacing: 0) {
 						if prizeShelfItems.isEmpty {
 							Text("Your shelf is empty. Go bonk some moles and win something shiny!")
 								.foregroundStyle(secondaryTextColor)
 								.fixedSize(horizontal: false, vertical: true)
-								.accessibilityTouchRegion(minHeight: 72, verticalPadding: 6, alignment: .leading)
+								.accessibilityTouchRegion(minHeight: 96, topPadding: 20, bottomPadding: 6, horizontalPadding: 20, alignment: .leading)
 								.accessibilityFocused($focusedElement, equals: .emptyShelfMessage)
 						} else {
-							VStack(alignment: .leading, spacing: 0) {
-								ForEach(prizeShelfItems) { item in
-									prizeShelfRow(item)
-								}
+							ForEach(prizeShelfItems) { item in
+								prizeShelfRow(item)
 							}
 						}
 
@@ -113,34 +192,29 @@ struct HomeView: View {
 								isShowingClearShelfConfirmation = true
 							}
 						}
-							.buttonStyle(SecondaryGameButton())
-							.accessibilityTouchRegion(verticalPadding: 6)
-							.accessibilityFocused($focusedElement, equals: .clearPrizeShelf)
+						.buttonStyle(FullRegionSecondaryGameButton(horizontalInset: 20, verticalInset: 6))
+						.frame(maxWidth: .infinity, minHeight: 76)
+						.accessibilityFocused($focusedElement, equals: .clearPrizeShelf)
 					}
-					.padding(.top, 8)
-				},
-					label: {
-						Text("Prize Shelf")
-							.font(.headline)
-							.accessibilityLabel("Prize Shelf")
-							.accessibilityValue(prizeShelfAccessibilityValue)
-							.accessibilityAddTraits(.isHeader)
-					}
-				)
-				.tint(AppTheme.heading)
-				.foregroundStyle(AppTheme.heading)
-				.modifier(PrizeShelfCard())
-				.accessibilityTouchRegion(minHeight: 0, verticalPadding: 10, alignment: .leading)
+					.appActionCard()
+				}
+				.padding(24)
 			}
-			.padding(24)
+			.appBackground()
+			.navigationTitle("Prize Shelf")
+			.navigationBarTitleDisplayMode(.inline)
+			.toolbar {
+				ToolbarItem(placement: .confirmationAction) {
+					Button("Done") {
+						dismiss()
+					}
+				}
+			}
 		}
-		.appBackground()
-		.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 		.alert("Are You Sure?", isPresented: $isShowingClearShelfConfirmation) {
 			Button("Yes, Clear My Shelf", role: .destructive) {
 				clearPrizeShelf()
 				DispatchQueue.main.async {
-					isPrizeShelfExpanded = true
 					focusedElement = .emptyShelfMessage
 				}
 			}
@@ -173,18 +247,11 @@ struct HomeView: View {
 				selectedPrizeItem = nil
 			}
 		}
-		.onChange(of: howToPlayFocusToken, initial: true) { _, _ in
-			guard howToPlayFocusToken > 0 else { return }
-			DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-				focusedElement = .howToPlay
-			}
-		}
 	}
 
 	@ViewBuilder
 	private func prizeShelfRow(_ item: GameViewModel.PrizeShelfDisplayItem) -> some View {
 		Button {
-			isPrizeShelfExpanded = true
 			lastPresentedPrizeItemID = item.id
 			selectedPrizeItem = item
 		} label: {
@@ -207,7 +274,7 @@ struct HomeView: View {
 			.contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 		}
 		.buttonStyle(.plain)
-		.accessibilityTouchRegion(minHeight: 74, verticalPadding: 5, alignment: .leading)
+		.accessibilityTouchRegion(minHeight: 74, verticalPadding: 5, horizontalPadding: 20, alignment: .leading)
 		.accessibilityFocused($focusedElement, equals: .prizeShelfRow(item.id))
 		.swipeActions(edge: .trailing, allowsFullSwipe: false) {
 			Button(role: .destructive) {
@@ -225,6 +292,7 @@ struct HomeView: View {
 			removePrizeShelfItem(item.id)
 		}
 	}
+
 	private var secondaryTextColor: Color {
 		colorScheme == .dark ? AppTheme.darkSecondaryText : AppTheme.lightSecondaryText
 	}
@@ -245,26 +313,5 @@ struct HomeView: View {
 
 	private var prizeShelfAccessibilityValue: String {
 		"\(prizeShelfCount) " + (prizeShelfCount == 1 ? "Prize" : "Prizes")
-	}
-}
-
-private struct PrizeShelfCard: ViewModifier {
-	func body(content: Content) -> some View {
-		content
-			.padding(20)
-			.frame(maxWidth: .infinity, alignment: .leading)
-			.background(
-				LinearGradient(
-					colors: [AppTheme.prizeShelfTop, AppTheme.prizeShelfBottom],
-					startPoint: .topLeading,
-					endPoint: .bottomTrailing
-				)
-			)
-			.clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-			.overlay(
-				RoundedRectangle(cornerRadius: 22, style: .continuous)
-					.stroke(AppTheme.focus.opacity(0.16), lineWidth: 2)
-			)
-			.shadow(color: Color.black.opacity(0.3), radius: 18, x: 0, y: 10)
 	}
 }

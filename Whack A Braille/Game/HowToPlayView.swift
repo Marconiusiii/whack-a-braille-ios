@@ -159,8 +159,8 @@ struct HowToPlayView: View {
 			.navigationTitle("How to Play")
 			.navigationBarTitleDisplayMode(.inline)
 			.toolbar {
-				ToolbarItem(placement: .cancellationAction) {
-					Button("Back", action: dismissHowToPlay)
+				ToolbarItem(placement: .confirmationAction) {
+					Button("Done", action: dismissHowToPlay)
 				}
 			}
 		}
