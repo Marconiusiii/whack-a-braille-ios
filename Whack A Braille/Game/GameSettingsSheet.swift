@@ -476,18 +476,34 @@ private struct CustomMolePickerSheet: View {
 				.foregroundStyle(.secondary)
 				.accessibilityTouchRegion(minHeight: 44, alignment: .leading)
 
-			HStack {
-				Button("Select All") {
-					selectedInvasionIDs = Set(allItems.map(\.id))
-				}
-				.frame(maxWidth: .infinity, alignment: .leading)
-				.accessibilityTouchRegion(minHeight: 54, alignment: .leading)
+			VStack(spacing: 0) {
+				HStack(spacing: 12) {
+					invasionArmyActionButton("Select All") {
+						selectedInvasionIDs = Set(allItems.map(\.id))
+					}
 
-				Button("Clear All") {
-					selectedInvasionIDs = []
+					invasionArmyActionButton("Clear All") {
+						selectedInvasionIDs = []
+					}
 				}
-				.frame(maxWidth: .infinity, alignment: .leading)
-				.accessibilityTouchRegion(minHeight: 54, alignment: .leading)
+
+				HStack(spacing: 12) {
+					invasionArmyActionButton("Clear Grade 1") {
+						clearInvasionMoles(matchingSectionIDs: ["grade1Letters", "grade1Numbers"])
+					}
+
+					invasionArmyActionButton("Clear Grade 2") {
+						clearInvasionMoles(matchingSectionIDs: [
+							"grade2Symbols",
+							"grade2Words",
+							"grade2Shortforms",
+							"grade2Dot5Initials",
+							"grade2Dot45Initials",
+							"grade2Suffixes",
+							"grade2Dot456Initials"
+						])
+					}
+				}
 			}
 		}
 
@@ -541,6 +557,21 @@ private struct CustomMolePickerSheet: View {
 		} else {
 			selectedInvasionIDs.insert(id)
 		}
+	}
+
+	private func clearInvasionMoles(matchingSectionIDs sectionIDs: Set<String>) {
+		let idsToClear = sections
+			.filter { sectionIDs.contains($0.id) }
+			.flatMap(\.items)
+			.map(\.id)
+
+		selectedInvasionIDs.subtract(idsToClear)
+	}
+
+	private func invasionArmyActionButton(_ title: String, action: @escaping () -> Void) -> some View {
+		Button(title, action: action)
+			.frame(maxWidth: .infinity, alignment: .leading)
+			.accessibilityTouchRegion(minHeight: 54, alignment: .leading)
 	}
 
 	private func label(for id: String) -> String {
