@@ -17,6 +17,8 @@ final class GameLoop {
 		let characterEcho: Bool
 		let timerMusicEnabled: Bool
 		let spatialMoleMappingEnabled: Bool
+		let customMolePlayMode: CustomMolePlayMode
+		let customMoleIDs: [String]
 	}
 
 	var onRoundEnded: ((RoundResult) -> Void)?
@@ -67,7 +69,9 @@ final class GameLoop {
 		speakBrailleDots: false,
 		characterEcho: false,
 		timerMusicEnabled: true,
-		spatialMoleMappingEnabled: true
+		spatialMoleMappingEnabled: true,
+		customMolePlayMode: .individual,
+		customMoleIDs: []
 	)
 
 	private var availableItems: [BrailleItem] = []
@@ -106,7 +110,7 @@ final class GameLoop {
 		guard !isRunning else { return }
 
 		currentOptions = options
-		availableItems = BrailleRegistry.getItems(for: options.modeId, inputMode: options.inputMode)
+		availableItems = items(for: options)
 		roundItems = pickRoundItems(
 			modeId: options.modeId,
 			pool: availableItems,
@@ -586,6 +590,10 @@ final class GameLoop {
 			return []
 		}
 
+		if modeId == "customMoles" && currentOptions.customMolePlayMode == .individual {
+			return Array(pool.prefix(laneCount))
+		}
+
 		if !useSpatialMapping || !isSpatialMappingEligibleMode(modeId) {
 			return pickFiveItems(from: pool)
 		}
@@ -611,6 +619,14 @@ final class GameLoop {
 	private func buildRoundLaneItems(modeId: String, items: [BrailleItem], useSpatialMapping: Bool) -> [BrailleItem?] {
 		if isInvasionMode(modeId) {
 			return Array<BrailleItem?>(repeating: nil, count: laneCount)
+		}
+
+		if modeId == "customMoles" && currentOptions.customMolePlayMode == .individual {
+			var lanes = Array<BrailleItem?>(repeating: nil, count: laneCount)
+			for index in 0..<min(laneCount, items.count) {
+				lanes[index] = items[index]
+			}
+			return lanes
 		}
 
 		var lanes = Array<BrailleItem?>(repeating: nil, count: laneCount)
@@ -770,7 +786,22 @@ final class GameLoop {
 	}
 
 	private func isInvasionMode(_ modeId: String) -> Bool {
-		modeId == "grade1MoleInvasion" || modeId == "grade2MoleInvasion"
+		modeId == "grade1MoleInvasion"
+			|| modeId == "grade2MoleInvasion"
+			|| (modeId == "customMoles" && currentOptions.customMolePlayMode == .invasion)
+	}
+
+	private func items(for options: Options) -> [BrailleItem] {
+		if options.modeId != "customMoles" {
+			return BrailleRegistry.getItems(for: options.modeId, inputMode: options.inputMode)
+		}
+
+		let selectedItems = BrailleRegistry.customMoleItems(for: options.customMoleIDs, inputMode: options.inputMode)
+		if selectedItems.count >= laneCount {
+			return selectedItems
+		}
+
+		return Array(BrailleRegistry.customMoleItems(for: options.inputMode).prefix(laneCount))
 	}
 
 	private func pickNextInvasionItem() -> BrailleItem? {

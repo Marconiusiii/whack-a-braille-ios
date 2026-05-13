@@ -35,6 +35,9 @@ struct GameView: View {
 	@AppStorage("whackABraille.speechRatePercent") private var speechRatePercent = 35
 	@AppStorage("whackABraille.speechVolumePercent") private var speechVolumePercent = 85
 	@AppStorage("whackABraille.selectedVoiceId") private var selectedVoiceId = ""
+	@AppStorage("whackABraille.customMolePlayMode") private var customMolePlayModeRawValue = CustomMolePlayMode.individual.rawValue
+	@AppStorage("whackABraille.customIndividualMoleIDs") private var customIndividualMoleIDs = ""
+	@AppStorage("whackABraille.customInvasionMoleIDs") private var customInvasionMoleIDs = ""
 
 	@State private var isShowingSettings = false
 	@State private var isShowingCashOut = false
@@ -91,7 +94,10 @@ struct GameView: View {
 				characterEcho: $characterEcho,
 				speechRatePercent: $speechRatePercent,
 				speechVolumePercent: $speechVolumePercent,
-				selectedVoiceId: $selectedVoiceId
+				selectedVoiceId: $selectedVoiceId,
+				customMolePlayModeRawValue: $customMolePlayModeRawValue,
+				customIndividualMoleIDs: $customIndividualMoleIDs,
+				customInvasionMoleIDs: $customInvasionMoleIDs
 			)
 		}
 		.sheet(
@@ -167,6 +173,18 @@ struct GameView: View {
 		BrailleRegistry.sanitizedModeId(modeId, for: effectiveInputMode)
 	}
 
+	private var customMolePlayMode: CustomMolePlayMode {
+		CustomMolePlayMode(rawValue: customMolePlayModeRawValue) ?? .individual
+	}
+
+	private var selectedCustomMoleIDs: [String] {
+		let storageValue = customMolePlayMode == .individual ? customIndividualMoleIDs : customInvasionMoleIDs
+		return storageValue
+			.split(separator: ",")
+			.map(String.init)
+			.filter { !$0.isEmpty }
+	}
+
 	private var difficultyBinding: Binding<Difficulty> {
 		Binding(
 			get: { difficulty },
@@ -201,7 +219,9 @@ struct GameView: View {
 			speakBrailleDots: speakBrailleDots,
 			characterEcho: characterEcho,
 			timerMusicEnabled: timerMusicEnabled,
-			spatialMoleMappingEnabled: spatialMoleMappingEnabled
+			spatialMoleMappingEnabled: spatialMoleMappingEnabled,
+			customMolePlayMode: customMolePlayMode,
+			customMoleIDs: selectedCustomMoleIDs
 		)
 
 		let startID = UUID()
@@ -265,11 +285,13 @@ struct GameView: View {
 	private func beginPreparedRound(startID: UUID, options: GameLoop.Options) {
 		guard pendingRoundStartID == startID else { return }
 
-        let isInvasionMode = options.modeId == "grade1MoleInvasion" || options.modeId == "grade2MoleInvasion"
-        let introText = isInvasionMode
-            ? (invasionIntroPhrases.randomElement() ?? "Incoming moles!")
-            : "Ready?"
-        GameAudioEngine.shared.playOpeningCue(playEverythingIntro: isInvasionMode)
+		let isInvasionMode = options.modeId == "grade1MoleInvasion"
+			|| options.modeId == "grade2MoleInvasion"
+			|| (options.modeId == "customMoles" && options.customMolePlayMode == .invasion)
+		let introText = isInvasionMode
+			? (invasionIntroPhrases.randomElement() ?? "Incoming moles!")
+			: "Ready?"
+		GameAudioEngine.shared.playOpeningCue(playEverythingIntro: isInvasionMode)
 		let speechDurationMs = SpeechEngine.shared.speak(introText, interrupt: true)
 		let startDelayMs = max(900, min(3_000, speechDurationMs + 240))
 

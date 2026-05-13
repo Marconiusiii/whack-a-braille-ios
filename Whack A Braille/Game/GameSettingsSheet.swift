@@ -15,12 +15,22 @@ struct GameSettingsSheet: View {
 	@Binding var speechRatePercent: Int
 	@Binding var speechVolumePercent: Int
 	@Binding var selectedVoiceId: String
+	@Binding var customMolePlayModeRawValue: String
+	@Binding var customIndividualMoleIDs: String
+	@Binding var customInvasionMoleIDs: String
 
 	@Environment(\.dismiss) private var dismiss
 	@Environment(\.openURL) private var openURL
 	@Environment(\.colorScheme) private var colorScheme
+	@AccessibilityFocusState private var focusedElement: FocusTarget?
 
 	@State private var isShowingMailComposer = false
+	@State private var isShowingCustomMolePicker = false
+	@State private var shouldRestoreCustomMoleFocus = false
+
+	private enum FocusTarget: Hashable {
+		case customMolePickerButton
+	}
 
 	var body: some View {
 		NavigationStack {
@@ -38,6 +48,14 @@ struct GameSettingsSheet: View {
 						ForEach(availableModeOptions, id: \.id) { option in
 							Text(option.label).tag(option.id)
 						}
+					}
+
+					if modeId == "customMoles" {
+						Button("Pick Custom Moles...") {
+							isShowingCustomMolePicker = true
+						}
+						.accessibilityTouchRegion(minHeight: 54, alignment: .leading)
+						.accessibilityFocused($focusedElement, equals: .customMolePickerButton)
 					}
 				}
 
@@ -174,6 +192,20 @@ struct GameSettingsSheet: View {
 				}
 			}
 		}
+		.sheet(
+			isPresented: $isShowingCustomMolePicker,
+			onDismiss: restoreCustomMolePickerFocusIfNeeded
+		) {
+			CustomMolePickerSheet(
+				inputMode: inputMode,
+				playModeRawValue: $customMolePlayModeRawValue,
+				individualMoleIDs: $customIndividualMoleIDs,
+				invasionMoleIDs: $customInvasionMoleIDs,
+				onDismissRequest: {
+					shouldRestoreCustomMoleFocus = true
+				}
+			)
+		}
 		.sheet(isPresented: $isShowingMailComposer) {
 			MailComposerView(
 				recipient: "marco@marconius.com",
@@ -296,5 +328,333 @@ struct GameSettingsSheet: View {
 
 	private func sanitizeModeSelection() {
 		modeId = BrailleRegistry.sanitizedModeId(modeId, for: inputMode)
+	}
+
+	private func restoreCustomMolePickerFocusIfNeeded() {
+		guard shouldRestoreCustomMoleFocus else { return }
+		shouldRestoreCustomMoleFocus = false
+		DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+			focusedElement = .customMolePickerButton
+		}
+	}
+}
+
+private struct CustomMolePickerSheet: View {
+
+	@Environment(\.dismiss) private var dismiss
+	@Binding private var playModeRawValue: String
+	@Binding private var individualMoleIDs: String
+	@Binding private var invasionMoleIDs: String
+
+	let inputMode: InputMode
+	let onDismissRequest: () -> Void
+
+	@State private var localMode: CustomMolePlayMode
+	@State private var selectedIndividualIDs: [String]
+	@State private var selectedInvasionIDs: Set<String>
+	@State private var selectedSlot: MoleSelectionSlot?
+	@State private var isShowingMinimumAlert = false
+
+	private let sections: [BrailleRegistry.CustomMoleSection]
+	private let allItems: [BrailleItem]
+
+	init(
+		inputMode: InputMode,
+		playModeRawValue: Binding<String>,
+		individualMoleIDs: Binding<String>,
+		invasionMoleIDs: Binding<String>,
+		onDismissRequest: @escaping () -> Void
+	) {
+		self.inputMode = inputMode
+		self._playModeRawValue = playModeRawValue
+		self._individualMoleIDs = individualMoleIDs
+		self._invasionMoleIDs = invasionMoleIDs
+		self.onDismissRequest = onDismissRequest
+
+		let sections = BrailleRegistry.customMoleSections(for: inputMode)
+		let allItems = sections.flatMap(\.items)
+		self.sections = sections
+		self.allItems = allItems
+
+		let mode = CustomMolePlayMode(rawValue: playModeRawValue.wrappedValue) ?? .individual
+		self._localMode = State(initialValue: mode)
+		self._selectedIndividualIDs = State(initialValue: Self.normalizedIndividualIDs(individualMoleIDs.wrappedValue, allItems: allItems))
+		self._selectedInvasionIDs = State(initialValue: Self.normalizedInvasionIDs(invasionMoleIDs.wrappedValue, allItems: allItems))
+	}
+
+	var body: some View {
+		NavigationStack {
+			Form {
+				Section {
+					Text("Pick the moles you most want to bash, or build your own Invasion!")
+						.fixedSize(horizontal: false, vertical: true)
+						.accessibilityTouchRegion(minHeight: 60, alignment: .leading)
+				}
+
+				Section {
+					Picker("Custom mole picker mode", selection: $localMode) {
+						ForEach(CustomMolePlayMode.allCases) { mode in
+							Text(mode.label).tag(mode)
+						}
+					}
+					.pickerStyle(.segmented)
+					.accessibilityTouchRegion(minHeight: 60, alignment: .leading)
+				}
+
+				if localMode == .individual {
+					individualMolesSection
+				} else {
+					invasionArmySections
+				}
+			}
+			.navigationTitle("Custom Mole Picker")
+			.navigationBarTitleDisplayMode(.inline)
+			.toolbar {
+				ToolbarItem(placement: .cancellationAction) {
+					Button("Cancel") {
+						onDismissRequest()
+						dismiss()
+					}
+				}
+
+				ToolbarItem(placement: .confirmationAction) {
+					Button("Save") {
+						saveCustomMoles()
+					}
+				}
+			}
+			.alert("You have to choose at least 5 moles for the whacking can commence!", isPresented: $isShowingMinimumAlert) {
+				Button("OK", role: .cancel) { }
+			}
+			.sheet(item: $selectedSlot) { slot in
+				MoleSelectionSheet(
+					title: "Choose Mole \(slot.index + 1)",
+					sections: sections,
+					selectedID: selectedIndividualIDs[slot.index],
+					selectMole: { itemID in
+						selectedIndividualIDs[slot.index] = itemID
+						selectedSlot = nil
+					}
+				)
+			}
+		}
+	}
+
+	private var individualMolesSection: some View {
+		Section {
+			Text("Choose 5 moles to whack!")
+				.fixedSize(horizontal: false, vertical: true)
+				.accessibilityTouchRegion(minHeight: 54, alignment: .leading)
+
+			ForEach(0..<selectedIndividualIDs.count, id: \.self) { index in
+				Button {
+					selectedSlot = MoleSelectionSlot(index: index)
+				} label: {
+					HStack {
+						Text("Mole \(index + 1)")
+						Spacer()
+						Text(label(for: selectedIndividualIDs[index]))
+							.foregroundStyle(.secondary)
+							.multilineTextAlignment(.trailing)
+					}
+				}
+				.accessibilityLabel("Mole \(index + 1), \(label(for: selectedIndividualIDs[index]))")
+				.accessibilityHint("Opens a searchable mole list.")
+				.accessibilityTouchRegion(minHeight: 60, alignment: .leading)
+			}
+		}
+	}
+
+	@ViewBuilder
+	private var invasionArmySections: some View {
+		Section {
+			Text("Recruit all the moles you wish to whack!")
+				.fixedSize(horizontal: false, vertical: true)
+				.accessibilityTouchRegion(minHeight: 54, alignment: .leading)
+
+			Text("\(selectedInvasionIDs.count) moles selected")
+				.foregroundStyle(.secondary)
+				.accessibilityTouchRegion(minHeight: 44, alignment: .leading)
+
+			HStack {
+				Button("Select All") {
+					selectedInvasionIDs = Set(allItems.map(\.id))
+				}
+				.frame(maxWidth: .infinity, alignment: .leading)
+				.accessibilityTouchRegion(minHeight: 54, alignment: .leading)
+
+				Button("Clear All") {
+					selectedInvasionIDs = []
+				}
+				.frame(maxWidth: .infinity, alignment: .leading)
+				.accessibilityTouchRegion(minHeight: 54, alignment: .leading)
+			}
+		}
+
+		ForEach(sections) { section in
+			Section(section.title) {
+				ForEach(section.items, id: \.id) { item in
+					Button {
+						toggleInvasionMole(item.id)
+					} label: {
+						HStack {
+							Image(systemName: selectedInvasionIDs.contains(item.id) ? "checkmark.square.fill" : "square")
+								.accessibilityHidden(true)
+							Text(item.displayLabel)
+							Spacer()
+						}
+					}
+					.accessibilityLabel(item.displayLabel)
+					.accessibilityValue(selectedInvasionIDs.contains(item.id) ? "Selected" : "Not selected")
+					.accessibilityHint("Toggles this mole in your Invasion Army.")
+					.accessibilityTouchRegion(minHeight: 54, alignment: .leading)
+				}
+			}
+		}
+	}
+
+	private func saveCustomMoles() {
+		guard selectedCount >= 5 else {
+			isShowingMinimumAlert = true
+			return
+		}
+
+		playModeRawValue = localMode.rawValue
+		individualMoleIDs = selectedIndividualIDs.joined(separator: ",")
+		invasionMoleIDs = selectedInvasionIDs.sorted().joined(separator: ",")
+		onDismissRequest()
+		dismiss()
+	}
+
+	private var selectedCount: Int {
+		switch localMode {
+		case .individual:
+			return selectedIndividualIDs.count
+		case .invasion:
+			return selectedInvasionIDs.count
+		}
+	}
+
+	private func toggleInvasionMole(_ id: String) {
+		if selectedInvasionIDs.contains(id) {
+			selectedInvasionIDs.remove(id)
+		} else {
+			selectedInvasionIDs.insert(id)
+		}
+	}
+
+	private func label(for id: String) -> String {
+		allItems.first(where: { $0.id == id })?.displayLabel ?? id
+	}
+
+	private static func normalizedIndividualIDs(_ rawValue: String, allItems: [BrailleItem]) -> [String] {
+		let validIDs = Set(allItems.map(\.id))
+		let storedIDs = decodedIDs(rawValue).filter { validIDs.contains($0) }
+		let defaultIDs = allItems.prefix(5).map(\.id)
+
+		return (0..<5).compactMap { index in
+			if storedIDs.indices.contains(index) {
+				return storedIDs[index]
+			}
+
+			if defaultIDs.indices.contains(index) {
+				return defaultIDs[index]
+			}
+
+			return nil
+		}
+	}
+
+	private static func normalizedInvasionIDs(_ rawValue: String, allItems: [BrailleItem]) -> Set<String> {
+		let allIDs = allItems.map(\.id)
+		let validIDs = Set(allIDs)
+		let storedIDs = decodedIDs(rawValue).filter { validIDs.contains($0) }
+
+		if storedIDs.isEmpty {
+			return Set(allIDs)
+		}
+
+		return Set(storedIDs)
+	}
+
+	private static func decodedIDs(_ rawValue: String) -> [String] {
+		rawValue
+			.split(separator: ",")
+			.map(String.init)
+			.filter { !$0.isEmpty }
+	}
+}
+
+private struct MoleSelectionSlot: Identifiable {
+	let index: Int
+	var id: Int { index }
+}
+
+private struct MoleSelectionSheet: View {
+
+	@Environment(\.dismiss) private var dismiss
+	@State private var searchText = ""
+
+	let title: String
+	let sections: [BrailleRegistry.CustomMoleSection]
+	let selectedID: String
+	let selectMole: (String) -> Void
+
+	var body: some View {
+		NavigationStack {
+			List {
+				ForEach(filteredSections) { section in
+					Section(section.title) {
+						ForEach(section.items, id: \.id) { item in
+							Button {
+								selectMole(item.id)
+								dismiss()
+							} label: {
+								HStack {
+									Text(item.displayLabel)
+									Spacer()
+									if item.id == selectedID {
+										Image(systemName: "checkmark")
+											.accessibilityHidden(true)
+									}
+								}
+							}
+							.accessibilityLabel(item.displayLabel)
+							.accessibilityValue(item.id == selectedID ? "Selected" : "Not selected")
+							.accessibilityHint("Selects this mole for the custom mole slot.")
+							.accessibilityTouchRegion(minHeight: 54, alignment: .leading)
+						}
+					}
+				}
+			}
+			.navigationTitle(title)
+			.navigationBarTitleDisplayMode(.inline)
+			.searchable(text: $searchText, prompt: "Search moles")
+			.toolbar {
+				ToolbarItem(placement: .cancellationAction) {
+					Button("Cancel") {
+						dismiss()
+					}
+				}
+			}
+		}
+	}
+
+	private var filteredSections: [BrailleRegistry.CustomMoleSection] {
+		let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+		guard !query.isEmpty else { return sections }
+
+		return sections
+			.map { section in
+				BrailleRegistry.CustomMoleSection(
+					id: section.id,
+					title: section.title,
+					items: section.items.filter { item in
+						item.displayLabel.localizedCaseInsensitiveContains(query)
+							|| item.announceText.localizedCaseInsensitiveContains(query)
+					}
+				)
+			}
+			.filter { !$0.items.isEmpty }
 	}
 }

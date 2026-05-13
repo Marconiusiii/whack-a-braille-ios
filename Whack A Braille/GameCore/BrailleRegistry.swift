@@ -1,8 +1,30 @@
 import Foundation
 
+enum CustomMolePlayMode: String, CaseIterable, Identifiable {
+	case individual
+	case invasion
+
+	var id: String { rawValue }
+
+	var label: String {
+		switch self {
+		case .individual:
+			return "Individual Moles"
+		case .invasion:
+			return "Invasion Army"
+		}
+	}
+}
+
 enum BrailleRegistry {
 
 	typealias ModeOption = (id: String, label: String)
+
+	struct CustomMoleSection: Identifiable {
+		let id: String
+		let title: String
+		let items: [BrailleItem]
+	}
 
 	struct ReferenceRow: Identifiable {
 		let id: String
@@ -17,7 +39,7 @@ enum BrailleRegistry {
 		let rows: [ReferenceRow]
 	}
 
-	private static let braillePatternBase = 0x2800
+	private nonisolated static let braillePatternBase = 0x2800
 
 	private nonisolated static func dotsToMask(_ dots: [Int]) -> Int {
 		var mask = 0
@@ -474,7 +496,8 @@ enum BrailleRegistry {
 		("grade2Dot45Initials", "Grade 2 dot 45 initials"),
 		("grade2Suffixes", "Grade 2 Suffixes"),
 		("grade2Dot456Initials", "Grade 2 dot 456 initials"),
-		("grade2MoleInvasion", "Grade 2 Mole Invasion!")
+		("grade2MoleInvasion", "Grade 2 Mole Invasion!"),
+		("customMoles", "Custom Moles")
 	]
 
 	private static let qwertyModeIDs: Set<String> = [
@@ -513,6 +536,38 @@ enum BrailleRegistry {
 		}
 	}
 
+	static func customMoleSections(for inputMode: InputMode) -> [CustomMoleSection] {
+		[
+			CustomMoleSection(id: "grade1Letters", title: "Grade 1 Letters", items: grade1Letters),
+			CustomMoleSection(id: "grade1Numbers", title: "Grade 1 Numbers", items: grade1Numbers),
+			CustomMoleSection(id: "grade2Symbols", title: "Grade 2 Contractions", items: grade2Symbols),
+			CustomMoleSection(id: "grade2Words", title: "Grade 2 Whole-Word Contractions", items: grade2Words),
+			CustomMoleSection(id: "grade2Shortforms", title: "Grade 2 Shortform Words", items: grade2ShortformWords),
+			CustomMoleSection(id: "grade2Dot5Initials", title: "Grade 2 Dot 5 Initials", items: grade2Dot5Initials),
+			CustomMoleSection(id: "grade2Dot45Initials", title: "Grade 2 Dot 45 Initials", items: grade2Dot45Initials),
+			CustomMoleSection(id: "grade2Suffixes", title: "Grade 2 Suffixes", items: grade2Suffixes),
+			CustomMoleSection(id: "grade2Dot456Initials", title: "Grade 2 Dot 456 Initials", items: grade2Dot456Initials)
+		]
+		.map { section in
+			CustomMoleSection(
+				id: section.id,
+				title: section.title,
+				items: section.items.filter { isCustomMoleItemAllowed($0, inputMode: inputMode) }
+			)
+		}
+		.filter { !$0.items.isEmpty }
+	}
+
+	static func customMoleItems(for inputMode: InputMode) -> [BrailleItem] {
+		customMoleSections(for: inputMode).flatMap(\.items)
+	}
+
+	static func customMoleItems(for ids: [String], inputMode: InputMode) -> [BrailleItem] {
+		let items = customMoleItems(for: inputMode)
+		let itemByID = Dictionary(uniqueKeysWithValues: items.map { ($0.id, $0) })
+		return ids.compactMap { itemByID[$0] }
+	}
+
 	static func sanitizedModeId(_ modeId: String, for inputMode: InputMode) -> String {
 		let allowed = filteredModeOptions(for: inputMode)
 		if allowed.contains(where: { $0.id == modeId }) {
@@ -539,6 +594,17 @@ enum BrailleRegistry {
 			return filteredGrade2InvasionItems(for: inputMode)
 		default:
 			return allItems.filter { $0.modeTags.contains(modeId) }
+		}
+	}
+
+	private static func isCustomMoleItemAllowed(_ item: BrailleItem, inputMode: InputMode) -> Bool {
+		switch inputMode {
+		case .qwerty:
+			return !item.modeTags.contains("grade2Dot456Initials")
+		case .brailleText, .brailleDisplayInput:
+			return !item.modeTags.contains("grade2Suffixes")
+		case .perkins:
+			return true
 		}
 	}
 
