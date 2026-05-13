@@ -872,6 +872,12 @@ final class GameLoop {
 
 	private func matchesInput(_ input: String, item: BrailleItem) -> Bool {
 		guard !input.isEmpty else { return false }
-		return item.acceptedTextInputs.contains(input)
+		if item.acceptedTextInputs.contains(input) {
+			return true
+		}
+
+		let compactedInput = input.filter { !$0.isWhitespace }
+		guard compactedInput != input else { return false }
+		return item.acceptedTextInputs.contains(String(compactedInput))
 	}
 }

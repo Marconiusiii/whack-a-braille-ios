@@ -64,6 +64,13 @@ struct GameplayView: View {
 					.gameplayInputCard()
 					.accessibilityTouchRegion(minHeight: 0, verticalPadding: 8, alignment: .leading)
 
+					if viewModel.lastRoundWasTraining {
+						Button("Repeat Current Mole", action: viewModel.repeatCurrentTarget)
+							.buttonStyle(SecondaryGameButton())
+							.accessibilityHint("Speaks the current mole again.")
+							.accessibilityTouchRegion(verticalPadding: 6)
+					}
+
 					Button("Exit Game", action: exitGame)
 						.buttonStyle(SecondaryGameButton())
 						.accessibilityTouchRegion(verticalPadding: 6)

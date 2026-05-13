@@ -262,7 +262,7 @@ enum BrailleRegistry {
 		makeItem(id: "ou", announce: "O U", dots: [1, 2, 5, 6], modes: ["grade2Symbols"], acceptedInputs: ["|", "out"]),
 		makeItem(id: "st", announce: "S T", dots: [3, 4], modes: ["grade2Symbols"], acceptedInputs: ["/", "still"]),
 		makeItem(id: "ch", announce: "C H", dots: [1, 6], modes: ["grade2Symbols"], acceptedInputs: ["*", "child"]),
-		makeItem(id: "wh", announce: "W H", dots: [1, 5, 6], modes: ["grade2Symbols"], acceptedInputs: [":"]),
+		makeItem(id: "wh", announce: "W H", dots: [1, 5, 6], modes: ["grade2Symbols"], acceptedInputs: [":", "which"]),
 		makeItem(id: "ing", announce: "I N G", dots: [3, 4, 6], modes: ["grade2Symbols"], acceptedInputs: ["+"]),
 		makeItem(id: "dis", announce: "dis", dots: [2, 5, 6], modes: ["grade2Symbols"], acceptedInputs: ["4", "."]),
 		makeItem(id: "con", announce: "con", dots: [2, 5], modes: ["grade2Symbols"], acceptedInputs: ["3", ":"]),
