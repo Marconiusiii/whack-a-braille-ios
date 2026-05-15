@@ -89,7 +89,7 @@ struct GameSettingsSheet: View {
 						Text("45 seconds").tag(45)
 						Text("60 seconds")
 							.tag(60)
-							.accessibilityHint("Does it ever stop>")
+							.accessibilityHint("Does it ever stop?")
 					}
 					.disabled(difficulty == .training)
 					.accessibilityFocused($focusedElement, equals: .roundLengthPicker)
