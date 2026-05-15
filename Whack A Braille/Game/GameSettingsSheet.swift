@@ -9,6 +9,7 @@ struct GameSettingsSheet: View {
 	@Binding var roundDurationSeconds: Int
 	@Binding var inputMode: InputMode
 	@Binding var timerMusicEnabled: Bool
+	@Binding var gameAudioModeRawValue: String
 	@Binding var spatialMoleMappingEnabled: Bool
 	@Binding var speakBrailleDots: Bool
 	@Binding var characterEcho: Bool
@@ -27,8 +28,15 @@ struct GameSettingsSheet: View {
 	@State private var isShowingMailComposer = false
 	@State private var isShowingCustomMolePicker = false
 	@State private var shouldRestoreCustomMoleFocus = false
+	@State private var shouldSkipNextModeFocusRestore = false
 
 	private enum FocusTarget: Hashable {
+		case keyboardInputModePicker
+		case moleChooserPicker
+		case difficultyPicker
+		case roundLengthPicker
+		case gameSoundsPicker
+		case systemVoicePicker
 		case customMolePickerButton
 	}
 
@@ -41,6 +49,7 @@ struct GameSettingsSheet: View {
 							Text(mode.label).tag(mode)
 						}
 					}
+					.accessibilityFocused($focusedElement, equals: .keyboardInputModePicker)
 				}
 
 				Section("Mole Chooser") {
@@ -49,6 +58,7 @@ struct GameSettingsSheet: View {
 							Text(option.label).tag(option.id)
 						}
 					}
+					.accessibilityFocused($focusedElement, equals: .moleChooserPicker)
 
 					if modeId == "customMoles" {
 						Button("Pick Custom Moles...") {
@@ -65,6 +75,7 @@ struct GameSettingsSheet: View {
 							Text(level.label).tag(level)
 						}
 					}
+					.accessibilityFocused($focusedElement, equals: .difficultyPicker)
 				}
 
 				Section("Training Options") {
@@ -76,13 +87,25 @@ struct GameSettingsSheet: View {
 					Picker("Round length", selection: $roundDurationSeconds) {
 						Text("30 seconds").tag(30)
 						Text("45 seconds").tag(45)
-						Text("60 seconds").tag(60)
+						Text("60 seconds")
+							.tag(60)
+							.accessibilityHint("Does it ever stop>")
 					}
 					.disabled(difficulty == .training)
+					.accessibilityFocused($focusedElement, equals: .roundLengthPicker)
 				}
 
 				Section("Timer Music") {
 					Toggle("Enable timer music", isOn: $timerMusicEnabled)
+				}
+
+				Section("Game Sounds") {
+					Picker("Game sounds", selection: $gameAudioModeRawValue) {
+						ForEach(GameAudioMode.allCases) { mode in
+							Text(mode.label).tag(mode.rawValue)
+						}
+					}
+					.accessibilityFocused($focusedElement, equals: .gameSoundsPicker)
 				}
 
 				Section("Spatial Mole Mapping") {
@@ -98,6 +121,7 @@ struct GameSettingsSheet: View {
 							Text("\(voice.name) (\(voice.language))").tag(voice.identifier)
 						}
 					}
+					.accessibilityFocused($focusedElement, equals: .systemVoicePicker)
 
 					Toggle("Character Echo", isOn: $characterEcho)
 						.accessibilityHint("Speaks NATO word for single letters")
@@ -219,7 +243,28 @@ struct GameSettingsSheet: View {
 			sanitizeModeSelection()
 		}
 		.onChange(of: inputMode) { _, _ in
-			sanitizeModeSelection()
+			shouldSkipNextModeFocusRestore = sanitizeModeSelection()
+			restoreFocus(to: .keyboardInputModePicker)
+		}
+		.onChange(of: modeId) { _, _ in
+			if shouldSkipNextModeFocusRestore {
+				shouldSkipNextModeFocusRestore = false
+				return
+			}
+
+			restoreFocus(to: .moleChooserPicker)
+		}
+		.onChange(of: difficulty) { _, _ in
+			restoreFocus(to: .difficultyPicker)
+		}
+		.onChange(of: roundDurationSeconds) { _, _ in
+			restoreFocus(to: .roundLengthPicker)
+		}
+		.onChange(of: gameAudioModeRawValue) { _, _ in
+			restoreFocus(to: .gameSoundsPicker)
+		}
+		.onChange(of: selectedVoiceId) { _, _ in
+			restoreFocus(to: .systemVoicePicker)
 		}
 	}
 
@@ -326,8 +371,12 @@ struct GameSettingsSheet: View {
 			.accessibilityHint("Opens in external browser")
 	}
 
-	private func sanitizeModeSelection() {
-		modeId = BrailleRegistry.sanitizedModeId(modeId, for: inputMode)
+	@discardableResult
+	private func sanitizeModeSelection() -> Bool {
+		let sanitizedModeId = BrailleRegistry.sanitizedModeId(modeId, for: inputMode)
+		guard modeId != sanitizedModeId else { return false }
+		modeId = sanitizedModeId
+		return true
 	}
 
 	private func restoreCustomMolePickerFocusIfNeeded() {
@@ -335,6 +384,12 @@ struct GameSettingsSheet: View {
 		shouldRestoreCustomMoleFocus = false
 		DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
 			focusedElement = .customMolePickerButton
+		}
+	}
+
+	private func restoreFocus(to target: FocusTarget) {
+		DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+			focusedElement = target
 		}
 	}
 }

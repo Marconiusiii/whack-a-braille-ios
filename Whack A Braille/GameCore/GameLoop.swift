@@ -561,6 +561,10 @@ final class GameLoop {
 	private func buildAnnounceText(for item: BrailleItem) -> String {
 		var text = item.announceText
 
+		if item.id == "for", availableItems.contains(where: { $0.id == "4" }) {
+			text = "F O R"
+		}
+
 		if item.modeTags.contains("grade1Letters"), currentOptions.characterEcho, let nato = item.nato {
 			text += ", \(nato)"
 		}

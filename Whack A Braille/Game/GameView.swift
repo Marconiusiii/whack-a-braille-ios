@@ -29,6 +29,7 @@ struct GameView: View {
 	@AppStorage("whackABraille.roundDurationSeconds") private var roundDurationSeconds = 30
 	@AppStorage("whackABraille.inputMode") private var inputModeRawValue = InputMode.qwerty.rawValue
 	@AppStorage("whackABraille.timerMusicEnabled") private var timerMusicEnabled = true
+	@AppStorage("whackABraille.gameAudioMode") private var gameAudioModeRawValue = GameAudioMode.original.rawValue
 	@AppStorage("whackABraille.spatialMoleMappingEnabled") private var spatialMoleMappingEnabled = true
 	@AppStorage("whackABraille.speakBrailleDots") private var speakBrailleDots = false
 	@AppStorage("whackABraille.characterEcho") private var characterEcho = false
@@ -89,6 +90,7 @@ struct GameView: View {
 				roundDurationSeconds: $roundDurationSeconds,
 				inputMode: inputModeBinding,
 				timerMusicEnabled: $timerMusicEnabled,
+				gameAudioModeRawValue: $gameAudioModeRawValue,
 				spatialMoleMappingEnabled: $spatialMoleMappingEnabled,
 				speakBrailleDots: $speakBrailleDots,
 				characterEcho: $characterEcho,
@@ -139,8 +141,11 @@ struct GameView: View {
 		.onChange(of: selectedVoiceId) { applySpeechSettings() }
 		.onChange(of: speechRatePercent) { applySpeechSettings() }
 		.onChange(of: speechVolumePercent) { applySpeechSettings() }
+		.onChange(of: timerMusicEnabled) { applyAudioSettings() }
+		.onChange(of: gameAudioModeRawValue) { applyAudioSettings() }
 		.onAppear {
 			applySpeechSettings()
+			applyAudioSettings()
 			SpeechEngine.shared.prewarm()
 			GameAudioEngine.shared.prewarmForHomeScreen()
 		}
@@ -177,6 +182,10 @@ struct GameView: View {
 		CustomMolePlayMode(rawValue: customMolePlayModeRawValue) ?? .individual
 	}
 
+	private var gameAudioMode: GameAudioMode {
+		GameAudioMode(rawValue: gameAudioModeRawValue) ?? .original
+	}
+
 	private var selectedCustomMoleIDs: [String] {
 		let storageValue = customMolePlayMode == .individual ? customIndividualMoleIDs : customInvasionMoleIDs
 		return storageValue
@@ -207,6 +216,13 @@ struct GameView: View {
 		)
 	}
 
+	private func applyAudioSettings() {
+		GameAudioEngine.shared.configure(
+			timerMusicEnabled: timerMusicEnabled && difficulty != .training,
+			gameAudioMode: gameAudioMode
+		)
+	}
+
 	private func startRound() {
 		pendingRoundStartID = UUID()
 		applySpeechSettings()
@@ -227,9 +243,7 @@ struct GameView: View {
 		let startID = UUID()
 		pendingRoundStartID = startID
 		viewModel.startRound(options: options)
-		GameAudioEngine.shared.configure(
-			timerMusicEnabled: timerMusicEnabled && difficulty != .training
-		)
+		applyAudioSettings()
 		SpeechEngine.shared.prewarm()
 		GameAudioEngine.shared.prewarm {
 			beginPreparedRound(startID: startID, options: options)

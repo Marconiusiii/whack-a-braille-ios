@@ -1,6 +1,28 @@
 import AVFoundation
 import UIKit
 
+enum GameAudioMode: String, CaseIterable, Identifiable {
+	case original
+	case silly
+	case goofy
+	case retro
+
+	var id: String { rawValue }
+
+	var label: String {
+		switch self {
+		case .original:
+			return "Original"
+		case .silly:
+			return "Silly"
+		case .goofy:
+			return "Goofy"
+		case .retro:
+			return "Retro"
+		}
+	}
+}
+
 final class GameAudioEngine {
 
 	static let shared = GameAudioEngine()
@@ -10,6 +32,7 @@ final class GameAudioEngine {
 	private let sampleRate = 44_100.0
 
 	private var timerMusicEnabled = true
+	private var gameAudioMode: GameAudioMode = .original
 	private var activePlayers: [AVAudioPlayer] = []
 	private var hasStartedGameplayPrewarm = false
 	private var hasFinishedGameplayPrewarm = false
@@ -27,6 +50,13 @@ final class GameAudioEngine {
 	private lazy var alternateHitSoundData: Data? = makeAlternateHitSoundData()
 	private lazy var missSoundData: Data? = makeMissSoundData()
 	private lazy var retreatSoundData: Data? = makeRetreatSoundData()
+	private lazy var sillyHitSoundData: Data? = loadAudioResourceData(name: "ChanceyBonk_6", fileExtension: "m4a")
+	private lazy var fiftyPointSoundData: Data? = loadAudioResourceData(name: "50pts_2", fileExtension: "m4a")
+	private lazy var goofyHitSoundData: [Data] = [1, 2, 3].compactMap { makeGoofyHitSoundData(seed: $0) }
+	private lazy var goofyMissSoundData: Data? = makeGoofyMissSoundData()
+	private lazy var goofyRetreatSoundData: Data? = makeGoofyRetreatSoundData()
+	private lazy var retroMissSoundData: Data? = makeRetroMissSoundData()
+	private lazy var retroRetreatSoundData: Data? = makeRetroRetreatSoundData()
 	private lazy var openingCueData: Data? = makeStartFlourishData()
 	private lazy var everythingCueData: Data? = makeEverythingStingerData()
 	private lazy var endCueData: Data? = makeEndCueData()
@@ -68,6 +98,13 @@ final class GameAudioEngine {
 			_ = self.alternateHitSoundData
 			_ = self.missSoundData
 			_ = self.retreatSoundData
+			_ = self.sillyHitSoundData
+			_ = self.fiftyPointSoundData
+			_ = self.goofyHitSoundData
+			_ = self.goofyMissSoundData
+			_ = self.goofyRetreatSoundData
+			_ = self.retroMissSoundData
+			_ = self.retroRetreatSoundData
 			_ = self.openingCueData
 			_ = self.everythingCueData
 			_ = self.endCueData
@@ -88,8 +125,9 @@ final class GameAudioEngine {
 		hasFinishedGameplayPrewarm
 	}
 
-	func configure(timerMusicEnabled: Bool) {
+	func configure(timerMusicEnabled: Bool, gameAudioMode: GameAudioMode = .original) {
 		self.timerMusicEnabled = timerMusicEnabled
+		self.gameAudioMode = gameAudioMode
 		configureAudioSession()
 	}
 
@@ -147,13 +185,35 @@ final class GameAudioEngine {
 
 	func playHit(scoreBeforeHit: Int, lane: Int) {
 		let pan = pan(for: lane)
-		let useAlternateHit = (max(0, scoreBeforeHit) / 10).isMultiple(of: 2)
-		let soundData = useAlternateHit ? alternateHitSoundData : hitSoundData
-		playGeneratedSound(soundData, volume: 1.34, pan: pan)
+
+		switch gameAudioMode {
+		case .original:
+			let useAlternateHit = (max(0, scoreBeforeHit) / 10).isMultiple(of: 2)
+			let soundData = useAlternateHit ? alternateHitSoundData : hitSoundData
+			playGeneratedSound(soundData, volume: 1.34, pan: pan)
+		case .silly:
+			let rate = Float.random(in: 0.9...1.12)
+			playGeneratedSound(sillyHitSoundData, volume: 0.62, pan: pan, rate: rate)
+			playFiftyPointCueIfNeeded(scoreBeforeHit: scoreBeforeHit)
+		case .goofy:
+			let rate = Float.random(in: 0.94...1.06)
+			playGeneratedSound(goofyHitSoundData.randomElement(), volume: 1.0, pan: pan, rate: rate)
+		case .retro:
+			playGeneratedSound(makeRetroHitSoundData(root: currentTimerRootMidi()), volume: 0.72, pan: pan)
+		}
 	}
 
 	func playMiss(lane: Int) {
-		playGeneratedSound(missSoundData, volume: 0.72, pan: pan(for: lane))
+		let pan = pan(for: lane)
+
+		switch gameAudioMode {
+		case .original, .silly:
+			playGeneratedSound(missSoundData, volume: 0.72, pan: pan)
+		case .goofy:
+			playGeneratedSound(goofyMissSoundData, volume: 0.74, pan: pan)
+		case .retro:
+			playGeneratedSound(retroMissSoundData, volume: 0.5, pan: pan)
+		}
 	}
 
 	func playMolePop(lane: Int) {
@@ -161,12 +221,25 @@ final class GameAudioEngine {
 	}
 
 	func playRetreat(lane: Int) {
-		playGeneratedSound(retreatSoundData, volume: 1.0, pan: pan(for: lane))
+		let pan = pan(for: lane)
+
+		switch gameAudioMode {
+		case .original, .silly:
+			playGeneratedSound(retreatSoundData, volume: 1.0, pan: pan)
+		case .goofy:
+			playGeneratedSound(goofyRetreatSoundData, volume: 0.48, pan: pan)
+		case .retro:
+			playGeneratedSound(retroRetreatSoundData, volume: 0.24, pan: pan)
+		}
 	}
 
 	private func pan(for lane: Int) -> Float {
 		guard lanePanMap.indices.contains(lane) else { return 0 }
 		return lanePanMap[lane]
+	}
+
+	private func currentTimerRootMidi() -> Int {
+		max(48, beatRootMidi)
 	}
 
 	private func configureAudioSession() {
@@ -242,7 +315,7 @@ final class GameAudioEngine {
 		)
 	}
 
-	private func playGeneratedSound(_ data: Data?, volume: Float, pan: Float) {
+	private func playGeneratedSound(_ data: Data?, volume: Float, pan: Float, rate: Float = 1.0) {
 		guard let data, data.count > 44 else { return }
 
 		do {
@@ -250,6 +323,8 @@ final class GameAudioEngine {
 			guard player.duration > 0 else { return }
 			player.volume = volume
 			player.pan = pan
+			player.enableRate = true
+			player.rate = rate
 			player.prepareToPlay()
 			activePlayers.append(player)
 			player.play()
@@ -257,6 +332,26 @@ final class GameAudioEngine {
 		} catch {
 			// Keep gameplay running even if a generated sound cannot be played.
 		}
+	}
+
+	private func playFiftyPointCueIfNeeded(scoreBeforeHit: Int) {
+		guard scoreBeforeHit < 50, scoreBeforeHit + 10 >= 50 else { return }
+
+		DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+			guard let self else { return }
+			self.playGeneratedSound(self.fiftyPointSoundData, volume: 0.75, pan: 0)
+		}
+	}
+
+	private func loadAudioResourceData(name: String, fileExtension: String) -> Data? {
+		guard
+			let url = Bundle.main.url(forResource: name, withExtension: fileExtension)
+				?? Bundle.main.url(forResource: name, withExtension: fileExtension, subdirectory: "Audio")
+		else {
+			return nil
+		}
+
+		return try? Data(contentsOf: url)
 	}
 
 	private func prewarmExtendedAudioIfNeeded() {
@@ -432,6 +527,122 @@ final class GameAudioEngine {
 			let body = sine(freq, time)
 			let env = linearEnvelope(time, attack: 0.02, release: 0.18, peak: 0.55)
 			return clampSample(body * env * 0.42)
+		}
+	}
+
+	private func makeGoofyHitSoundData(seed: Int) -> Data? {
+		let duration = 0.56
+		let base = [118.0, 132.0, 146.0][(seed - 1) % 3]
+
+		return makeWaveFile(duration: duration) { time in
+			let impactProgress = min(time / 0.14, 1)
+			let heavyBonk = envelope(time, attack: 0.006, release: 0.18, peak: 1.18) *
+				sine(lerpExp(start: base * 2.15, end: base * 0.72, progress: impactProgress), time)
+			let bellyThump = envelope(time, attack: 0.012, release: 0.2, peak: 0.86) *
+				sine(lerpExp(start: base * 0.86, end: base * 0.48, progress: min(time / 0.18, 1)), time)
+			let hollowBody = envelope(time, attack: 0.012, release: 0.24, peak: 0.72) *
+				triangle(lerpExp(start: base * 1.45, end: base * 0.92, progress: min(time / 0.2, 1)), time)
+			let rubberTap = envelope(time, attack: 0.002, release: 0.045, peak: 0.38) *
+				triangle(lerpExp(start: 620, end: 250, progress: min(time / 0.04, 1)), time)
+			let recoilTime = max(0, time - 0.14)
+			let recoilProgress = min(recoilTime / 0.27, 1)
+			let recoilPitch = lerpExp(start: 540 + Double(seed * 22), end: 230, progress: recoilProgress)
+			let recoilWobble = sin(2 * .pi * 18 * recoilTime) * lerp(start: 120, end: 14, progress: recoilProgress)
+			let recoil = envelope(recoilTime, attack: 0.008, release: 0.31, peak: 0.38) *
+				triangle(recoilPitch + recoilWobble, recoilTime)
+			let squeak = envelope(recoilTime, attack: 0.006, release: 0.18, peak: 0.14) *
+				sine(lerpExp(start: 1_120, end: 610, progress: min(recoilTime / 0.16, 1)), recoilTime)
+
+			return clampSample((heavyBonk + bellyThump + hollowBody + rubberTap + recoil + squeak) * 0.62)
+		}
+	}
+
+	private func makeGoofyMissSoundData() -> Data? {
+		let duration = 0.32
+
+		return makeWaveFile(duration: duration) { time in
+			let progress = min(max(time / duration, 0), 1)
+			let wobble = sin(2 * .pi * 7.4 * time) * lerp(start: 50, end: 8, progress: progress)
+			let rubberSlide = sine(lerpExp(start: 580 + wobble, end: 210, progress: progress), time)
+			let nasalWah = sine(lerpExp(start: 840, end: 310, progress: progress), time) * 0.24
+			let env = linearEnvelope(time, attack: 0.03, release: duration, peak: 0.58)
+
+			return clampSample((rubberSlide + nasalWah) * env * 0.46)
+		}
+	}
+
+	private func makeGoofyRetreatSoundData() -> Data? {
+		let duration = 0.42
+
+		return makeWaveFile(duration: duration) { time in
+			let progress = min(max(time / duration, 0), 1)
+			let bend = sin(2 * .pi * 7.0 * time) * 38
+			let zip = sine(lerpExp(start: 260, end: 1_180, progress: progress) + bend, time)
+			let chirp = triangle(lerpExp(start: 520, end: 1_640, progress: progress), time) * 0.35
+			let env = linearEnvelope(time, attack: 0.012, release: duration, peak: 0.56)
+
+			return clampSample((zip + chirp) * env * 0.5)
+		}
+	}
+
+	private func makeRetroHitSoundData(root: Int) -> Data? {
+		let duration = 0.42
+		let timerPattern = [0, 4, 7, 2]
+		let sparkleNotes = [root, root + timerPattern[1], root + timerPattern[2], root + 12]
+
+		return makeWaveFile(duration: duration) { time in
+			let chordEnv = envelope(time, attack: 0.003, release: 0.16, peak: 0.54)
+			let chord = [root, root + timerPattern[1], root + timerPattern[2]].reduce(0.0) { partial, note in
+				partial + (square(midiFrequency(note), time) * chordEnv / 3.0)
+			}
+			let impactPitch = lerpExp(start: midiFrequency(root - 12) * 1.8, end: midiFrequency(root - 12), progress: min(time / 0.08, 1))
+			let impact = square(impactPitch, time) * envelope(time, attack: 0.002, release: 0.12, peak: 0.42)
+
+			let stepDuration = 0.045
+			let sparkleStart = 0.1
+			var sparkle = 0.0
+			for (index, note) in sparkleNotes.enumerated() {
+				let local = time - sparkleStart - (Double(index) * stepDuration)
+				guard local >= 0, local <= stepDuration else { continue }
+				let env = linearEnvelope(local, attack: 0.003, release: stepDuration, peak: 0.28)
+				sparkle += square(midiFrequency(note), local) * env
+			}
+
+			return clampSample((chord * 0.78) + (impact * 0.62) + (sparkle * 0.42))
+		}
+	}
+
+	private func makeRetroMissSoundData() -> Data? {
+		let duration = 0.34
+		let notes = [62, 58, 55]
+
+		return makeWaveFile(duration: duration) { time in
+			let stepDuration = duration / Double(notes.count)
+			let step = min(notes.count - 1, max(0, Int(time / stepDuration)))
+			let local = time - (Double(step) * stepDuration)
+			let env = linearEnvelope(local, attack: 0.006, release: stepDuration, peak: 0.38)
+			let tone = square(midiFrequency(notes[step]), local) * env
+			let body = triangle(midiFrequency(notes[step] - 12), local) * env * 0.25
+
+			return clampSample((tone + body) * 0.56)
+		}
+	}
+
+	private func makeRetroRetreatSoundData() -> Data? {
+		let duration = 0.38
+		let notes = [79, 76, 72, 67, 64]
+
+		return makeWaveFile(duration: duration) { time in
+			let stepDuration = 0.045
+			let step = min(notes.count - 1, max(0, Int(time / stepDuration)))
+			let local = time - (Double(step) * stepDuration)
+			let env = linearEnvelope(local, attack: 0.003, release: stepDuration, peak: 0.42)
+			let tone = square(midiFrequency(notes[step]), local) * env
+			let echoLocal = time - 0.14 - (Double(step) * stepDuration)
+			let echoEnv = linearEnvelope(echoLocal, attack: 0.003, release: stepDuration, peak: 0.16)
+			let echo = echoLocal >= 0 ? square(midiFrequency(notes[step] - 12), echoLocal) * echoEnv : 0
+
+			return clampSample((tone * 0.72) + (echo * 0.36))
 		}
 	}
 
@@ -969,8 +1180,17 @@ final class GameAudioEngine {
 		return 1.0 - 4.0 * abs(phase - 0.5)
 	}
 
+	private func square(_ frequency: Double, _ time: Double) -> Double {
+		guard frequency > 0 else { return 0 }
+		return sine(frequency, time) >= 0 ? 1.0 : -1.0
+	}
+
 	private func sine(_ frequency: Double, _ time: Double) -> Double {
 		sin(2.0 * .pi * frequency * time)
+	}
+
+	private func midiFrequency(_ note: Int) -> Double {
+		440.0 * pow(2.0, Double(note - 69) / 12.0)
 	}
 
 	private func pseudoNoise(seed: UInt64, index: Int) -> Double {
