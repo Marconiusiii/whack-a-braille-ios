@@ -565,6 +565,18 @@ final class GameLoop {
 			text = "F O R"
 		}
 
+		if item.id == "one", isItemAvailable("1") {
+			text = "o n e"
+		}
+
+		if item.id == "be", isItemAvailable("b") {
+			text = "B E"
+		}
+
+		if item.id == "you", isItemAvailable("u") {
+			text = "Y O U"
+		}
+
 		if item.modeTags.contains("grade1Letters"), currentOptions.characterEcho, let nato = item.nato {
 			text += ", \(nato)"
 		}
@@ -579,6 +591,10 @@ final class GameLoop {
 		}
 
 		return text
+	}
+
+	private func isItemAvailable(_ id: String) -> Bool {
+		availableItems.contains { $0.id == id }
 	}
 
 	private func scheduleFollowUp(afterTraining trainingMode: Bool) {

@@ -29,6 +29,7 @@ struct GameSettingsSheet: View {
 	@State private var isShowingCustomMolePicker = false
 	@State private var shouldRestoreCustomMoleFocus = false
 	@State private var shouldSkipNextModeFocusRestore = false
+	@State private var cachedVoices: [AVSpeechSynthesisVoice] = []
 
 	private enum FocusTarget: Hashable {
 		case keyboardInputModePicker
@@ -240,6 +241,7 @@ struct GameSettingsSheet: View {
 		}
 		.onAppear {
 			UITableView.appearance().backgroundColor = .clear
+			refreshCachedVoices()
 			sanitizeModeSelection()
 		}
 		.onChange(of: inputMode) { _, _ in
@@ -306,10 +308,15 @@ struct GameSettingsSheet: View {
 	}
 
 	private var availableVoices: [AVSpeechSynthesisVoice] {
+		cachedVoices
+	}
+
+	private func refreshCachedVoices() {
 		let localeLanguage = Locale.current.language.languageCode?.identifier ?? "en"
 		let filtered = AVSpeechSynthesisVoice.speechVoices().filter { $0.language.lowercased().hasPrefix(localeLanguage.lowercased()) }
 		let source = filtered.isEmpty ? AVSpeechSynthesisVoice.speechVoices() : filtered
-		return source.sorted { lhs, rhs in
+
+		cachedVoices = source.sorted { lhs, rhs in
 			let lhsRank = voiceSortRank(for: lhs)
 			let rhsRank = voiceSortRank(for: rhs)
 
