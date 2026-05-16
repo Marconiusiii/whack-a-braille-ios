@@ -57,6 +57,7 @@ struct GameplayView: View {
 							inputMode: inputMode,
 							isEnabled: viewModel.isRunning,
 							autoFocus: viewModel.isRunning,
+							accessibilityFocusToken: gameplayFocusToken,
 							resetToken: viewModel.inputResetToken
 						)
 						.frame(height: 48)
@@ -90,6 +91,8 @@ struct GameplayView: View {
 	}
 
 	private func focusGameplayHeading() {
+		guard !inputMode.usesBufferedTextEntry else { return }
+
 		DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
 			isHeadingFocused = true
 			UIAccessibility.post(notification: .screenChanged, argument: nil)

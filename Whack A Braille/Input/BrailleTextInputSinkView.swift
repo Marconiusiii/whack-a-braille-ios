@@ -11,6 +11,7 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 	let inputMode: InputMode
 	let isEnabled: Bool
 	let autoFocus: Bool
+	let accessibilityFocusToken: Int
 	let resetToken: Int
 
 	func makeUIView(context: Context) -> GameInputTextField {
@@ -60,6 +61,7 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 		uiView.alpha = isEnabled ? 1.0 : 0.45
 		uiView.shouldAutoFocus = isEnabled && autoFocus
 		uiView.applyResetToken(resetToken)
+		uiView.applyAccessibilityFocusToken(accessibilityFocusToken)
 		uiView.attemptFocusIfNeeded()
 
 		if !isEnabled, uiView.isFirstResponder {
@@ -160,6 +162,7 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 		private var activePerkinsKeys: Set<String> = []
 		private var usedPerkinsKeys: Set<String> = []
 		private var focusAttemptCount = 0
+		private var lastAccessibilityFocusToken = -1
 		private var lastResetToken = -1
 		private var suppressedInsertText: String?
 		private var suppressInsertTextUntil = 0.0
@@ -358,6 +361,19 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 				guard self.shouldAutoFocus, self.window != nil, !self.isFirstResponder else { return }
 				_ = self.becomeFirstResponder()
 				self.attemptFocusIfNeeded()
+			}
+		}
+
+		func applyAccessibilityFocusToken(_ token: Int) {
+			guard token != lastAccessibilityFocusToken else { return }
+			lastAccessibilityFocusToken = token
+			guard inputModeSelection.usesBufferedTextEntry else { return }
+
+			DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+				guard let self else { return }
+				guard self.shouldAutoFocus, self.window != nil else { return }
+				_ = self.becomeFirstResponder()
+				UIAccessibility.post(notification: .screenChanged, argument: self)
 			}
 		}
 

@@ -306,12 +306,18 @@ struct GameView: View {
 			? (invasionIntroPhrases.randomElement() ?? "Incoming moles!")
 			: "Ready?"
 		GameAudioEngine.shared.playOpeningCue(playEverythingIntro: isInvasionMode)
-		let speechDurationMs = SpeechEngine.shared.speak(introText, interrupt: true)
-		let startDelayMs = max(900, min(3_000, speechDurationMs + 240))
+		let focusSettleDelayMs = options.inputMode.usesBufferedTextEntry ? 2_250 : 350
+		let postSpeechBeatMs = 300
 
-		DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(startDelayMs)) {
+		DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(focusSettleDelayMs)) {
 			guard pendingRoundStartID == startID else { return }
-			viewModel.beginRound(options: options)
+			let speechDurationMs = SpeechEngine.shared.speak(introText, interrupt: true)
+			let startDelayMs = min(3_000, speechDurationMs + postSpeechBeatMs)
+
+			DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(startDelayMs)) {
+				guard pendingRoundStartID == startID else { return }
+				viewModel.beginRound(options: options)
+			}
 		}
 	}
 
