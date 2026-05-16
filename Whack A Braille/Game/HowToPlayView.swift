@@ -63,7 +63,7 @@ struct HowToPlayView: View {
 						isExpanded: $isInputInstructionsExpanded,
 						content: {
 							VStack(alignment: .leading, spacing: 0) {
-								Text("You can use an external keyboard, a braille display, or braille screen input to whack the moles as they appear.")
+								Text("You can use an external keyboard, a braille display, braille screen input, or one-handed braille input to whack the moles as they appear.")
 									.foregroundStyle(secondaryTextColor)
 									.fixedSize(horizontal: false, vertical: true)
 									.accessibilityTouchRegion(minHeight: 0, topPadding: 8, bottomPadding: 8, alignment: .leading)
@@ -98,6 +98,16 @@ struct HowToPlayView: View {
 										"This mode gives you a little more time to enter the correct characters before whacking the mole.",
 										"Grade 2 suffixes will not be available in this mode.",
 										"When the round ends, make sure to turn braille screen input mode off in the Round Results screen."
+									]
+								)
+
+								inputInstructionSection(
+									title: "One-Handed Braille Input",
+									rows: [
+										"Use this mode when entering braille one column at a time.",
+										"Type the first column, type the second column, then swipe to submit the character.",
+										"The moles stay up longer in this mode so the extra one-handed submit step has room to breathe.",
+										"Grade 2 suffixes will not be available in this mode."
 									]
 								)
 

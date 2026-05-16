@@ -206,6 +206,8 @@ final class GameLoop {
 			handleSubmittedText(normalize(attempt.char), currentItem: currentItem)
 		case .brailleDisplayInput:
 			handleSubmittedText(normalize(attempt.char), currentItem: currentItem)
+		case .oneHandedBrailleInput:
+			handleSubmittedText(normalize(attempt.char), currentItem: currentItem)
 		}
 	}
 
@@ -767,18 +769,25 @@ final class GameLoop {
 	private func computeMoleWindowMs(item: BrailleItem, baseUpTimeMs: Int, speechDurationMs: Int) -> Int {
 		let reactionBufferMs = 380
 		let minUpTimeMs = 550
-		let maxUpTimeMs = 2_700
+		let maxUpTimeMs = currentOptions.inputMode == .oneHandedBrailleInput ? 3_600 : 2_700
 		let effectiveSpeechDurationMs = max(300, speechDurationMs)
 		let submissionBufferMs: Int
+		let additionalCellBufferMs: Int
 		switch currentOptions.inputMode {
 		case .brailleDisplayInput:
 			submissionBufferMs = 520
+			additionalCellBufferMs = max(0, item.expectedPerkinsCellCount - 1) * 320
+		case .oneHandedBrailleInput:
+			let cellCount = min(max(item.expectedPerkinsCellCount, 1), 2)
+			submissionBufferMs = 900 * cellCount
+			additionalCellBufferMs = 0
 		case .brailleText:
 			submissionBufferMs = 320
+			additionalCellBufferMs = max(0, item.expectedPerkinsCellCount - 1) * 320
 		case .qwerty, .perkins:
 			submissionBufferMs = 0
+			additionalCellBufferMs = max(0, item.expectedPerkinsCellCount - 1) * 320
 		}
-		let additionalCellBufferMs = max(0, item.expectedPerkinsCellCount - 1) * 320
 
 		return min(
 			max(
@@ -851,15 +860,21 @@ final class GameLoop {
 	private func adjustedTickets(_ tickets: Int) -> Int {
 		guard tickets > 0 else { return tickets }
 
+		var adjusted = tickets
+
 		if currentOptions.modeId == "grade2MoleInvasion" {
-			return Int(ceil(Double(tickets) * 1.5))
+			adjusted = Int(ceil(Double(adjusted) * 1.5))
 		}
 
 		if currentOptions.modeId == "grade1MoleInvasion" {
-			return Int(ceil(Double(tickets) * 1.25))
+			adjusted = Int(ceil(Double(adjusted) * 1.25))
 		}
 
-		return tickets
+		if currentOptions.inputMode == .oneHandedBrailleInput {
+			adjusted *= 2
+		}
+
+		return adjusted
 	}
 
 	private func cancelTimers() {
@@ -877,7 +892,7 @@ final class GameLoop {
 	}
 
 	private func isBufferedTextInputMode(_ inputMode: InputMode) -> Bool {
-		inputMode == .brailleText || inputMode == .brailleDisplayInput
+		inputMode.usesBufferedTextEntry
 	}
 
 	private func dotsPhrase(for dots: [Int]) -> String? {

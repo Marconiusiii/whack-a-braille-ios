@@ -22,7 +22,7 @@ struct InputInstructionsView: View {
 						.accessibilityAddTraits(.isHeader)
 						.accessibilityFocused($isHeadingFocused)
 
-					Text("You can use an external keyboard, a braille display, or braille screen input to whack the moles as they appear.")
+					Text("You can use an external keyboard, a braille display, braille screen input, or one-handed braille input to whack the moles as they appear.")
 						.foregroundStyle(secondaryTextColor)
 						.fixedSize(horizontal: false, vertical: true)
 				}
@@ -51,6 +51,19 @@ struct InputInstructionsView: View {
 					instructionRow("After typing the character or chord, swipe right with one or two fingers to whack the current mole.")
 					instructionRow("The moles stay up slightly longer in Braille Screen Input mode so you won't miss them when swiping right.")
 					instructionRow("Remember to turn off Braille Screen input once you are in the Round Results screen!")
+				}
+				.appCard()
+				.accessibilityTouchRegion(minHeight: 0, verticalPadding: 10, alignment: .leading)
+
+				VStack(alignment: .leading, spacing: 12) {
+					Text("One-Handed Braille Input")
+						.font(.title3.weight(.bold))
+						.foregroundStyle(AppTheme.heading)
+						.accessibilityAddTraits(.isHeader)
+
+					instructionRow("Use this mode when entering braille one column at a time.")
+					instructionRow("Type the first braille column, type the second braille column, then swipe to submit the character.")
+					instructionRow("The moles stay up longer in One-Handed Braille Input mode so the extra submit step has room to breathe.")
 				}
 				.appCard()
 				.accessibilityTouchRegion(minHeight: 0, verticalPadding: 10, alignment: .leading)

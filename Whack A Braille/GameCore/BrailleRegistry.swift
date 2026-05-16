@@ -530,7 +530,7 @@ enum BrailleRegistry {
 				return !qwertyUnsupportedBrailleModeIDs.contains(option.id)
 			case .perkins:
 				return !qwertyModeIDs.contains(option.id)
-			case .brailleDisplayInput, .brailleText:
+			case .brailleDisplayInput, .brailleText, .oneHandedBrailleInput:
 				return !bsiExcludedModeIDs.contains(option.id) && !bufferedTextUnsupportedModeIDs.contains(option.id)
 			}
 		}
@@ -577,7 +577,7 @@ enum BrailleRegistry {
 		switch inputMode {
 		case .qwerty:
 			return qwertyUnsupportedBrailleModeIDs.contains(modeId) ? "grade2Symbols" : modeId
-		case .perkins, .brailleText, .brailleDisplayInput:
+		case .perkins, .brailleText, .brailleDisplayInput, .oneHandedBrailleInput:
 			return "grade1Letters"
 		}
 	}
@@ -601,7 +601,7 @@ enum BrailleRegistry {
 		switch inputMode {
 		case .qwerty:
 			return !item.modeTags.contains("grade2Dot456Initials")
-		case .brailleText, .brailleDisplayInput:
+		case .brailleText, .brailleDisplayInput, .oneHandedBrailleInput:
 			return !item.modeTags.contains("grade2Suffixes")
 		case .perkins:
 			return true
@@ -612,7 +612,7 @@ enum BrailleRegistry {
 		switch inputMode {
 		case .qwerty:
 			return grade2MoleInvasionItems.filter { !$0.modeTags.contains("grade2Dot456Initials") }
-		case .brailleText, .brailleDisplayInput:
+		case .brailleText, .brailleDisplayInput, .oneHandedBrailleInput:
 			return grade2MoleInvasionItems.filter { !$0.modeTags.contains("grade2Suffixes") }
 		case .perkins:
 			return grade2MoleInvasionItems

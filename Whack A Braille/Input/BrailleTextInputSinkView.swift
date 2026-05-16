@@ -399,7 +399,7 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 		func handleEditingChanged() {
 			let buffered = currentBufferedText()
 
-			if inputModeSelection == .brailleText {
+			if inputModeSelection == .brailleText || inputModeSelection == .oneHandedBrailleInput {
 				guard buffered.contains(where: \.isWhitespace) else { return }
 				submitBufferedText()
 				return

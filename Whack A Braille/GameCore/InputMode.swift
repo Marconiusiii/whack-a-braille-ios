@@ -3,6 +3,7 @@ enum InputMode: String, CaseIterable, Identifiable {
 	case perkins
 	case brailleText
 	case brailleDisplayInput
+	case oneHandedBrailleInput
 
 	var id: String { rawValue }
 
@@ -16,12 +17,14 @@ enum InputMode: String, CaseIterable, Identifiable {
 			return "Braille Screen Input"
 		case .brailleDisplayInput:
 			return "Braille Display Input"
+		case .oneHandedBrailleInput:
+			return "One-Handed Braille Input"
 		}
 	}
 
 	var usesBufferedTextEntry: Bool {
 		switch self {
-		case .brailleText, .brailleDisplayInput:
+		case .brailleText, .brailleDisplayInput, .oneHandedBrailleInput:
 			return true
 		case .qwerty, .perkins:
 			return false
