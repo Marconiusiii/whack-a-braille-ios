@@ -11,6 +11,7 @@ struct GameplayView: View {
 	@ScaledMetric(relativeTo: .title2) private var activeMoleFontSize: CGFloat = 30
 	@ScaledMetric(relativeTo: .headline) private var compactMoleFontSize: CGFloat = 22
 	@AccessibilityFocusState private var isHeadingFocused: Bool
+	@AccessibilityFocusState private var isKeyboardMalletFocused: Bool
 
 	var body: some View {
 		ScrollView {
@@ -48,19 +49,33 @@ struct GameplayView: View {
 						.accessibilityTouchRegion(minHeight: 0, verticalPadding: 8)
 
 					VStack(alignment: .leading, spacing: 8) {
-						Text("Braille Entry")
-							.font(.headline)
-							.foregroundStyle(AppTheme.heading)
+						if inputMode.usesBufferedTextEntry {
+							Text("Braille Entry")
+								.font(.headline)
+								.foregroundStyle(AppTheme.heading)
 
-						BrailleTextInputSinkView(
-							gameLoop: viewModel.gameLoop,
-							inputMode: inputMode,
-							isEnabled: viewModel.isRunning,
-							autoFocus: viewModel.isRunning,
-							accessibilityFocusToken: gameplayFocusToken,
-							resetToken: viewModel.inputResetToken
-						)
-						.frame(height: 48)
+							inputSink
+								.frame(height: 48)
+						} else {
+							VStack(alignment: .leading, spacing: 4) {
+								Text("Keyboard Mallet area")
+									.font(.headline)
+									.foregroundStyle(AppTheme.heading)
+									.fixedSize(horizontal: false, vertical: true)
+
+								Text("Whack away anytime.")
+									.foregroundStyle(secondaryTextColor)
+									.fixedSize(horizontal: false, vertical: true)
+							}
+							.accessibilityElement(children: .combine)
+							.accessibilityLabel("Keyboard Mallet area")
+							.accessibilityFocused($isKeyboardMalletFocused)
+
+							inputSink
+								.frame(width: 1, height: 1)
+								.opacity(0.01)
+								.accessibilityHidden(true)
+						}
 					}
 					.gameplayInputCard()
 					.accessibilityTouchRegion(minHeight: 0, verticalPadding: 8, alignment: .leading)
@@ -93,10 +108,21 @@ struct GameplayView: View {
 	private func focusGameplayHeading() {
 		guard !inputMode.usesBufferedTextEntry else { return }
 
-		DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-			isHeadingFocused = true
+		DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+			isKeyboardMalletFocused = true
 			UIAccessibility.post(notification: .screenChanged, argument: nil)
 		}
+	}
+
+	private var inputSink: some View {
+		BrailleTextInputSinkView(
+			gameLoop: viewModel.gameLoop,
+			inputMode: inputMode,
+			isEnabled: viewModel.isRunning,
+			autoFocus: viewModel.isRunning,
+			accessibilityFocusToken: gameplayFocusToken,
+			resetToken: viewModel.inputResetToken
+		)
 	}
 
 	private var gameBoard: some View {
@@ -133,6 +159,10 @@ struct GameplayView: View {
 
 	private var boardBorder: Color {
 		AppTheme.focus.opacity(0.22)
+	}
+
+	private var secondaryTextColor: Color {
+		colorScheme == .dark ? AppTheme.darkSecondaryText : AppTheme.lightSecondaryText
 	}
 }
 

@@ -129,6 +129,9 @@ struct PrimaryGameButton: ButtonStyle {
 	func makeBody(configuration: Configuration) -> some View {
 		configuration.label
 			.font(.headline)
+			.multilineTextAlignment(.center)
+			.lineLimit(nil)
+			.fixedSize(horizontal: false, vertical: true)
 			.frame(maxWidth: .infinity)
 			.frame(minHeight: 52)
 			.padding(.horizontal, 16)
@@ -152,6 +155,9 @@ struct SecondaryGameButton: ButtonStyle {
 	func makeBody(configuration: Configuration) -> some View {
 		configuration.label
 			.font(.headline)
+			.multilineTextAlignment(.center)
+			.lineLimit(nil)
+			.fixedSize(horizontal: false, vertical: true)
 			.frame(maxWidth: .infinity)
 			.frame(minHeight: 52)
 			.padding(.horizontal, 16)
@@ -187,6 +193,8 @@ struct FullRegionPrimaryGameButton: ButtonStyle {
 			configuration.label
 				.font(.headline)
 				.multilineTextAlignment(.center)
+				.lineLimit(nil)
+				.fixedSize(horizontal: false, vertical: true)
 				.frame(maxWidth: .infinity)
 				.frame(minHeight: visibleMinHeight)
 				.padding(.horizontal, 16)
@@ -226,6 +234,8 @@ struct FullRegionSecondaryGameButton: ButtonStyle {
 			configuration.label
 				.font(.headline)
 				.multilineTextAlignment(.center)
+				.lineLimit(nil)
+				.fixedSize(horizontal: false, vertical: true)
 				.frame(maxWidth: .infinity)
 				.frame(minHeight: visibleMinHeight)
 				.padding(.horizontal, 12)

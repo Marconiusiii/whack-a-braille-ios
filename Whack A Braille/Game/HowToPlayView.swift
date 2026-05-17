@@ -76,7 +76,7 @@ struct HowToPlayView: View {
 								inputInstructionSection(
 									title: "Standard Keyboard or 8-Dot Braille",
 									rows: [
-										"Test your speed and reflexes with this mode! Type the correct characters and the mole gets bonked right away.",
+										"When the Keyboard Mallet area appears, whack away anytime. Type the target as soon as you hear it.",
 										"8-dot has limitations for Grade 2 Dots 4 5 6 contractions, so these will be filtered out in this mode."
 									]
 								)
@@ -114,7 +114,7 @@ struct HowToPlayView: View {
 								inputInstructionSection(
 									title: "Perkins Home Row",
 									rows: [
-										"This turns an external keyboard into a Perkins Brailler!",
+										"When the Keyboard Mallet area appears, whack away anytime.",
 										"Letters S, D, and F are Dots 3, 2, and 1 respectively, Letters J, K, and L are dots 4 , 5, and 6.",
 										"Great for fast entry and practicing tabletop and Perkins entry."
 									]
@@ -125,6 +125,7 @@ struct HowToPlayView: View {
 							Text("Input Instructions")
 								.font(.headline)
 								.foregroundStyle(AppTheme.heading)
+								.fixedSize(horizontal: false, vertical: true)
 								.accessibilityTouchRegion(minHeight: 0, topPadding: 20, bottomPadding: 8, alignment: .leading)
 								.accessibilityAddTraits(.isHeader)
 						}
@@ -155,6 +156,7 @@ struct HowToPlayView: View {
 							Text("Braille Reference")
 								.font(.headline)
 								.foregroundStyle(AppTheme.heading)
+								.fixedSize(horizontal: false, vertical: true)
 								.accessibilityTouchRegion(minHeight: 0, topPadding: 20, bottomPadding: 8, alignment: .leading)
 								.accessibilityAddTraits(.isHeader)
 						}
@@ -236,6 +238,7 @@ struct HowToPlayView: View {
 					Text(row.displayLabel)
 						.font(.headline)
 						.foregroundStyle(primaryTextColor)
+						.fixedSize(horizontal: false, vertical: true)
 
 					Text("Braille Dots: \(row.dotsText)")
 						.foregroundStyle(secondaryTextColor)

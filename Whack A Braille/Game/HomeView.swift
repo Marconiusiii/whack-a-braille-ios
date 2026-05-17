@@ -54,19 +54,19 @@ struct HomeView: View {
 						.accessibilityTouchRegion(topPadding: 6, bottomPadding: 6, horizontalPadding: 20)
 
 					Button(action: openPrizeCounter) {
-						HStack(spacing: 12) {
-							Text("Cash In Tickets")
-							Spacer(minLength: 12)
-							Text("\(totalTickets)")
-								.font(.subheadline.weight(.bold))
-								.foregroundStyle(AppTheme.primaryButtonText)
-								.padding(.horizontal, 10)
-								.padding(.vertical, 6)
-								.background(
-									Capsule(style: .continuous)
-										.fill(AppTheme.focus)
-								)
-								.accessibilityHidden(true)
+						ViewThatFits(in: .horizontal) {
+							HStack(spacing: 12) {
+								Text("Cash In Tickets")
+									.fixedSize(horizontal: false, vertical: true)
+								Spacer(minLength: 12)
+								ticketBadge
+							}
+
+							VStack(alignment: .center, spacing: 8) {
+								Text("Cash In Tickets")
+									.fixedSize(horizontal: false, vertical: true)
+								ticketBadge
+							}
 						}
 					}
 						.buttonStyle(SecondaryGameButton())
@@ -112,6 +112,20 @@ struct HomeView: View {
 
 	private var secondaryTextColor: Color {
 		colorScheme == .dark ? AppTheme.darkSecondaryText : AppTheme.lightSecondaryText
+	}
+
+	private var ticketBadge: some View {
+		Text("\(totalTickets)")
+			.font(.subheadline.weight(.bold))
+			.foregroundStyle(AppTheme.primaryButtonText)
+			.padding(.horizontal, 10)
+			.padding(.vertical, 6)
+			.background(
+				Capsule(style: .continuous)
+					.fill(AppTheme.focus)
+			)
+			.fixedSize(horizontal: false, vertical: true)
+			.accessibilityHidden(true)
 	}
 
 	private var prizeShelfAccessibilityValue: String {

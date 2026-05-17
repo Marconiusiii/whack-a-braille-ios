@@ -62,8 +62,11 @@ struct GameSettingsSheet: View {
 					.accessibilityFocused($focusedElement, equals: .moleChooserPicker)
 
 					if modeId == "customMoles" {
-						Button("Pick Custom Moles...") {
+						Button {
 							isShowingCustomMolePicker = true
+						} label: {
+							Text("Pick Custom Moles...")
+								.fixedSize(horizontal: false, vertical: true)
 						}
 						.accessibilityTouchRegion(minHeight: 54, alignment: .leading)
 						.accessibilityFocused($focusedElement, equals: .customMolePickerButton)
@@ -161,22 +164,28 @@ struct GameSettingsSheet: View {
 					}
 					.accessibilityTouchRegion(minHeight: 72, alignment: .leading)
 
-					Button("Play Voice Sample") {
+					Button {
 						let voice = selectedVoiceId.isEmpty ? nil : AVSpeechSynthesisVoice(identifier: selectedVoiceId)
 						SpeechEngine.shared.playVoiceSample(
 							voice: voice,
 							ratePercent: speechRatePercent,
 							volumePercent: speechVolumePercent
 						)
+					} label: {
+						Text("Play Voice Sample")
+							.fixedSize(horizontal: false, vertical: true)
 					}
 					.accessibilityTouchRegion(minHeight: 54, alignment: .leading)
 
-					Button("Send Game Feedback") {
+					Button {
 						if MFMailComposeViewController.canSendMail() {
 							isShowingMailComposer = true
 						} else {
 							openMailFallback()
 						}
+					} label: {
+						Text("Send Game Feedback")
+							.fixedSize(horizontal: false, vertical: true)
 					}
 					.accessibilityTouchRegion(minHeight: 54, alignment: .leading)
 					.accessibilityHint("Opens Mail so you can send feedback about the game.")
@@ -190,6 +199,7 @@ struct GameSettingsSheet: View {
 					Text(appFooterText)
 						.font(.footnote)
 						.multilineTextAlignment(.center)
+						.fixedSize(horizontal: false, vertical: true)
 						.frame(maxWidth: .infinity, alignment: .center)
 						.foregroundStyle(secondaryTextColor)
 						.accessibilityTouchRegion(minHeight: 60)

@@ -305,18 +305,23 @@ struct GameView: View {
 		let introText = isInvasionMode
 			? (invasionIntroPhrases.randomElement() ?? "Incoming moles!")
 			: "Ready?"
-		GameAudioEngine.shared.playOpeningCue(playEverythingIntro: isInvasionMode)
-		let focusSettleDelayMs = options.inputMode.usesBufferedTextEntry ? 2_250 : 350
+		let focusHandoffDelayMs = options.inputMode.usesBufferedTextEntry ? 600 : 300
+		let focusSettleDelayMs = options.inputMode.usesBufferedTextEntry ? 1_650 : 900
 		let postSpeechBeatMs = 300
 
-		DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(focusSettleDelayMs)) {
+		DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(focusHandoffDelayMs)) {
 			guard pendingRoundStartID == startID else { return }
-			let speechDurationMs = SpeechEngine.shared.speak(introText, interrupt: true)
-			let startDelayMs = min(3_000, speechDurationMs + postSpeechBeatMs)
+			GameAudioEngine.shared.playOpeningCue(playEverythingIntro: isInvasionMode)
 
-			DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(startDelayMs)) {
+			DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(focusSettleDelayMs)) {
 				guard pendingRoundStartID == startID else { return }
-				viewModel.beginRound(options: options)
+				let speechDurationMs = SpeechEngine.shared.speak(introText, interrupt: true)
+				let startDelayMs = min(3_000, speechDurationMs + postSpeechBeatMs)
+
+				DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(startDelayMs)) {
+					guard pendingRoundStartID == startID else { return }
+					viewModel.beginRound(options: options)
+				}
 			}
 		}
 	}
