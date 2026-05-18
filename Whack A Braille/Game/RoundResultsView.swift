@@ -39,10 +39,10 @@ struct RoundResultsView: View {
 				DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
 					isHeadingFocused = true
 				}
-				DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-					isResultsContentAccessible = true
+					DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) {
+						isResultsContentAccessible = true
+					}
 				}
-			}
 	}
 
 	private var usesAccessibilityLayout: Bool {

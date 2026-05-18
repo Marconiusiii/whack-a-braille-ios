@@ -3,13 +3,20 @@ import SwiftUI
 struct HomeView: View {
 
 	private enum FocusTarget: Hashable {
+		case heading
 		case howToPlay
+		case gameSettings
+		case cashInTickets
+		case prizeShelf
 	}
 
 	let totalTickets: Int
 	let prizeShelfItems: [GameViewModel.PrizeShelfDisplayItem]
 	let prizeShelfCount: Int
+	let homeHeadingFocusToken: Int
 	let howToPlayFocusToken: Int
+	let gameSettingsFocusToken: Int
+	let cashInFocusToken: Int
 	let openHowToPlay: () -> Void
 	let openPrizeCounter: () -> Void
 	let openSettings: () -> Void
@@ -19,16 +26,18 @@ struct HomeView: View {
 
 	@Environment(\.colorScheme) private var colorScheme
 	@State private var isShowingPrizeShelf = false
+	@State private var hasFocusedInitialHeading = false
 	@AccessibilityFocusState private var focusedElement: FocusTarget?
 
 	var body: some View {
 		ScrollView {
 			VStack(alignment: .leading, spacing: 0) {
 				VStack(alignment: .leading, spacing: 12) {
-					Text("Whack A Braille")
-						.font(.system(.largeTitle, design: .rounded, weight: .heavy))
-						.foregroundStyle(AppTheme.title)
-						.accessibilityAddTraits(.isHeader)
+						Text("Whack A Braille")
+							.font(.system(.largeTitle, design: .rounded, weight: .heavy))
+							.foregroundStyle(AppTheme.title)
+							.accessibilityAddTraits(.isHeader)
+							.accessibilityFocused($focusedElement, equals: .heading)
 
 //					Text("Listen sharp, type fast, and send those braille moles scampering before they duck away. Rack up tickets with Braille Screen Input, a keyboard, or your braille display, then cash in for silly prizes.")
 //						.foregroundStyle(secondaryTextColor)
@@ -44,9 +53,10 @@ struct HomeView: View {
 						.accessibilityTouchRegion(topPadding: 20, bottomPadding: 6, horizontalPadding: 20)
 						.accessibilityFocused($focusedElement, equals: .howToPlay)
 
-					Button("Game Settings", action: openSettings)
-						.buttonStyle(SecondaryGameButton())
-						.accessibilityTouchRegion(topPadding: 6, bottomPadding: 6, horizontalPadding: 20)
+						Button("Game Settings", action: openSettings)
+							.buttonStyle(SecondaryGameButton())
+							.accessibilityTouchRegion(topPadding: 6, bottomPadding: 6, horizontalPadding: 20)
+							.accessibilityFocused($focusedElement, equals: .gameSettings)
 
 					Button(action: openPrizeCounter) {
 						ViewThatFits(in: .horizontal) {
@@ -65,11 +75,12 @@ struct HomeView: View {
 						}
 					}
 						.buttonStyle(SecondaryGameButton())
-						.accessibilityTouchRegion(topPadding: 6, bottomPadding: 6, horizontalPadding: 20)
-						.accessibilityValue("\(totalTickets) available")
-						.accessibilityHint("Opens Prize Counter")
+							.accessibilityTouchRegion(topPadding: 6, bottomPadding: 6, horizontalPadding: 20)
+							.accessibilityValue("\(totalTickets) available")
+							.accessibilityHint("Opens Prize Counter")
+							.accessibilityFocused($focusedElement, equals: .cashInTickets)
 
-					Button("Start Whacking", action: startGame)
+						Button("Start Whacking", action: startGame)
 						.buttonStyle(PrimaryGameButton())
 						.accessibilityTouchRegion(minHeight: 116, topPadding: 6, bottomPadding: 30, horizontalPadding: 20)
 				}
@@ -81,29 +92,66 @@ struct HomeView: View {
 				}
 				.buttonStyle(SecondaryGameButton())
 				.accessibilityValue(prizeShelfAccessibilityValue)
-				.accessibilityHint("Opens a list of all your prizes!")
-				.modifier(PrizeShelfCard())
-				.accessibilityTouchRegion(minHeight: 0, topPadding: 10, bottomPadding: 20, alignment: .leading)
+					.accessibilityHint("Opens a list of all your prizes!")
+					.modifier(PrizeShelfCard())
+					.accessibilityTouchRegion(minHeight: 0, topPadding: 10, bottomPadding: 20, alignment: .leading)
+					.accessibilityFocused($focusedElement, equals: .prizeShelf)
+				}
+				.padding(24)
 			}
-			.padding(24)
-		}
-		.appBackground()
-		.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-		.sheet(isPresented: $isShowingPrizeShelf) {
-			PrizeShelfSheet(
+			.appBackground()
+			.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+			.sheet(
+				isPresented: $isShowingPrizeShelf,
+				onDismiss: {
+					DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+						focusedElement = .prizeShelf
+					}
+				}
+			) {
+				PrizeShelfSheet(
 				prizeShelfItems: prizeShelfItems,
 				prizeShelfCount: prizeShelfCount,
 				clearPrizeShelf: clearPrizeShelf,
 				removePrizeShelfItem: removePrizeShelfItem
 			)
-		}
-		.onChange(of: howToPlayFocusToken, initial: true) { _, _ in
-			guard howToPlayFocusToken > 0 else { return }
-			DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-				focusedElement = .howToPlay
 			}
-		}
-	}
+			.onAppear {
+				guard !hasFocusedInitialHeading,
+					  homeHeadingFocusToken == 0,
+					  howToPlayFocusToken == 0,
+					  gameSettingsFocusToken == 0,
+					  cashInFocusToken == 0 else { return }
+				hasFocusedInitialHeading = true
+				DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+					focusedElement = .heading
+				}
+			}
+				.onChange(of: howToPlayFocusToken, initial: true) { _, _ in
+					guard howToPlayFocusToken > 0 else { return }
+					DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+						focusedElement = .howToPlay
+					}
+			}
+			.onChange(of: homeHeadingFocusToken, initial: true) { _, _ in
+				guard homeHeadingFocusToken > 0 else { return }
+				DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+					focusedElement = .heading
+				}
+			}
+			.onChange(of: gameSettingsFocusToken, initial: true) { _, _ in
+				guard gameSettingsFocusToken > 0 else { return }
+					DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+						focusedElement = .gameSettings
+					}
+				}
+				.onChange(of: cashInFocusToken, initial: true) { _, _ in
+					guard cashInFocusToken > 0 else { return }
+					DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+						focusedElement = .cashInTickets
+					}
+				}
+			}
 
 	private var secondaryTextColor: Color {
 		colorScheme == .dark ? AppTheme.darkSecondaryText : AppTheme.lightSecondaryText

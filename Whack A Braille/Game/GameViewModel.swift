@@ -41,7 +41,10 @@ final class GameViewModel: ObservableObject {
 	@Published private(set) var prizeShelfItems: [PrizeShelfDisplayItem]
 	@Published private(set) var prizeShelfCount: Int
 	@Published private(set) var inputResetToken = 0
+	@Published private(set) var homeHeadingFocusToken = 0
 	@Published private(set) var howToPlayFocusToken = 0
+	@Published private(set) var gameSettingsFocusToken = 0
+	@Published private(set) var cashInFocusToken = 0
 	@Published private(set) var gameplayFocusToken = 0
 	@Published private(set) var cashOutPrizes: [Prize] = []
 	@Published private(set) var feedbackLane: Int?
@@ -162,10 +165,10 @@ final class GameViewModel: ObservableObject {
 		GameAudioEngine.shared.playPrizeFanfare(for: prize.tier)
 		addPrizeToShelf(prize)
 		totalAccruedTickets -= prize.ticketCost
-		UserDefaults.standard.set(totalAccruedTickets, forKey: StorageKey.totalTickets)
-		cashOutPrizes = []
-		transitionPhase(to: .home)
-	}
+			UserDefaults.standard.set(totalAccruedTickets, forKey: StorageKey.totalTickets)
+			cashOutPrizes = []
+			transitionPhase(to: .home)
+		}
 
 	func cancelCashOut() {
 		cashOutPrizes = []
@@ -191,6 +194,7 @@ final class GameViewModel: ObservableObject {
 
 	func saveTicketsAndReturnHome() {
 		returnHomeFromResults()
+		returnFocusToHomeHeading()
 	}
 
 	func clearPrizeShelf() {
@@ -211,6 +215,18 @@ final class GameViewModel: ObservableObject {
 
 	func returnFocusToHowToPlay() {
 		howToPlayFocusToken += 1
+	}
+
+	func returnFocusToHomeHeading() {
+		homeHeadingFocusToken += 1
+	}
+
+	func returnFocusToGameSettings() {
+		gameSettingsFocusToken += 1
+	}
+
+	func returnFocusToCashIn() {
+		cashInFocusToken += 1
 	}
 
 	private func addPrizeToShelf(_ prize: Prize) {

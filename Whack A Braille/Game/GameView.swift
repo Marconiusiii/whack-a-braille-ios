@@ -52,11 +52,14 @@ struct GameView: View {
 			switch viewModel.phase {
 			case .home:
 				HomeView(
-					totalTickets: viewModel.totalAccruedTickets,
-					prizeShelfItems: viewModel.prizeShelfItems,
-					prizeShelfCount: viewModel.prizeShelfCount,
-					howToPlayFocusToken: viewModel.howToPlayFocusToken,
-					openHowToPlay: { isShowingHowToPlay = true },
+						totalTickets: viewModel.totalAccruedTickets,
+						prizeShelfItems: viewModel.prizeShelfItems,
+						prizeShelfCount: viewModel.prizeShelfCount,
+							homeHeadingFocusToken: viewModel.homeHeadingFocusToken,
+							howToPlayFocusToken: viewModel.howToPlayFocusToken,
+							gameSettingsFocusToken: viewModel.gameSettingsFocusToken,
+							cashInFocusToken: viewModel.cashInFocusToken,
+							openHowToPlay: { isShowingHowToPlay = true },
 					openPrizeCounter: openPrizeCounter,
 					openSettings: { isShowingSettings = true },
 					startGame: startRound,
@@ -82,8 +85,11 @@ struct GameView: View {
 			}
 		}
 		.id(viewIdentity)
-		.sheet(isPresented: $isShowingSettings) {
-			GameSettingsSheet(
+			.sheet(
+				isPresented: $isShowingSettings,
+				onDismiss: viewModel.returnFocusToGameSettings
+			) {
+				GameSettingsSheet(
 				modeId: $modeId,
 				difficulty: difficultyBinding,
 				roundDurationSeconds: $roundDurationSeconds,
@@ -119,19 +125,33 @@ struct GameView: View {
 			CashOutView(
 				totalTickets: viewModel.totalAccruedTickets,
 				prizes: viewModel.cashOutPrizes,
-				showKeepWhacking: cashOutOrigin == .roundResults,
-				claimPrize: { prizeID in
-					isShowingCashOut = false
-					viewModel.claimPrize(prizeID)
-				},
+					showKeepWhacking: cashOutOrigin == .roundResults,
+					claimPrize: { prizeID in
+						let origin = cashOutOrigin
+						isShowingCashOut = false
+						viewModel.claimPrize(prizeID)
+						switch origin {
+						case .home:
+							viewModel.returnFocusToCashIn()
+						case .roundResults:
+							viewModel.returnFocusToHomeHeading()
+						}
+					},
 				keepWhacking: {
 					isShowingCashOut = false
 					viewModel.cancelCashOut()
 				},
-				returnHome: {
-					isShowingCashOut = false
-					viewModel.returnHomeFromCashOut()
-				}
+					returnHome: {
+						let origin = cashOutOrigin
+						isShowingCashOut = false
+						viewModel.returnHomeFromCashOut()
+						switch origin {
+						case .home:
+							viewModel.returnFocusToCashIn()
+						case .roundResults:
+							viewModel.returnFocusToHomeHeading()
+						}
+					}
 			)
 		}
 		.onChange(of: viewModel.phase, initial: true) { _, newPhase in
