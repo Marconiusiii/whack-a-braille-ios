@@ -12,6 +12,7 @@ struct HowToPlayView: View {
 	@Environment(\.colorScheme) private var colorScheme
 	@AccessibilityFocusState private var focusedElement: FocusTarget?
 	@State private var isInputInstructionsExpanded = false
+	@State private var isGameSettingsInfoExpanded = false
 	@State private var isBrailleReferenceExpanded = false
 
 	var body: some View {
@@ -26,42 +27,9 @@ struct HowToPlayView: View {
 					}
 					.appActionCard()
 
-					section(
-						title: "Mole Chooser",
-						rows: [
-							"Each mole set changes what pops up for you to type, from Grade 1 letters and numbers to Grade 2 contractions and whole-word signs.",
-							"Invasion mode keeps things wild by picking random characters out of the entire set when each mole appears rather than using just 5 chosen at the start of a normal round.",
-							"Custom Moles lets you hand-pick 5 favorite targets or assemble your own Invasion Army when certain moles have simply had it too good for too long."
-						]
-					)
-
-					section(
-						title: "Difficulty Modes",
-						rows: [
-							"Beginner gives you a roomier hit window, Normal keeps the pace lively, and Supreme turns the mole machine into pure chaos.",
-							"Training mode slows things down and lets you practice without the usual round pressure."
-						]
-					)
-
-					section(
-						title: "Spatial Mole Mapping",
-						rows: [
-							"Turn this on if you want mole positions to line up with the keyboard lanes, which can make the board feel more predictable under your fingers.",
-							"Leave it off if you want the moles to feel a little more sneaky."
-						]
-					)
-
-					section(
-						title: "Training",
-						rows: [
-							"Training is the friendly practice room. It helps you focus on accuracy, braille dots, and repeating targets before jumping into the timed arcade rush.",
-							"When training ends, you can head straight back home or jump right into another practice round."
-						]
-					)
-
-					DisclosureGroup(
-						isExpanded: $isInputInstructionsExpanded,
-						content: {
+						DisclosureGroup(
+							isExpanded: $isInputInstructionsExpanded,
+							content: {
 							VStack(alignment: .leading, spacing: 0) {
 								Text("You can use an external keyboard, a braille display, braille screen input, or one-handed braille input to whack the moles as they appear.")
 									.foregroundStyle(secondaryTextColor)
@@ -130,11 +98,62 @@ struct HowToPlayView: View {
 								.accessibilityAddTraits(.isHeader)
 						}
 					)
-					.tint(AppTheme.heading)
-					.foregroundStyle(AppTheme.heading)
-					.appActionCard()
+						.tint(AppTheme.heading)
+						.foregroundStyle(AppTheme.heading)
+						.appActionCard()
 
-					DisclosureGroup(
+						DisclosureGroup(
+							isExpanded: $isGameSettingsInfoExpanded,
+							content: {
+								VStack(alignment: .leading, spacing: 0) {
+									section(
+										title: "Mole Chooser",
+										rows: [
+											"Each mole set changes what pops up for you to type, from Grade 1 letters and numbers to Grade 2 contractions and whole-word signs.",
+											"Invasion mode keeps things wild by picking random characters out of the entire set when each mole appears rather than using just 5 chosen at the start of a normal round.",
+											"Custom Moles lets you hand-pick 5 favorite targets or assemble your own Invasion Army when certain moles have simply had it too good for too long."
+										]
+									)
+
+									section(
+										title: "Difficulty Modes",
+										rows: [
+											"Beginner gives you a roomier hit window, Normal keeps the pace lively, and Supreme turns the mole machine into pure chaos.",
+											"Training mode slows things down and lets you practice without the usual round pressure."
+										]
+									)
+
+									section(
+										title: "Spatial Mole Mapping",
+										rows: [
+											"Turn this on if you want mole positions to line up with the keyboard lanes, which can make the board feel more predictable under your fingers.",
+											"Leave it off if you want the moles to feel a little more sneaky."
+										]
+									)
+
+									section(
+										title: "Training",
+										rows: [
+											"Training is the friendly practice room. It helps you focus on accuracy, braille dots, and repeating targets before jumping into the timed arcade rush.",
+											"When training ends, you can head straight back home or jump right into another practice round."
+										]
+									)
+								}
+							},
+							label: {
+								Text("Game Settings Info")
+									.font(.headline)
+									.foregroundStyle(AppTheme.heading)
+									.fixedSize(horizontal: false, vertical: true)
+									.accessibilityTouchRegion(minHeight: 0, topPadding: 20, bottomPadding: 8, alignment: .leading)
+									.accessibilityAddTraits(.isHeader)
+							}
+						)
+						.tint(AppTheme.heading)
+						.foregroundStyle(AppTheme.heading)
+						.appActionCard()
+
+						DisclosureGroup(
 						isExpanded: $isBrailleReferenceExpanded,
 						content: {
 							VStack(alignment: .leading, spacing: 0) {
