@@ -40,7 +40,6 @@ final class GameViewModel: ObservableObject {
 	@Published private(set) var totalAccruedTickets: Int
 	@Published private(set) var prizeShelfItems: [PrizeShelfDisplayItem]
 	@Published private(set) var prizeShelfCount: Int
-	@Published private(set) var homeNotice: String?
 	@Published private(set) var inputResetToken = 0
 	@Published private(set) var howToPlayFocusToken = 0
 	@Published private(set) var gameplayFocusToken = 0
@@ -104,7 +103,6 @@ final class GameViewModel: ObservableObject {
 			if result.canceled {
 				self.lastRoundResult = nil
 				self.lastRoundWasTraining = false
-				self.homeNotice = "Round stopped."
 				self.transitionPhase(to: .home)
 			} else {
 				self.lastRoundResult = result
@@ -123,7 +121,6 @@ final class GameViewModel: ObservableObject {
 	func startRound(options: GameLoop.Options) {
 		lastRoundResult = nil
 		lastRoundWasTraining = options.difficulty == .training
-		homeNotice = nil
 		score = 0
 		hitStreak = 0
 		activeLane = nil
@@ -167,7 +164,6 @@ final class GameViewModel: ObservableObject {
 		totalAccruedTickets -= prize.ticketCost
 		UserDefaults.standard.set(totalAccruedTickets, forKey: StorageKey.totalTickets)
 		cashOutPrizes = []
-		homeNotice = nil
 		transitionPhase(to: .home)
 	}
 
@@ -177,7 +173,6 @@ final class GameViewModel: ObservableObject {
 
 	func returnHomeFromCashOut() {
 		cashOutPrizes = []
-		homeNotice = nil
 		transitionPhase(to: .home)
 	}
 
@@ -204,7 +199,6 @@ final class GameViewModel: ObservableObject {
 		prizeShelfCount = 0
 		UserDefaults.standard.removeObject(forKey: StorageKey.prizeShelfEntries)
 		UserDefaults.standard.removeObject(forKey: StorageKey.prizeShelf)
-		homeNotice = nil
 	}
 
 	func removePrizeShelfItem(id: String) {
@@ -213,7 +207,6 @@ final class GameViewModel: ObservableObject {
 		savePrizeShelfEntries()
 		prizeShelfItems = Self.displayItems(from: prizeShelfEntries)
 		prizeShelfCount = Self.totalPrizeCount(from: prizeShelfEntries)
-		homeNotice = nil
 	}
 
 	func returnFocusToHowToPlay() {

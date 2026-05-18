@@ -55,7 +55,6 @@ struct GameView: View {
 					totalTickets: viewModel.totalAccruedTickets,
 					prizeShelfItems: viewModel.prizeShelfItems,
 					prizeShelfCount: viewModel.prizeShelfCount,
-					homeNotice: viewModel.homeNotice,
 					howToPlayFocusToken: viewModel.howToPlayFocusToken,
 					openHowToPlay: { isShowingHowToPlay = true },
 					openPrizeCounter: openPrizeCounter,

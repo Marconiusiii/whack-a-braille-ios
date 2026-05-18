@@ -9,7 +9,6 @@ struct HomeView: View {
 	let totalTickets: Int
 	let prizeShelfItems: [GameViewModel.PrizeShelfDisplayItem]
 	let prizeShelfCount: Int
-	let homeNotice: String?
 	let howToPlayFocusToken: Int
 	let openHowToPlay: () -> Void
 	let openPrizeCounter: () -> Void
@@ -31,17 +30,13 @@ struct HomeView: View {
 						.foregroundStyle(AppTheme.title)
 						.accessibilityAddTraits(.isHeader)
 
-					Text("Listen sharp, type fast, and send those braille moles scampering before they duck away. Rack up tickets with Braille Screen Input, a keyboard, or your braille display, then cash in for silly prizes.")
-						.foregroundStyle(secondaryTextColor)
-						.fixedSize(horizontal: false, vertical: true)
-
-					if let homeNotice {
-						Text(homeNotice)
-							.foregroundStyle(AppTheme.heading)
-					}
+//					Text("Listen sharp, type fast, and send those braille moles scampering before they duck away. Rack up tickets with Braille Screen Input, a keyboard, or your braille display, then cash in for silly prizes.")
+//						.foregroundStyle(secondaryTextColor)
+//						.fixedSize(horizontal: false, vertical: true)
+//
 				}
 				.appCard()
-				.accessibilityTouchRegion(minHeight: 0, verticalPadding: 10, alignment: .leading)
+				.accessibilityTouchRegion(minHeight: 0, topPadding: 10, bottomPadding: 4, alignment: .leading)
 
 				VStack(alignment: .leading, spacing: 0) {
 					Button("How to Play", action: openHowToPlay)
@@ -88,7 +83,7 @@ struct HomeView: View {
 				.accessibilityValue(prizeShelfAccessibilityValue)
 				.accessibilityHint("Opens a list of all your prizes!")
 				.modifier(PrizeShelfCard())
-				.accessibilityTouchRegion(minHeight: 0, verticalPadding: 10, alignment: .leading)
+				.accessibilityTouchRegion(minHeight: 0, topPadding: 10, bottomPadding: 20, alignment: .leading)
 			}
 			.padding(24)
 		}

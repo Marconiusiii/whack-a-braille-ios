@@ -28,15 +28,12 @@ struct RoundResultsView: View {
 		.appBackground()
 		.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 		.onAppear {
-			dismissTextInputSystem()
-			DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
-				dismissTextInputSystem()
-			}
-			DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-				dismissTextInputSystem()
-			}
 			DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
 				isHeadingFocused = true
+				UIAccessibility.post(notification: .announcement, argument: "")
+				DispatchQueue.main.async {
+					UIAccessibility.post(notification: .screenChanged, argument: headingText)
+				}
 			}
 		}
 	}
@@ -45,11 +42,15 @@ struct RoundResultsView: View {
 		dynamicTypeSize.isAccessibilitySize
 	}
 
+	private var headingText: String {
+		result?.isTraining == true ? "Training Complete! Great Work!" : "Round Results"
+	}
+
 	private func resultContent(accessibilityLayout: Bool) -> some View {
 		VStack(alignment: .leading, spacing: 0) {
 			if let result {
 				VStack(alignment: .leading, spacing: 12) {
-					Text(result.isTraining ? "Training Complete! Great Work!" : "Round Results")
+					Text(headingText)
 						.font(.system(.largeTitle, design: .rounded, weight: .heavy))
 						.foregroundStyle(AppTheme.heading)
 						.fixedSize(horizontal: false, vertical: true)
@@ -146,17 +147,6 @@ struct RoundResultsView: View {
 			.buttonStyle(FullRegionSecondaryGameButton(horizontalInset: 16, verticalInset: 20))
 			.frame(maxWidth: .infinity, minHeight: minHeight, maxHeight: maxHeight)
 			.accessibilityLabel("Cash In Tickets and Pick a Prize")
-	}
-
-	private func dismissTextInputSystem() {
-		NotificationCenter.default.post(name: .dismissGameplayInput, object: nil)
-		UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-		for scene in UIApplication.shared.connectedScenes {
-			guard let windowScene = scene as? UIWindowScene else { continue }
-			for window in windowScene.windows {
-				window.endEditing(true)
-			}
-		}
 	}
 
 	private var primaryTextColor: Color {
