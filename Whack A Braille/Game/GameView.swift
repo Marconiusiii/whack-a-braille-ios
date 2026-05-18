@@ -305,7 +305,15 @@ struct GameView: View {
 			? (invasionIntroPhrases.randomElement() ?? "Incoming moles!")
 			: "Ready?"
 		let focusHandoffDelayMs = options.inputMode.usesBufferedTextEntry ? 600 : 300
-		let focusSettleDelayMs = options.inputMode.usesBufferedTextEntry ? 1_650 : 900
+		let focusSettleDelayMs: Int
+		switch options.inputMode {
+		case .brailleText, .brailleDisplayInput:
+			focusSettleDelayMs = 1_250
+		case .oneHandedBrailleInput:
+			focusSettleDelayMs = 1_650
+		case .qwerty, .perkins:
+			focusSettleDelayMs = 900
+		}
 		let postSpeechBeatMs = 300
 
 		DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(focusHandoffDelayMs)) {

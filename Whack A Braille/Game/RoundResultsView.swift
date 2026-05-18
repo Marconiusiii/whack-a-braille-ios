@@ -28,19 +28,21 @@ struct RoundResultsView: View {
 		}
 		.appBackground()
 		.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-		.onAppear {
-			isResultsContentAccessible = false
-			DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-				isHeadingFocused = true
-				UIAccessibility.post(notification: .announcement, argument: "")
-				DispatchQueue.main.async {
-					UIAccessibility.post(notification: .screenChanged, argument: headingText)
+			.onAppear {
+				isResultsContentAccessible = false
+				isHeadingFocused = false
+				DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+					DispatchQueue.main.async {
+						UIAccessibility.post(notification: .screenChanged, argument: nil)
+					}
+				}
+				DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+					isHeadingFocused = true
+				}
+				DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+					isResultsContentAccessible = true
 				}
 			}
-			DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-				isResultsContentAccessible = true
-			}
-		}
 	}
 
 	private var usesAccessibilityLayout: Bool {
