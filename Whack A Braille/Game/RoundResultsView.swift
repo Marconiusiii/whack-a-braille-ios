@@ -13,6 +13,7 @@ struct RoundResultsView: View {
 	@Environment(\.colorScheme) private var colorScheme
 	@Environment(\.dynamicTypeSize) private var dynamicTypeSize
 	@AccessibilityFocusState private var isHeadingFocused: Bool
+	@State private var isResultsContentAccessible = false
 
 	var body: some View {
 		Group {
@@ -28,12 +29,16 @@ struct RoundResultsView: View {
 		.appBackground()
 		.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 		.onAppear {
+			isResultsContentAccessible = false
 			DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
 				isHeadingFocused = true
 				UIAccessibility.post(notification: .announcement, argument: "")
 				DispatchQueue.main.async {
 					UIAccessibility.post(notification: .screenChanged, argument: headingText)
 				}
+			}
+			DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+				isResultsContentAccessible = true
 			}
 		}
 	}
@@ -111,25 +116,30 @@ struct RoundResultsView: View {
 				.foregroundStyle(primaryTextColor)
 				.appCard()
 				.accessibilityTouchRegion(minHeight: 0, topPadding: 10, bottomPadding: 0, horizontalPadding: 24, alignment: .leading)
+				.accessibilityHidden(!isResultsContentAccessible)
 
 				Button(result.isTraining ? "Keep Training!" : "Keep Whacking!", action: keepWhacking)
 					.buttonStyle(FullRegionPrimaryGameButton(visibleMinHeight: 72, horizontalInset: 24, verticalInset: 20))
 					.frame(maxWidth: .infinity, minHeight: accessibilityLayout ? 120 : nil, maxHeight: accessibilityLayout ? nil : .infinity)
+					.accessibilityHidden(!isResultsContentAccessible)
 
 				if result.isTraining {
 					Button("Return Home", action: returnHome)
 						.buttonStyle(FullRegionSecondaryGameButton(horizontalInset: 24, verticalInset: 20))
 						.frame(maxWidth: .infinity, minHeight: accessibilityLayout ? 104 : 140, maxHeight: accessibilityLayout ? nil : .infinity)
+						.accessibilityHidden(!isResultsContentAccessible)
 				} else {
 					if accessibilityLayout {
 						VStack(spacing: 0) {
 							bottomActionButtons(maxHeight: nil, minHeight: 104)
 						}
+						.accessibilityHidden(!isResultsContentAccessible)
 					} else {
 						HStack(spacing: 0) {
 							bottomActionButtons(maxHeight: .infinity, minHeight: nil)
 						}
 						.frame(maxWidth: .infinity, minHeight: 150)
+						.accessibilityHidden(!isResultsContentAccessible)
 					}
 				}
 			}
