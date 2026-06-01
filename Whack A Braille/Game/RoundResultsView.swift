@@ -27,10 +27,10 @@ struct RoundResultsView: View {
 		.sheet(isPresented: $isShowingMoleRecon) {
 			MoleReconView(
 				items: moleReconItems,
-				beginPractice: {
-					let items = moleReconItems
+				isGrudgeMatch: result?.usesAllShownMolesForRecon == true,
+				beginPractice: { selectedItems in
 					isShowingMoleRecon = false
-					beginMoleRecon(items)
+					beginMoleRecon(selectedItems)
 				},
 				cancel: {
 					isShowingMoleRecon = false
@@ -227,12 +227,15 @@ struct RoundResultsView: View {
 private struct MoleReconView: View {
 
 	let items: [BrailleItem]
-	let beginPractice: () -> Void
+	let isGrudgeMatch: Bool
+	let beginPractice: ([BrailleItem]) -> Void
 	let cancel: () -> Void
 
 	@Environment(\.colorScheme) private var colorScheme
 	@Environment(\.dismiss) private var dismiss
 	@AccessibilityFocusState private var isHeadingFocused: Bool
+	@State private var selectedItemIDs = Set<String>()
+	@State private var isShowingEmptySelectionAlert = false
 
 	var body: some View {
 		NavigationStack {
@@ -246,7 +249,7 @@ private struct MoleReconView: View {
 							.accessibilityAddTraits(.isHeader)
 							.accessibilityFocused($isHeadingFocused)
 
-						Text("These moles remain at large. Study their dot patterns, prepare your fingers, and begin a training round so they don't get away twice.")
+						Text(moleReconBlurb)
 							.foregroundStyle(secondaryTextColor)
 							.fixedSize(horizontal: false, vertical: true)
 					}
@@ -255,18 +258,11 @@ private struct MoleReconView: View {
 
 					VStack(alignment: .leading, spacing: 0) {
 						ForEach(items, id: \.id) { item in
-							VStack(alignment: .leading, spacing: 4) {
-								Text(item.displayLabel)
-									.font(.headline)
-									.fixedSize(horizontal: false, vertical: true)
-								Text(dotPatternText(for: item))
-									.foregroundStyle(secondaryTextColor)
-									.fixedSize(horizontal: false, vertical: true)
+							if isGrudgeMatch {
+								interactiveMoleRow(for: item)
+							} else {
+								staticMoleRow(for: item)
 							}
-							.summaryRowCard()
-							.accessibilityTouchRegion(verticalPadding: 5, alignment: .leading)
-							.accessibilityElement(children: .ignore)
-							.accessibilityLabel("\(item.announceText), \(dotPatternText(for: item))")
 						}
 					}
 					.foregroundStyle(primaryTextColor)
@@ -274,8 +270,13 @@ private struct MoleReconView: View {
 					.accessibilityTouchRegion(minHeight: 0, topPadding: 10, bottomPadding: 0, horizontalPadding: 24, alignment: .leading)
 
 					Button("Begin Practice") {
+						let practiceItems = selectedPracticeItems
+						if practiceItems.isEmpty {
+							isShowingEmptySelectionAlert = true
+							return
+						}
 						dismiss()
-						beginPractice()
+						beginPractice(practiceItems)
 					}
 					.buttonStyle(FullRegionPrimaryGameButton(visibleMinHeight: 72, horizontalInset: 24, verticalInset: 20))
 					.accessibilityHint("Starts a training round using the moles in Mole Recon.")
@@ -290,11 +291,85 @@ private struct MoleReconView: View {
 			}
 			.appBackground()
 		}
+		.alert("No Moles Selected", isPresented: $isShowingEmptySelectionAlert) {
+			Button("OK", role: .cancel) {}
+		} message: {
+			Text("Pick at least one mole. An empty recon mission is just dramatic standing around with nothing to whack.")
+		}
 		.onAppear {
+			if isGrudgeMatch {
+				selectedItemIDs = Set(items.map(\.id))
+			}
 			DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
 				isHeadingFocused = true
 			}
 		}
+	}
+
+	private var moleReconBlurb: String {
+		if isGrudgeMatch {
+			return "Have a grudge against these particular moles? Show them what's what in this training session! Choose the moles you want to whack:"
+		}
+
+		return "These moles remain at large. Study their dot patterns, prepare your fingers, and begin a training round so they don't get away twice."
+	}
+
+	private var selectedPracticeItems: [BrailleItem] {
+		if isGrudgeMatch {
+			return items.filter { selectedItemIDs.contains($0.id) }
+		}
+
+		return items
+	}
+
+	@ViewBuilder
+	private func interactiveMoleRow(for item: BrailleItem) -> some View {
+		Toggle(isOn: selectionBinding(for: item)) {
+			moleRowContent(for: item)
+		}
+		.toggleStyle(MoleReconSelectionToggleStyle())
+		.summaryRowCard()
+		.accessibilityTouchRegion(verticalPadding: 5, alignment: .leading)
+		.accessibilityElement(children: .ignore)
+		.accessibilityLabel("\(item.announceText), \(dotPatternText(for: item))")
+		.accessibilityHint("Toggles mole selection")
+		.accessibilityAddTraits(.isButton)
+		.accessibilityAddTraits(selectedItemIDs.contains(item.id) ? .isSelected : [])
+		.accessibilityRemoveTraits(selectedItemIDs.contains(item.id) ? [] : .isSelected)
+	}
+
+	private func staticMoleRow(for item: BrailleItem) -> some View {
+		moleRowContent(for: item)
+			.summaryRowCard()
+			.accessibilityTouchRegion(verticalPadding: 5, alignment: .leading)
+			.accessibilityElement(children: .ignore)
+			.accessibilityLabel("\(item.announceText), \(dotPatternText(for: item))")
+	}
+
+	private func moleRowContent(for item: BrailleItem) -> some View {
+		VStack(alignment: .leading, spacing: 4) {
+			Text(item.displayLabel)
+				.font(.headline)
+				.fixedSize(horizontal: false, vertical: true)
+			Text(dotPatternText(for: item))
+				.foregroundStyle(secondaryTextColor)
+				.fixedSize(horizontal: false, vertical: true)
+		}
+	}
+
+	private func selectionBinding(for item: BrailleItem) -> Binding<Bool> {
+		Binding(
+			get: {
+				selectedItemIDs.contains(item.id)
+			},
+			set: { isSelected in
+				if isSelected {
+					selectedItemIDs.insert(item.id)
+				} else {
+					selectedItemIDs.remove(item.id)
+				}
+			}
+		)
 	}
 
 	private var primaryTextColor: Color {
@@ -303,6 +378,27 @@ private struct MoleReconView: View {
 
 	private var secondaryTextColor: Color {
 		colorScheme == .dark ? AppTheme.darkSecondaryText : AppTheme.lightSecondaryText
+	}
+}
+
+private struct MoleReconSelectionToggleStyle: ToggleStyle {
+
+	func makeBody(configuration: Configuration) -> some View {
+		Button {
+			configuration.isOn.toggle()
+		} label: {
+			HStack(alignment: .firstTextBaseline, spacing: 12) {
+				Image(systemName: configuration.isOn ? "checkmark.square.fill" : "square")
+					.imageScale(.large)
+					.foregroundStyle(configuration.isOn ? AppTheme.heading : AppTheme.focus.opacity(0.7))
+					.accessibilityHidden(true)
+
+				configuration.label
+					.frame(maxWidth: .infinity, alignment: .leading)
+			}
+			.contentShape(Rectangle())
+		}
+		.buttonStyle(.plain)
 	}
 }
 

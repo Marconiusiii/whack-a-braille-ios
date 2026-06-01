@@ -97,6 +97,8 @@ final class GameLoop {
 	private var lastTrainingMissAtMs = 0
 	private var moleReconItems: [BrailleItem] = []
 	private var moleReconItemIDs = Set<String>()
+	private var shownMoleReconItems: [BrailleItem] = []
+	private var shownMoleReconItemIDs = Set<String>()
 
 	private var roundDurationMs = 30_000
 	private var roundStartTimeMs = 0
@@ -140,6 +142,8 @@ final class GameLoop {
 		lastTrainingMissAtMs = 0
 		moleReconItems = []
 		moleReconItemIDs = []
+		shownMoleReconItems = []
+		shownMoleReconItemIDs = []
 
 		roundDurationMs = options.durationSeconds * 1000
 		roundStartTimeMs = TimeUtils.nowMs()
@@ -285,6 +289,8 @@ final class GameLoop {
 		let baseTickets = adjustedTickets(rawBaseTickets)
 		let streakTickets = adjustedTickets(rawStreakTickets)
 		let speedTickets = adjustedTickets(rawSpeedTickets)
+		let usesAllShownMolesForRecon = !isTraining && moleReconItems.isEmpty && !shownMoleReconItems.isEmpty
+		let reconItems = usesAllShownMolesForRecon ? shownMoleReconItems : moleReconItems
 
 		onRoundEnded?(
 			RoundResult(
@@ -300,7 +306,8 @@ final class GameLoop {
 				bestStreak: bestStreakThisRound,
 				streakBonusCount: streakBonusCount,
 				canceled: canceled,
-				moleReconItems: moleReconItems,
+				moleReconItems: reconItems,
+				usesAllShownMolesForRecon: usesAllShownMolesForRecon,
 				baseTickets: baseTickets,
 				streakBonusTickets: streakTickets,
 				speedBonusTickets: speedTickets
@@ -375,6 +382,9 @@ final class GameLoop {
 			clearActiveMole()
 			scheduleFollowUp(afterTraining: trainingMode)
 			return
+		}
+		if !trainingMode {
+			recordShownMoleReconItem(item)
 		}
 
 		let moleId = currentMoleId
@@ -751,6 +761,11 @@ final class GameLoop {
 	private func recordMoleReconItem(_ item: BrailleItem) {
 		guard moleReconItemIDs.insert(item.id).inserted else { return }
 		moleReconItems.append(item)
+	}
+
+	private func recordShownMoleReconItem(_ item: BrailleItem) {
+		guard shownMoleReconItemIDs.insert(item.id).inserted else { return }
+		shownMoleReconItems.append(item)
 	}
 
 	private func getProgress() -> Double {
