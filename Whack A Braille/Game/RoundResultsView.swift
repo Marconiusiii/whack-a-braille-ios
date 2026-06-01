@@ -6,6 +6,7 @@ struct RoundResultsView: View {
 	let result: RoundResult?
 	let totalTickets: Int
 	let keepWhacking: () -> Void
+	let beginMoleRecon: ([BrailleItem]) -> Void
 	let cashInTickets: () -> Void
 	let saveTicketsAndReturnHome: () -> Void
 	let returnHome: () -> Void
@@ -14,6 +15,7 @@ struct RoundResultsView: View {
 	@Environment(\.dynamicTypeSize) private var dynamicTypeSize
 	@AccessibilityFocusState private var isHeadingFocused: Bool
 	@State private var isResultsContentAccessible = false
+	@State private var isShowingMoleRecon = false
 
 	var body: some View {
 		Group {
@@ -28,6 +30,19 @@ struct RoundResultsView: View {
 		}
 		.appBackground()
 		.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+		.sheet(isPresented: $isShowingMoleRecon) {
+			MoleReconView(
+				items: moleReconItems,
+				beginPractice: {
+					let items = moleReconItems
+					isShowingMoleRecon = false
+					beginMoleRecon(items)
+				},
+				cancel: {
+					isShowingMoleRecon = false
+				}
+			)
+		}
 			.onAppear {
 				isResultsContentAccessible = false
 				isHeadingFocused = false
@@ -53,6 +68,11 @@ struct RoundResultsView: View {
 		result?.isTraining == true ? "Training Complete! Great Work!" : "Round Results"
 	}
 
+	private var moleReconItems: [BrailleItem] {
+		guard let result else { return [] }
+		return result.moleReconItems.filter { !dotPatternText(for: $0).isEmpty }
+	}
+
 	private func resultContent(accessibilityLayout: Bool) -> some View {
 		VStack(alignment: .leading, spacing: 0) {
 			if let result {
@@ -69,79 +89,94 @@ struct RoundResultsView: View {
 
 				VStack(alignment: .leading, spacing: 0) {
 					if !result.isTraining {
-						Text("Score: \(result.score)")
-							.fixedSize(horizontal: false, vertical: true)
-							.summaryRowCard()
-							.accessibilityTouchRegion(verticalPadding: 5, alignment: .leading)
-						VStack(alignment: .leading, spacing: 4) {
-							Text("Tickets this round: \(result.totalTickets)")
+						VStack(alignment: .leading, spacing: 6) {
+							Text(resultsFlavorLine(for: result))
+								.font(.headline)
 								.fixedSize(horizontal: false, vertical: true)
+							Text("Score: \(result.score)")
+							Text("Accuracy: \(accuracyPercent(for: result)) percent")
+						}
+						.fixedSize(horizontal: false, vertical: true)
+						.summaryRowCard()
+						.accessibilityTouchRegion(verticalPadding: 5, alignment: .leading)
+						.accessibilitySortPriority(50)
+
+						VStack(alignment: .leading, spacing: 4) {
+							Text("Hits: \(result.hits), Misses: \(result.misses), Escapes: \(result.escapes)")
+						}
+						.fixedSize(horizontal: false, vertical: true)
+						.summaryRowCard()
+						.accessibilityTouchRegion(verticalPadding: 5, alignment: .leading)
+						.accessibilitySortPriority(49)
+
+						VStack(alignment: .leading, spacing: 4) {
+							Text("Best streak: \(result.bestStreak), Speed bonus: \(result.speedBonusTickets) \(result.speedBonusTickets == 1 ? "ticket" : "tickets")")
+						}
+						.fixedSize(horizontal: false, vertical: true)
+						.summaryRowCard()
+						.accessibilityTouchRegion(verticalPadding: 5, alignment: .leading)
+						.accessibilitySortPriority(48)
+
+						VStack(alignment: .leading, spacing: 4) {
+							Text("Tickets earned: \(result.totalTickets)")
 							Text("Total tickets: \(totalTickets)")
-								.fixedSize(horizontal: false, vertical: true)
 						}
+						.fixedSize(horizontal: false, vertical: true)
 						.summaryRowCard()
 						.accessibilityTouchRegion(verticalPadding: 5, alignment: .leading)
-						.accessibilityElement(children: .ignore)
-						.accessibilityLabel("Tickets this round \(result.totalTickets), total tickets \(totalTickets)")
-						VStack(alignment: .leading, spacing: 4) {
-							Text("Streak Bonus Tickets: \(result.streakBonusTickets)")
-								.fixedSize(horizontal: false, vertical: true)
-							Text("Speed Bonus Tickets: \(result.speedBonusTickets)")
-								.fixedSize(horizontal: false, vertical: true)
-						}
-						.summaryRowCard()
-						.accessibilityTouchRegion(verticalPadding: 5, alignment: .leading)
-						.accessibilityElement(children: .ignore)
-						.accessibilityLabel("Streak bonus tickets \(result.streakBonusTickets), speed bonus tickets \(result.speedBonusTickets)")
+						.accessibilitySortPriority(47)
 					} else {
 						Text("Training moles completed: \(result.trainingMolesCompleted)")
 							.fixedSize(horizontal: false, vertical: true)
 							.summaryRowCard()
 							.accessibilityTouchRegion(verticalPadding: 5, alignment: .leading)
+							.accessibilitySortPriority(50)
 					}
 
-					if !result.isTraining {
-						VStack(alignment: .leading, spacing: 4) {
-							Text("Hits: \(result.hits)")
-								.fixedSize(horizontal: false, vertical: true)
-							Text("Misses: \(result.misses)")
-								.fixedSize(horizontal: false, vertical: true)
-							Text("Escapes: \(result.escapes)")
-								.fixedSize(horizontal: false, vertical: true)
-						}
-						.summaryRowCard()
-						.accessibilityTouchRegion(verticalPadding: 5, alignment: .leading)
-						.accessibilityElement(children: .ignore)
-						.accessibilityLabel("Hits \(result.hits), misses \(result.misses), escapes \(result.escapes)")
-					}
 				}
 				.foregroundStyle(primaryTextColor)
 				.appCard()
 				.accessibilityTouchRegion(minHeight: 0, topPadding: 10, bottomPadding: 0, horizontalPadding: 24, alignment: .leading)
 				.accessibilityHidden(!isResultsContentAccessible)
+				.accessibilitySortPriority(40)
 
 				Button(result.isTraining ? "Keep Training!" : "Keep Whacking!", action: keepWhacking)
 					.buttonStyle(FullRegionPrimaryGameButton(visibleMinHeight: 72, horizontalInset: 24, verticalInset: 20))
 					.frame(maxWidth: .infinity, minHeight: accessibilityLayout ? 120 : nil, maxHeight: accessibilityLayout ? nil : .infinity)
 					.accessibilityHidden(!isResultsContentAccessible)
+					.accessibilitySortPriority(30)
+
+				if !result.isTraining && !moleReconItems.isEmpty {
+					Button("Mole Recon") {
+						isShowingMoleRecon = true
+					}
+					.buttonStyle(FullRegionSecondaryGameButton(horizontalInset: 24, verticalInset: 20))
+					.frame(maxWidth: .infinity, minHeight: accessibilityLayout ? 104 : nil, maxHeight: accessibilityLayout ? nil : .infinity)
+					.accessibilityHint("Opens a training briefing for the moles you missed or let escape.")
+					.accessibilityHidden(!isResultsContentAccessible)
+					.accessibilitySortPriority(20)
+				}
 
 				if result.isTraining {
 					Button("Return Home", action: returnHome)
 						.buttonStyle(FullRegionSecondaryGameButton(horizontalInset: 24, verticalInset: 20))
 						.frame(maxWidth: .infinity, minHeight: accessibilityLayout ? 104 : 140, maxHeight: accessibilityLayout ? nil : .infinity)
 						.accessibilityHidden(!isResultsContentAccessible)
+						.accessibilitySortPriority(10)
 				} else {
 					if accessibilityLayout {
 						VStack(spacing: 0) {
 							bottomActionButtons(maxHeight: nil, minHeight: 104)
 						}
 						.accessibilityHidden(!isResultsContentAccessible)
+						.accessibilitySortPriority(10)
 					} else {
 						HStack(spacing: 0) {
 							bottomActionButtons(maxHeight: .infinity, minHeight: nil)
 						}
 						.frame(maxWidth: .infinity, minHeight: 150)
 						.accessibilityHidden(!isResultsContentAccessible)
+						.accessibilitySortPriority(10)
 					}
 				}
 			}
@@ -168,4 +203,134 @@ struct RoundResultsView: View {
 	private var secondaryTextColor: Color {
 		colorScheme == .dark ? AppTheme.darkSecondaryText : AppTheme.lightSecondaryText
 	}
+
+	private func accuracyPercent(for result: RoundResult) -> Int {
+		let attempts = result.hits + result.misses + result.escapes
+		guard attempts > 0 else { return 0 }
+		return Int((Double(result.hits) / Double(attempts) * 100).rounded())
+	}
+
+	private func resultsFlavorLine(for result: RoundResult) -> String {
+		let accuracy = accuracyPercent(for: result)
+
+		if result.hits == 0 {
+			return "The moles won this round. Rude, but temporary."
+		}
+
+		if accuracy >= 90 && result.escapes == 0 {
+			return "You brought study skills to a bonk fight."
+		}
+
+		if result.bestStreak >= 10 {
+			return "Fast hands. Suspiciously fast."
+		}
+
+		if result.escapes >= result.hits {
+			return "The escaped moles are acting brave. For now."
+		}
+
+		if result.misses + result.escapes >= result.hits {
+			return "That was valuable reconnaissance disguised as chaos."
+		}
+
+		if accuracy >= 75 {
+			return "Braille fluency increased. Mole confidence decreased."
+		}
+
+		return "A few moles got away, but they know you're learning."
+	}
+}
+
+private struct MoleReconView: View {
+
+	let items: [BrailleItem]
+	let beginPractice: () -> Void
+	let cancel: () -> Void
+
+	@Environment(\.colorScheme) private var colorScheme
+	@Environment(\.dismiss) private var dismiss
+	@AccessibilityFocusState private var isHeadingFocused: Bool
+
+	var body: some View {
+		NavigationStack {
+			ScrollView {
+				VStack(alignment: .leading, spacing: 0) {
+					VStack(alignment: .leading, spacing: 12) {
+						Text("Mole Recon")
+							.font(.system(.largeTitle, design: .rounded, weight: .heavy))
+							.foregroundStyle(AppTheme.heading)
+							.fixedSize(horizontal: false, vertical: true)
+							.accessibilityAddTraits(.isHeader)
+							.accessibilityFocused($isHeadingFocused)
+
+						Text("These moles remain at large. Study their dot patterns, prepare your fingers, and begin a training round so they don't get away twice.")
+							.foregroundStyle(secondaryTextColor)
+							.fixedSize(horizontal: false, vertical: true)
+					}
+					.appCard()
+					.accessibilityTouchRegion(minHeight: 0, topPadding: 24, bottomPadding: 10, horizontalPadding: 24, alignment: .leading)
+
+					VStack(alignment: .leading, spacing: 0) {
+						ForEach(items, id: \.id) { item in
+							VStack(alignment: .leading, spacing: 4) {
+								Text(item.displayLabel)
+									.font(.headline)
+									.fixedSize(horizontal: false, vertical: true)
+								Text(dotPatternText(for: item))
+									.foregroundStyle(secondaryTextColor)
+									.fixedSize(horizontal: false, vertical: true)
+							}
+							.summaryRowCard()
+							.accessibilityTouchRegion(verticalPadding: 5, alignment: .leading)
+							.accessibilityElement(children: .ignore)
+							.accessibilityLabel("\(item.announceText), \(dotPatternText(for: item))")
+						}
+					}
+					.foregroundStyle(primaryTextColor)
+					.appCard()
+					.accessibilityTouchRegion(minHeight: 0, topPadding: 10, bottomPadding: 0, horizontalPadding: 24, alignment: .leading)
+
+					Button("Begin Practice") {
+						dismiss()
+						beginPractice()
+					}
+					.buttonStyle(FullRegionPrimaryGameButton(visibleMinHeight: 72, horizontalInset: 24, verticalInset: 20))
+					.accessibilityHint("Starts a training round using the moles in Mole Recon.")
+
+					Button("Cancel") {
+						dismiss()
+						cancel()
+					}
+					.buttonStyle(FullRegionSecondaryGameButton(horizontalInset: 24, verticalInset: 20))
+				}
+				.padding(.bottom, 24)
+			}
+			.appBackground()
+		}
+		.onAppear {
+			DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+				isHeadingFocused = true
+			}
+		}
+	}
+
+	private var primaryTextColor: Color {
+		colorScheme == .dark ? AppTheme.darkText : AppTheme.lightText
+	}
+
+	private var secondaryTextColor: Color {
+		colorScheme == .dark ? AppTheme.darkSecondaryText : AppTheme.lightSecondaryText
+	}
+}
+
+private func dotPatternText(for item: BrailleItem) -> String {
+	let sequence = item.perkinsSequenceDots.isEmpty ? [item.dots] : item.perkinsSequenceDots
+	let cells = sequence
+		.filter { !$0.isEmpty }
+		.map { dots in
+			let label = dots.count == 1 ? "Dot" : "Dots"
+			return "\(label) \(dots.map(String.init).joined(separator: " "))"
+		}
+
+	return cells.joined(separator: ", then ")
 }

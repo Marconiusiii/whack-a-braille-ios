@@ -9,8 +9,10 @@ struct RoundResult {
 	let hits: Int
 	let misses: Int
 	let escapes: Int
+	let bestStreak: Int
 	let streakBonusCount: Int
 	let canceled: Bool
+	let moleReconItems: [BrailleItem]
 
 	let baseTickets: Int
 	let streakBonusTickets: Int

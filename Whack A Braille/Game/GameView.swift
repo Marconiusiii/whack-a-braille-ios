@@ -78,9 +78,10 @@ struct GameView: View {
 					result: viewModel.lastRoundResult,
 					totalTickets: viewModel.totalAccruedTickets,
 					keepWhacking: startRound,
+					beginMoleRecon: startMoleRecon,
 					cashInTickets: cashInTickets,
 					saveTicketsAndReturnHome: viewModel.saveTicketsAndReturnHome,
-					returnHome: viewModel.returnHomeFromResults
+					returnHome: returnHomeFromResults
 				)
 			}
 		}
@@ -267,6 +268,40 @@ struct GameView: View {
 		GameAudioEngine.shared.prewarm {
 			beginPreparedRound(startID: startID, options: options)
 		}
+	}
+
+	private func startMoleRecon(items: [BrailleItem]) {
+		guard !items.isEmpty else { return }
+
+		pendingRoundStartID = UUID()
+		applySpeechSettings()
+
+		let options = GameLoop.Options(
+			modeId: "moleRecon",
+			durationSeconds: 30,
+			inputMode: effectiveInputMode,
+			difficulty: .training,
+			speakBrailleDots: true,
+			characterEcho: characterEcho,
+			timerMusicEnabled: false,
+			spatialMoleMappingEnabled: false,
+			customMolePlayMode: .individual,
+			customMoleIDs: items.map(\.id)
+		)
+
+		let startID = UUID()
+		pendingRoundStartID = startID
+		viewModel.startRound(options: options)
+		applyAudioSettings()
+		SpeechEngine.shared.prewarm()
+		GameAudioEngine.shared.prewarm {
+			beginPreparedRound(startID: startID, options: options)
+		}
+	}
+
+	private func returnHomeFromResults() {
+		viewModel.returnHomeFromResults()
+		viewModel.returnFocusToHomeHeading()
 	}
 
 	private func cashInTickets() {

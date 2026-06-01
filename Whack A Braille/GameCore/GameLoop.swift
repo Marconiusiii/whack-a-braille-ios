@@ -87,11 +87,14 @@ final class GameLoop {
 	private var hitsThisRound = 0
 	private var missesThisRound = 0
 	private var escapesThisRound = 0
+	private var bestStreakThisRound = 0
 	private var streakBonusCount = 0
 	private var speedHitCount = 0
 	private var speedBonusTickets = 0
 	private var trainingMolesCompleted = 0
 	private var lastTrainingMissAtMs = 0
+	private var moleReconItems: [BrailleItem] = []
+	private var moleReconItemIDs = Set<String>()
 
 	private var roundDurationMs = 30_000
 	private var roundStartTimeMs = 0
@@ -127,11 +130,14 @@ final class GameLoop {
 		hitsThisRound = 0
 		missesThisRound = 0
 		escapesThisRound = 0
+		bestStreakThisRound = 0
 		streakBonusCount = 0
 		speedHitCount = 0
 		speedBonusTickets = 0
 		trainingMolesCompleted = 0
 		lastTrainingMissAtMs = 0
+		moleReconItems = []
+		moleReconItemIDs = []
 
 		roundDurationMs = options.durationSeconds * 1000
 		roundStartTimeMs = TimeUtils.nowMs()
@@ -289,8 +295,10 @@ final class GameLoop {
 				hits: hitsThisRound,
 				misses: missesThisRound,
 				escapes: escapesThisRound,
+				bestStreak: bestStreakThisRound,
 				streakBonusCount: streakBonusCount,
 				canceled: canceled,
+				moleReconItems: moleReconItems,
 				baseTickets: baseTickets,
 				streakBonusTickets: streakTickets,
 				speedBonusTickets: speedTickets
@@ -404,6 +412,7 @@ final class GameLoop {
 			guard self.currentMoleId == moleId, self.activeLane == lane else { return }
 
 			self.escapesThisRound += 1
+			self.recordMoleReconItem(item)
 			self.hitStreak = 0
 			self.onScoreUpdated?(self.score, self.hitStreak)
 			self.onInputResetRequested?()
@@ -438,6 +447,7 @@ final class GameLoop {
 		let previousScore = score
 		hitsThisRound += 1
 		hitStreak += 1
+		bestStreakThisRound = max(bestStreakThisRound, hitStreak)
 		score += 10
 
 		if hitStreak % 5 == 0 {
@@ -481,6 +491,9 @@ final class GameLoop {
 		guard let lane = activeLane else { return }
 
 		missesThisRound += 1
+		if let item = currentItem {
+			recordMoleReconItem(item)
+		}
 		hitStreak = 0
 		score = max(0, score - 2)
 
@@ -733,6 +746,11 @@ final class GameLoop {
 		onActiveMoleChanged?(nil, nil)
 	}
 
+	private func recordMoleReconItem(_ item: BrailleItem) {
+		guard moleReconItemIDs.insert(item.id).inserted else { return }
+		moleReconItems.append(item)
+	}
+
 	private func getProgress() -> Double {
 		guard roundDurationMs > 0 else { return 0 }
 		let elapsed = TimeUtils.nowMs() - roundStartTimeMs
@@ -821,6 +839,10 @@ final class GameLoop {
 	}
 
 	private func items(for options: Options) -> [BrailleItem] {
+		if options.modeId == "moleRecon" {
+			return BrailleRegistry.customMoleItems(for: options.customMoleIDs, inputMode: options.inputMode)
+		}
+
 		if options.modeId != "customMoles" {
 			return BrailleRegistry.getItems(for: options.modeId, inputMode: options.inputMode)
 		}

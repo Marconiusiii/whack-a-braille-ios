@@ -35,9 +35,17 @@ struct GameSettingsSheet: View {
 		case keyboardInputModePicker
 		case moleChooserPicker
 		case difficultyPicker
+		case speakBrailleDotsToggle
 		case roundLengthPicker
+		case timerMusicToggle
 		case gameSoundsPicker
+		case spatialMoleMappingToggle
 		case systemVoicePicker
+		case characterEchoToggle
+		case speechRateSlider
+		case speechVolumeSlider
+		case voiceSampleButton
+		case sendFeedbackButton
 		case customMolePickerButton
 	}
 
@@ -85,6 +93,7 @@ struct GameSettingsSheet: View {
 				Section("Training Options") {
 					Toggle("Speak Braille Dots", isOn: $speakBrailleDots)
 						.disabled(difficulty != .training)
+						.accessibilityFocused($focusedElement, equals: .speakBrailleDotsToggle)
 				}
 
 				Section("Round Length") {
@@ -101,6 +110,7 @@ struct GameSettingsSheet: View {
 
 				Section("Timer Music") {
 					Toggle("Enable timer music", isOn: $timerMusicEnabled)
+						.accessibilityFocused($focusedElement, equals: .timerMusicToggle)
 				}
 
 				Section("Game Sounds") {
@@ -115,6 +125,7 @@ struct GameSettingsSheet: View {
 				Section("Spatial Mole Mapping") {
 					Toggle("Enable spatial mole mapping", isOn: $spatialMoleMappingEnabled)
 						.accessibilityHint("Matches mole location with key positions on keyboard.")
+						.accessibilityFocused($focusedElement, equals: .spatialMoleMappingToggle)
 				}
 
 				Section("Voice Settings") {
@@ -129,6 +140,7 @@ struct GameSettingsSheet: View {
 
 					Toggle("Character Echo", isOn: $characterEcho)
 						.accessibilityHint("Speaks NATO word for single letters")
+						.accessibilityFocused($focusedElement, equals: .characterEchoToggle)
 
 					VStack(alignment: .leading, spacing: 0) {
 						Text("Speech Rate: \(speechRatePercent) percent")
@@ -144,6 +156,7 @@ struct GameSettingsSheet: View {
 						.accessibilityLabel("Speech Rate")
 						.accessibilityValue("\(speechRatePercent) percent")
 						.accessibilityTouchRegion(minHeight: 44, alignment: .leading)
+						.accessibilityFocused($focusedElement, equals: .speechRateSlider)
 					}
 					.accessibilityTouchRegion(minHeight: 72, alignment: .leading)
 
@@ -161,6 +174,7 @@ struct GameSettingsSheet: View {
 						.accessibilityLabel("Speech Volume")
 						.accessibilityValue("\(speechVolumePercent) percent")
 						.accessibilityTouchRegion(minHeight: 44, alignment: .leading)
+						.accessibilityFocused($focusedElement, equals: .speechVolumeSlider)
 					}
 					.accessibilityTouchRegion(minHeight: 72, alignment: .leading)
 
@@ -176,12 +190,14 @@ struct GameSettingsSheet: View {
 							.fixedSize(horizontal: false, vertical: true)
 					}
 					.accessibilityTouchRegion(minHeight: 54, alignment: .leading)
+					.accessibilityFocused($focusedElement, equals: .voiceSampleButton)
 
 					Button {
 						if MFMailComposeViewController.canSendMail() {
 							isShowingMailComposer = true
 						} else {
 							openMailFallback()
+							restoreFocus(to: .sendFeedbackButton)
 						}
 					} label: {
 						Text("Send Game Feedback")
@@ -189,6 +205,7 @@ struct GameSettingsSheet: View {
 					}
 					.accessibilityTouchRegion(minHeight: 54, alignment: .leading)
 					.accessibilityHint("Opens Mail so you can send feedback about the game.")
+					.accessibilityFocused($focusedElement, equals: .sendFeedbackButton)
 				}
 
 				Section {
@@ -241,7 +258,12 @@ struct GameSettingsSheet: View {
 				}
 			)
 		}
-		.sheet(isPresented: $isShowingMailComposer) {
+		.sheet(
+			isPresented: $isShowingMailComposer,
+			onDismiss: {
+				restoreFocus(to: .sendFeedbackButton)
+			}
+		) {
 			MailComposerView(
 				recipient: "marco@marconius.com",
 				subject: "Whack a Braille iOS Feedback",
@@ -269,14 +291,32 @@ struct GameSettingsSheet: View {
 		.onChange(of: difficulty) { _, _ in
 			restoreFocus(to: .difficultyPicker)
 		}
+		.onChange(of: speakBrailleDots) { _, _ in
+			restoreFocus(to: .speakBrailleDotsToggle)
+		}
 		.onChange(of: roundDurationSeconds) { _, _ in
 			restoreFocus(to: .roundLengthPicker)
+		}
+		.onChange(of: timerMusicEnabled) { _, _ in
+			restoreFocus(to: .timerMusicToggle)
 		}
 		.onChange(of: gameAudioModeRawValue) { _, _ in
 			restoreFocus(to: .gameSoundsPicker)
 		}
+		.onChange(of: spatialMoleMappingEnabled) { _, _ in
+			restoreFocus(to: .spatialMoleMappingToggle)
+		}
 		.onChange(of: selectedVoiceId) { _, _ in
 			restoreFocus(to: .systemVoicePicker)
+		}
+		.onChange(of: characterEcho) { _, _ in
+			restoreFocus(to: .characterEchoToggle)
+		}
+		.onChange(of: speechRatePercent) { _, _ in
+			restoreFocus(to: .speechRateSlider)
+		}
+		.onChange(of: speechVolumePercent) { _, _ in
+			restoreFocus(to: .speechVolumeSlider)
 		}
 	}
 
@@ -399,13 +439,17 @@ struct GameSettingsSheet: View {
 	private func restoreCustomMolePickerFocusIfNeeded() {
 		guard shouldRestoreCustomMoleFocus else { return }
 		shouldRestoreCustomMoleFocus = false
-		DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-			focusedElement = .customMolePickerButton
-		}
+		restoreFocus(to: .customMolePickerButton)
 	}
 
 	private func restoreFocus(to target: FocusTarget) {
-		DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+		focusedElement = nil
+
+		DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+			focusedElement = target
+		}
+
+		DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) {
 			focusedElement = target
 		}
 	}
@@ -414,6 +458,7 @@ struct GameSettingsSheet: View {
 private struct CustomMolePickerSheet: View {
 
 	@Environment(\.dismiss) private var dismiss
+	@AccessibilityFocusState private var focusedElement: FocusTarget?
 	@Binding private var playModeRawValue: String
 	@Binding private var individualMoleIDs: String
 	@Binding private var invasionMoleIDs: String
@@ -425,7 +470,15 @@ private struct CustomMolePickerSheet: View {
 	@State private var selectedIndividualIDs: [String]
 	@State private var selectedInvasionIDs: Set<String>
 	@State private var selectedSlot: MoleSelectionSlot?
+	@State private var pendingSlotFocusIndex: Int?
 	@State private var isShowingMinimumAlert = false
+
+	private enum FocusTarget: Hashable {
+		case playModePicker
+		case individualMole(Int)
+		case invasionAction(String)
+		case invasionMole(String)
+	}
 
 	private let sections: [BrailleRegistry.CustomMoleSection]
 	private let allItems: [BrailleItem]
@@ -471,6 +524,7 @@ private struct CustomMolePickerSheet: View {
 					}
 					.pickerStyle(.segmented)
 					.accessibilityTouchRegion(minHeight: 60, alignment: .leading)
+					.accessibilityFocused($focusedElement, equals: .playModePicker)
 				}
 
 				if localMode == .individual {
@@ -496,18 +550,27 @@ private struct CustomMolePickerSheet: View {
 				}
 			}
 			.alert("You have to choose at least 5 moles for the whacking can commence!", isPresented: $isShowingMinimumAlert) {
-				Button("OK", role: .cancel) { }
+				Button("OK", role: .cancel) {
+					restoreFocusAfterMinimumAlert()
+				}
 			}
-			.sheet(item: $selectedSlot) { slot in
+			.sheet(
+				item: $selectedSlot,
+				onDismiss: restoreSelectedSlotFocusIfNeeded
+			) { slot in
 				MoleSelectionSheet(
 					title: "Choose Mole \(slot.index + 1)",
 					sections: sections,
 					selectedID: selectedIndividualIDs[slot.index],
 					selectMole: { itemID in
 						selectedIndividualIDs[slot.index] = itemID
+						pendingSlotFocusIndex = slot.index
 						selectedSlot = nil
 					}
 				)
+			}
+			.onChange(of: localMode) { _, newMode in
+				restoreFocus(to: newMode == .individual ? .individualMole(0) : .playModePicker)
 			}
 		}
 	}
@@ -520,6 +583,7 @@ private struct CustomMolePickerSheet: View {
 
 			ForEach(0..<selectedIndividualIDs.count, id: \.self) { index in
 				Button {
+					pendingSlotFocusIndex = index
 					selectedSlot = MoleSelectionSlot(index: index)
 				} label: {
 					HStack {
@@ -533,6 +597,7 @@ private struct CustomMolePickerSheet: View {
 				.accessibilityLabel("Mole \(index + 1), \(label(for: selectedIndividualIDs[index]))")
 				.accessibilityHint("Opens a searchable mole list.")
 				.accessibilityTouchRegion(minHeight: 60, alignment: .leading)
+				.accessibilityFocused($focusedElement, equals: .individualMole(index))
 			}
 		}
 	}
@@ -552,17 +617,23 @@ private struct CustomMolePickerSheet: View {
 				HStack(spacing: 12) {
 					invasionArmyActionButton("Select All") {
 						selectedInvasionIDs = Set(allItems.map(\.id))
+						restoreFocus(to: .invasionAction("Select All"))
 					}
+					.accessibilityFocused($focusedElement, equals: .invasionAction("Select All"))
 
 					invasionArmyActionButton("Clear All") {
 						selectedInvasionIDs = []
+						restoreFocus(to: .invasionAction("Clear All"))
 					}
+					.accessibilityFocused($focusedElement, equals: .invasionAction("Clear All"))
 				}
 
 				HStack(spacing: 12) {
 					invasionArmyActionButton("Clear Grade 1") {
 						clearInvasionMoles(matchingSectionIDs: ["grade1Letters", "grade1Numbers"])
+						restoreFocus(to: .invasionAction("Clear Grade 1"))
 					}
+					.accessibilityFocused($focusedElement, equals: .invasionAction("Clear Grade 1"))
 
 					invasionArmyActionButton("Clear Grade 2") {
 						clearInvasionMoles(matchingSectionIDs: [
@@ -574,7 +645,9 @@ private struct CustomMolePickerSheet: View {
 							"grade2Suffixes",
 							"grade2Dot456Initials"
 						])
+						restoreFocus(to: .invasionAction("Clear Grade 2"))
 					}
+					.accessibilityFocused($focusedElement, equals: .invasionAction("Clear Grade 2"))
 				}
 			}
 		}
@@ -584,6 +657,7 @@ private struct CustomMolePickerSheet: View {
 				ForEach(section.items, id: \.id) { item in
 					Button {
 						toggleInvasionMole(item.id)
+						restoreFocus(to: .invasionMole(item.id))
 					} label: {
 						HStack {
 							Image(systemName: selectedInvasionIDs.contains(item.id) ? "checkmark.square.fill" : "square")
@@ -596,6 +670,7 @@ private struct CustomMolePickerSheet: View {
 					.accessibilityValue(selectedInvasionIDs.contains(item.id) ? "Selected" : "Not selected")
 					.accessibilityHint("Toggles this mole in your Invasion Army.")
 					.accessibilityTouchRegion(minHeight: 54, alignment: .leading)
+					.accessibilityFocused($focusedElement, equals: .invasionMole(item.id))
 				}
 			}
 		}
@@ -644,6 +719,33 @@ private struct CustomMolePickerSheet: View {
 		Button(title, action: action)
 			.frame(maxWidth: .infinity, alignment: .leading)
 			.accessibilityTouchRegion(minHeight: 54, alignment: .leading)
+	}
+
+	private func restoreSelectedSlotFocusIfNeeded() {
+		guard let pendingSlotFocusIndex else { return }
+		self.pendingSlotFocusIndex = nil
+		restoreFocus(to: .individualMole(pendingSlotFocusIndex))
+	}
+
+	private func restoreFocusAfterMinimumAlert() {
+		switch localMode {
+		case .individual:
+			restoreFocus(to: .individualMole(0))
+		case .invasion:
+			restoreFocus(to: .playModePicker)
+		}
+	}
+
+	private func restoreFocus(to target: FocusTarget) {
+		focusedElement = nil
+
+		DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+			focusedElement = target
+		}
+
+		DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) {
+			focusedElement = target
+		}
 	}
 
 	private func label(for id: String) -> String {
