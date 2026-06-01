@@ -6,6 +6,7 @@ enum PrizeTier: Int {
 	case tier3 = 3
 	case tier4 = 4
 	case tier5 = 5
+	case tier6 = 6
 
 	var detailLabel: String {
 		switch self {
@@ -19,6 +20,8 @@ enum PrizeTier: Int {
 			return "Tier 4"
 		case .tier5:
 			return "Tier 5"
+		case .tier6:
+			return "Tier 6"
 		}
 	}
 }
@@ -41,6 +44,7 @@ struct Prize: Identifiable, Equatable {
 		if id.hasPrefix("tier3_") { return .tier3 }
 		if id.hasPrefix("tier4_") { return .tier4 }
 		if id.hasPrefix("tier5_") { return .tier5 }
+		if id.hasPrefix("tier6_") { return .tier6 }
 
 		switch minTickets {
 		case ..<10:
@@ -51,8 +55,10 @@ struct Prize: Identifiable, Equatable {
 			return .tier3
 		case ..<100:
 			return .tier4
-		default:
+		case ..<500:
 			return .tier5
+		default:
+			return .tier6
 		}
 	}
 }

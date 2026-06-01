@@ -65,6 +65,7 @@ final class GameAudioEngine {
 	private lazy var tier3PrizeFanfareData: [Data] = [1, 2, 3].compactMap { makeTier3PrizeFanfareData(seed: $0) }
 	private lazy var tier4PrizeFanfareData: [Data] = [1, 2, 3].compactMap { makeTier4PrizeFanfareData(seed: $0) }
 	private lazy var tier5PrizeFanfareData: [Data] = [1, 2, 3].compactMap { makeTier5PrizeFanfareData(seed: $0) }
+	private lazy var tier6PrizeFanfareData: [Data] = [1, 2, 3].compactMap { makeTier6PrizeFanfareData(seed: $0) }
 
 	private init() {
 		observeAudioSession()
@@ -163,6 +164,9 @@ final class GameAudioEngine {
 		case .tier5:
 			variants = tier5PrizeFanfareData
 			volume = 1.12
+		case .tier6:
+			variants = tier6PrizeFanfareData
+			volume = 1.16
 		}
 
 		playGeneratedSound(variants.randomElement(), volume: volume, pan: 0)
@@ -365,6 +369,7 @@ final class GameAudioEngine {
 			_ = self.tier3PrizeFanfareData
 			_ = self.tier4PrizeFanfareData
 			_ = self.tier5PrizeFanfareData
+			_ = self.tier6PrizeFanfareData
 		}
 	}
 
@@ -1037,6 +1042,100 @@ final class GameAudioEngine {
 
 			let endingFade = time > 1.04 ? max(0.0, 1.0 - ((time - 1.04) / 0.52)) : 1.0
 			return clampSample((sample + tail) * 0.76 * endingFade)
+		}
+	}
+
+	private func makeTier6PrizeFanfareData(seed: Int) -> Data? {
+		let baseMidi = 60 + seed
+		let melodyChoices: [[Int]] = [
+			[0, 7, 12, 16, 19, 24, 28, 31],
+			[0, 5, 12, 17, 21, 24, 29, 33],
+			[0, 4, 11, 16, 19, 23, 28, 35]
+		]
+		let melody = melodyChoices[(seed - 1) % melodyChoices.count]
+		let noteStarts = [0.0, 0.14, 0.3, 0.48, 0.68, 0.9, 1.15, 1.46]
+		let duration = 2.8
+
+		return makeWaveFile(duration: duration) { time in
+			var sample = 0.0
+			var finalNoteSample = 0.0
+
+			for (index, start) in noteStarts.enumerated() {
+				let localTime = time - start
+				guard localTime >= 0 else { continue }
+				let isFinalNote = index == noteStarts.count - 1
+				let noteDuration = isFinalNote ? 1.06 : 0.28
+				let midi = baseMidi + melody[index]
+				let baseFreq = 440.0 * pow(2.0, Double(midi - 69) / 12.0)
+				let vibrato = isFinalNote ? sin(2 * .pi * 4.0 * localTime) * 1.8 : 0
+				let env = linearEnvelope(localTime, attack: 0.012, release: noteDuration, peak: isFinalNote ? 0.38 : 0.3)
+				let lead = sine(baseFreq + vibrato, localTime)
+				let upper = triangle((baseFreq * 2.0) + vibrato, localTime) * 0.2
+				let chorusA = sine((baseFreq * 0.995) + vibrato, localTime) * 0.42
+				let chorusB = sine((baseFreq * 1.006) + vibrato, localTime) * 0.38
+				let shimmer = sine(baseFreq * 3.0, localTime) * 0.08
+				let noteSample = (lead + upper + chorusA + chorusB + shimmer) * env
+				sample += noteSample
+
+				if isFinalNote {
+					finalNoteSample = noteSample
+				}
+			}
+
+			let choirChord = [0, 7, 12, 16, 19, 24]
+			for (index, step) in choirChord.enumerated() {
+				let localTime = max(0, time - 0.18 - (Double(index) * 0.018))
+				let freq = 440.0 * pow(2.0, Double(baseMidi + step - 69) / 12.0)
+				let env = linearEnvelope(localTime, attack: 0.18, release: 2.08, peak: 0.09)
+				let voice = sine(freq * 0.997, localTime) + sine(freq * 1.004, localTime) + (triangle(freq * 0.5, localTime) * 0.18)
+				sample += voice * env
+			}
+
+			let sparkleStarts = [0.24, 0.34, 0.5, 0.62, 0.78, 0.96, 1.14, 1.32, 1.58, 1.82, 2.08]
+			for (index, start) in sparkleStarts.enumerated() {
+				let localTime = time - start
+				guard localTime >= 0 else { continue }
+				let progress = Double(index) / Double(max(sparkleStarts.count - 1, 1))
+				let freq = lerpExp(start: 1_150 + Double(seed * 45), end: 3_250 + Double(seed * 60), progress: progress)
+				let env = linearEnvelope(localTime, attack: 0.006, release: 0.3, peak: 0.082)
+				let bell = sine(freq, localTime) + (triangle(freq * 1.7, localTime) * 0.28)
+				sample += bell * env
+			}
+
+			let glissStart = 1.1
+			let glissDuration = 0.72
+			if time >= glissStart, time <= glissStart + glissDuration {
+				let localTime = time - glissStart
+				let progress = min(max(localTime / glissDuration, 0), 1)
+				let startFreq = 440.0 * pow(2.0, Double(baseMidi + 12 - 69) / 12.0)
+				let endFreq = 440.0 * pow(2.0, Double(baseMidi + 38 - 69) / 12.0)
+				let glissFreq = lerpExp(start: startFreq, end: endFreq, progress: progress)
+				let pulse = 0.78 + (0.22 * sin(2 * .pi * 9.0 * localTime))
+				let env = linearEnvelope(localTime, attack: 0.02, release: glissDuration, peak: 0.16)
+				let gliss = sine(glissFreq, localTime) + (triangle(glissFreq * 1.5, localTime) * 0.22)
+				sample += gliss * env * pulse
+			}
+
+			let finalStart = noteStarts.last ?? 1.46
+			let reflectionOffsets = [0.09, 0.17, 0.28, 0.42, 0.58, 0.74]
+			let reflectionGains = [0.15, 0.11, 0.08, 0.055, 0.038, 0.026]
+			var tail = 0.0
+			if time >= finalStart {
+				for (offset, gain) in zip(reflectionOffsets, reflectionGains) {
+					let reflectedTime = time - offset
+					if reflectedTime >= finalStart {
+						let local = reflectedTime - finalStart
+						let fade = max(0.0, 1.0 - (local / 1.18))
+						tail += finalNoteSample * gain * fade
+					}
+				}
+			}
+
+			let cymbalSeed = UInt64(96_000 + (seed * 127))
+			let cymbal = envelope(time, attack: 0.012, release: 0.7, peak: 0.075) *
+				filteredNoise(seed: cymbalSeed, time: time, carrier: 2_400)
+			let endingFade = time > 2.22 ? max(0.0, 1.0 - ((time - 2.22) / 0.58)) : 1.0
+			return clampSample((sample + tail + cymbal) * 0.68 * endingFade)
 		}
 	}
 
