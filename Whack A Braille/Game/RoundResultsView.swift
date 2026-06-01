@@ -83,6 +83,13 @@ struct RoundResultsView: View {
 						.fixedSize(horizontal: false, vertical: true)
 						.accessibilityAddTraits(.isHeader)
 						.accessibilityFocused($isHeadingFocused)
+
+					if !result.isTraining {
+						Text(resultsFlavorLine(for: result))
+							.font(.headline)
+							.foregroundStyle(primaryTextColor)
+							.fixedSize(horizontal: false, vertical: true)
+					}
 				}
 				.appCard()
 				.accessibilityTouchRegion(minHeight: 0, topPadding: 24, bottomPadding: 10, horizontalPadding: 24, alignment: .leading)
@@ -90,16 +97,12 @@ struct RoundResultsView: View {
 				VStack(alignment: .leading, spacing: 0) {
 					if !result.isTraining {
 						VStack(alignment: .leading, spacing: 6) {
-							Text(resultsFlavorLine(for: result))
-								.font(.headline)
-								.fixedSize(horizontal: false, vertical: true)
 							Text("Score: \(result.score)")
 							Text("Accuracy: \(accuracyPercent(for: result)) percent")
 						}
 						.fixedSize(horizontal: false, vertical: true)
 						.summaryRowCard()
 						.accessibilityTouchRegion(verticalPadding: 5, alignment: .leading)
-						.accessibilitySortPriority(50)
 
 						VStack(alignment: .leading, spacing: 4) {
 							Text("Hits: \(result.hits), Misses: \(result.misses), Escapes: \(result.escapes)")
@@ -107,7 +110,6 @@ struct RoundResultsView: View {
 						.fixedSize(horizontal: false, vertical: true)
 						.summaryRowCard()
 						.accessibilityTouchRegion(verticalPadding: 5, alignment: .leading)
-						.accessibilitySortPriority(49)
 
 						VStack(alignment: .leading, spacing: 4) {
 							Text("Best streak: \(result.bestStreak), Speed bonus: \(result.speedBonusTickets) \(result.speedBonusTickets == 1 ? "ticket" : "tickets")")
@@ -115,7 +117,6 @@ struct RoundResultsView: View {
 						.fixedSize(horizontal: false, vertical: true)
 						.summaryRowCard()
 						.accessibilityTouchRegion(verticalPadding: 5, alignment: .leading)
-						.accessibilitySortPriority(48)
 
 						VStack(alignment: .leading, spacing: 4) {
 							Text("Tickets earned: \(result.totalTickets)")
@@ -124,13 +125,11 @@ struct RoundResultsView: View {
 						.fixedSize(horizontal: false, vertical: true)
 						.summaryRowCard()
 						.accessibilityTouchRegion(verticalPadding: 5, alignment: .leading)
-						.accessibilitySortPriority(47)
 					} else {
 						Text("Training moles completed: \(result.trainingMolesCompleted)")
 							.fixedSize(horizontal: false, vertical: true)
 							.summaryRowCard()
 							.accessibilityTouchRegion(verticalPadding: 5, alignment: .leading)
-							.accessibilitySortPriority(50)
 					}
 
 				}
@@ -138,13 +137,11 @@ struct RoundResultsView: View {
 				.appCard()
 				.accessibilityTouchRegion(minHeight: 0, topPadding: 10, bottomPadding: 0, horizontalPadding: 24, alignment: .leading)
 				.accessibilityHidden(!isResultsContentAccessible)
-				.accessibilitySortPriority(40)
 
 				Button(result.isTraining ? "Keep Training!" : "Keep Whacking!", action: keepWhacking)
 					.buttonStyle(FullRegionPrimaryGameButton(visibleMinHeight: 72, horizontalInset: 24, verticalInset: 20))
 					.frame(maxWidth: .infinity, minHeight: accessibilityLayout ? 120 : nil, maxHeight: accessibilityLayout ? nil : .infinity)
 					.accessibilityHidden(!isResultsContentAccessible)
-					.accessibilitySortPriority(30)
 
 				if !result.isTraining && !moleReconItems.isEmpty {
 					Button("Mole Recon") {
@@ -154,7 +151,6 @@ struct RoundResultsView: View {
 					.frame(maxWidth: .infinity, minHeight: accessibilityLayout ? 104 : nil, maxHeight: accessibilityLayout ? nil : .infinity)
 					.accessibilityHint("Opens a training briefing for the moles you missed or let escape.")
 					.accessibilityHidden(!isResultsContentAccessible)
-					.accessibilitySortPriority(20)
 				}
 
 				if result.isTraining {
@@ -162,21 +158,18 @@ struct RoundResultsView: View {
 						.buttonStyle(FullRegionSecondaryGameButton(horizontalInset: 24, verticalInset: 20))
 						.frame(maxWidth: .infinity, minHeight: accessibilityLayout ? 104 : 140, maxHeight: accessibilityLayout ? nil : .infinity)
 						.accessibilityHidden(!isResultsContentAccessible)
-						.accessibilitySortPriority(10)
 				} else {
 					if accessibilityLayout {
 						VStack(spacing: 0) {
 							bottomActionButtons(maxHeight: nil, minHeight: 104)
 						}
 						.accessibilityHidden(!isResultsContentAccessible)
-						.accessibilitySortPriority(10)
 					} else {
 						HStack(spacing: 0) {
 							bottomActionButtons(maxHeight: .infinity, minHeight: nil)
 						}
 						.frame(maxWidth: .infinity, minHeight: 150)
 						.accessibilityHidden(!isResultsContentAccessible)
-						.accessibilitySortPriority(10)
 					}
 				}
 			}
