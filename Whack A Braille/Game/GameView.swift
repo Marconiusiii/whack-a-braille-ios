@@ -369,7 +369,7 @@ struct GameView: View {
 		case .qwerty, .perkins:
 			focusSettleDelayMs = 900
 		}
-		let postSpeechBeatMs = 300
+		let postSpeechBeatMs = options.difficulty == .training ? 850 : 300
 
 		DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(focusHandoffDelayMs)) {
 			guard pendingRoundStartID == startID else { return }

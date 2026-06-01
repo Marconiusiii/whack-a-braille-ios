@@ -97,6 +97,7 @@ struct RoundResultsView: View {
 						.fixedSize(horizontal: false, vertical: true)
 						.summaryRowCard()
 						.accessibilityTouchRegion(verticalPadding: 5, alignment: .leading)
+						.accessibilityElement(children: .combine)
 
 						VStack(alignment: .leading, spacing: 4) {
 							Text("Hits: \(result.hits), Misses: \(result.misses), Escapes: \(result.escapes)")
@@ -104,6 +105,7 @@ struct RoundResultsView: View {
 						.fixedSize(horizontal: false, vertical: true)
 						.summaryRowCard()
 						.accessibilityTouchRegion(verticalPadding: 5, alignment: .leading)
+						.accessibilityElement(children: .combine)
 
 						VStack(alignment: .leading, spacing: 4) {
 							Text("Best streak: \(result.bestStreak), Speed bonus: \(result.speedBonusTickets) \(result.speedBonusTickets == 1 ? "ticket" : "tickets")")
@@ -111,6 +113,7 @@ struct RoundResultsView: View {
 						.fixedSize(horizontal: false, vertical: true)
 						.summaryRowCard()
 						.accessibilityTouchRegion(verticalPadding: 5, alignment: .leading)
+						.accessibilityElement(children: .combine)
 
 						VStack(alignment: .leading, spacing: 4) {
 							Text("Tickets earned: \(result.totalTickets)")
@@ -119,6 +122,7 @@ struct RoundResultsView: View {
 						.fixedSize(horizontal: false, vertical: true)
 						.summaryRowCard()
 						.accessibilityTouchRegion(verticalPadding: 5, alignment: .leading)
+						.accessibilityElement(children: .combine)
 					} else {
 						Text("Training moles completed: \(result.trainingMolesCompleted)")
 							.fixedSize(horizontal: false, vertical: true)
@@ -130,8 +134,6 @@ struct RoundResultsView: View {
 				.foregroundStyle(primaryTextColor)
 				.appCard()
 				.accessibilityTouchRegion(minHeight: 0, topPadding: 10, bottomPadding: 0, horizontalPadding: 24, alignment: .leading)
-				.accessibilityElement(children: .ignore)
-				.accessibilityLabel(resultsStatsAccessibilityLabel(for: result))
 				.accessibilityHidden(!isResultsContentAccessible)
 
 				Button(result.isTraining ? "Keep Training!" : "Keep Whacking!", action: keepWhacking)
@@ -189,21 +191,6 @@ struct RoundResultsView: View {
 		let attempts = result.hits + result.misses + result.escapes
 		guard attempts > 0 else { return 0 }
 		return Int((Double(result.hits) / Double(attempts) * 100).rounded())
-	}
-
-	private func resultsStatsAccessibilityLabel(for result: RoundResult) -> String {
-		if result.isTraining {
-			return "Training moles completed \(result.trainingMolesCompleted)"
-		}
-
-		let speedTicketLabel = result.speedBonusTickets == 1 ? "ticket" : "tickets"
-		return [
-			"Score \(result.score)",
-			"Accuracy \(accuracyPercent(for: result)) percent",
-			"Hits \(result.hits), misses \(result.misses), escapes \(result.escapes)",
-			"Best streak \(result.bestStreak), speed bonus \(result.speedBonusTickets) \(speedTicketLabel)",
-			"Tickets earned \(result.totalTickets), total tickets \(totalTickets)"
-		].joined(separator: ", ")
 	}
 
 	private func resultsFlavorLine(for result: RoundResult) -> String {

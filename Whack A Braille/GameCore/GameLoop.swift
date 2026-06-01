@@ -36,6 +36,8 @@ final class GameLoop {
 	private let laneCount = 5
 	private let maxSameLaneInRow = 2
 	private let trainingMoleCap = 15
+	private let trainingFirstMoleDelayMs = 650
+	private let trainingPostHitDelayMs = 750
 
 	private let startIntervalMs = 1_000
 	private let endIntervalMs = 360
@@ -169,7 +171,7 @@ final class GameLoop {
 		)
 
 		if options.difficulty == .training {
-			scheduleNextTrainingMole(extraDelayMs: 0)
+			scheduleNextTrainingMole(extraDelayMs: trainingFirstMoleDelayMs)
 			return
 		}
 
@@ -440,7 +442,7 @@ final class GameLoop {
 			moleUpTimer?.cancel()
 			moleUpTimer = nil
 			clearActiveMole()
-			scheduleNextTrainingMole(extraDelayMs: 180)
+			scheduleNextTrainingMole(extraDelayMs: trainingPostHitDelayMs)
 			return
 		}
 
