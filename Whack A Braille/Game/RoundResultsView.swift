@@ -18,15 +18,9 @@ struct RoundResultsView: View {
 	@State private var isShowingMoleRecon = false
 
 	var body: some View {
-		Group {
-			if usesAccessibilityLayout {
-				ScrollView {
-					resultContent(accessibilityLayout: true)
-						.padding(.bottom, 24)
-				}
-			} else {
-				resultContent(accessibilityLayout: false)
-			}
+		ScrollView {
+			resultContent(accessibilityLayout: usesAccessibilityLayout)
+				.padding(.bottom, 24)
 		}
 		.appBackground()
 		.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -136,11 +130,13 @@ struct RoundResultsView: View {
 				.foregroundStyle(primaryTextColor)
 				.appCard()
 				.accessibilityTouchRegion(minHeight: 0, topPadding: 10, bottomPadding: 0, horizontalPadding: 24, alignment: .leading)
+				.accessibilityElement(children: .ignore)
+				.accessibilityLabel(resultsStatsAccessibilityLabel(for: result))
 				.accessibilityHidden(!isResultsContentAccessible)
 
 				Button(result.isTraining ? "Keep Training!" : "Keep Whacking!", action: keepWhacking)
 					.buttonStyle(FullRegionPrimaryGameButton(visibleMinHeight: 72, horizontalInset: 24, verticalInset: 20))
-					.frame(maxWidth: .infinity, minHeight: accessibilityLayout ? 120 : nil, maxHeight: accessibilityLayout ? nil : .infinity)
+					.frame(maxWidth: .infinity, minHeight: accessibilityLayout ? 120 : 96)
 					.accessibilityHidden(!isResultsContentAccessible)
 
 				if !result.isTraining && !moleReconItems.isEmpty {
@@ -148,7 +144,7 @@ struct RoundResultsView: View {
 						isShowingMoleRecon = true
 					}
 					.buttonStyle(FullRegionSecondaryGameButton(horizontalInset: 24, verticalInset: 20))
-					.frame(maxWidth: .infinity, minHeight: accessibilityLayout ? 104 : nil, maxHeight: accessibilityLayout ? nil : .infinity)
+					.frame(maxWidth: .infinity, minHeight: accessibilityLayout ? 104 : 88)
 					.accessibilityHint("Opens a training briefing for the moles you missed or let escape.")
 					.accessibilityHidden(!isResultsContentAccessible)
 				}
@@ -156,36 +152,28 @@ struct RoundResultsView: View {
 				if result.isTraining {
 					Button("Return Home", action: returnHome)
 						.buttonStyle(FullRegionSecondaryGameButton(horizontalInset: 24, verticalInset: 20))
-						.frame(maxWidth: .infinity, minHeight: accessibilityLayout ? 104 : 140, maxHeight: accessibilityLayout ? nil : .infinity)
+						.frame(maxWidth: .infinity, minHeight: accessibilityLayout ? 104 : 88)
 						.accessibilityHidden(!isResultsContentAccessible)
 				} else {
-					if accessibilityLayout {
-						VStack(spacing: 0) {
-							bottomActionButtons(maxHeight: nil, minHeight: 104)
-						}
-						.accessibilityHidden(!isResultsContentAccessible)
-					} else {
-						HStack(spacing: 0) {
-							bottomActionButtons(maxHeight: .infinity, minHeight: nil)
-						}
-						.frame(maxWidth: .infinity, minHeight: 150)
-						.accessibilityHidden(!isResultsContentAccessible)
+					VStack(spacing: 0) {
+						bottomActionButtons(minHeight: accessibilityLayout ? 104 : 88)
 					}
+					.accessibilityHidden(!isResultsContentAccessible)
 				}
 			}
 		}
 	}
 
 	@ViewBuilder
-	private func bottomActionButtons(maxHeight: CGFloat?, minHeight: CGFloat?) -> some View {
+	private func bottomActionButtons(minHeight: CGFloat) -> some View {
 		Button("Save Tickets", action: saveTicketsAndReturnHome)
 			.buttonStyle(FullRegionSecondaryGameButton(horizontalInset: 16, verticalInset: 20))
-			.frame(maxWidth: .infinity, minHeight: minHeight, maxHeight: maxHeight)
+			.frame(maxWidth: .infinity, minHeight: minHeight)
 			.accessibilityLabel("Save Tickets and Return Home")
 
 		Button("Cash In", action: cashInTickets)
 			.buttonStyle(FullRegionSecondaryGameButton(horizontalInset: 16, verticalInset: 20))
-			.frame(maxWidth: .infinity, minHeight: minHeight, maxHeight: maxHeight)
+			.frame(maxWidth: .infinity, minHeight: minHeight)
 			.accessibilityLabel("Cash In Tickets and Pick a Prize")
 	}
 
@@ -201,6 +189,21 @@ struct RoundResultsView: View {
 		let attempts = result.hits + result.misses + result.escapes
 		guard attempts > 0 else { return 0 }
 		return Int((Double(result.hits) / Double(attempts) * 100).rounded())
+	}
+
+	private func resultsStatsAccessibilityLabel(for result: RoundResult) -> String {
+		if result.isTraining {
+			return "Training moles completed \(result.trainingMolesCompleted)"
+		}
+
+		let speedTicketLabel = result.speedBonusTickets == 1 ? "ticket" : "tickets"
+		return [
+			"Score \(result.score)",
+			"Accuracy \(accuracyPercent(for: result)) percent",
+			"Hits \(result.hits), misses \(result.misses), escapes \(result.escapes)",
+			"Best streak \(result.bestStreak), speed bonus \(result.speedBonusTickets) \(speedTicketLabel)",
+			"Tickets earned \(result.totalTickets), total tickets \(totalTickets)"
+		].joined(separator: ", ")
 	}
 
 	private func resultsFlavorLine(for result: RoundResult) -> String {
