@@ -1,15 +1,31 @@
 import SwiftUI
 import UIKit
 
+enum MoleReconPracticeMode: String, CaseIterable, Identifiable {
+	case recon = "Recon"
+	case grudgeMatch = "Grudge Match"
+
+	var id: String { rawValue }
+}
+
+struct MoleReconTrainingContext {
+	let reconItems: [BrailleItem]
+	let grudgeMatchItems: [BrailleItem]
+	let selectedMode: MoleReconPracticeMode
+	let selectedGrudgeItemIDs: Set<String>
+}
+
 struct RoundResultsView: View {
 
 	let result: RoundResult?
 	let totalTickets: Int
+	let moleReconContext: MoleReconTrainingContext?
 	let keepWhacking: () -> Void
-	let beginMoleRecon: ([BrailleItem], Bool) -> Void
+	let beginMoleRecon: ([BrailleItem], MoleReconTrainingContext) -> Void
 	let cashInTickets: () -> Void
 	let saveTicketsAndReturnHome: () -> Void
 	let returnHome: () -> Void
+	@Binding var speakBrailleDots: Bool
 
 	@Environment(\.colorScheme) private var colorScheme
 	@Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -25,17 +41,19 @@ struct RoundResultsView: View {
 		.appBackground()
 		.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 		.sheet(isPresented: $isShowingMoleRecon) {
-			MoleReconView(
-				reconItems: moleReconItems,
-				grudgeMatchItems: grudgeMatchItems,
-				beginPractice: { selectedItems, isGrudgeMatch in
-					isShowingMoleRecon = false
-					beginMoleRecon(selectedItems, isGrudgeMatch)
-				},
-				cancel: {
-					isShowingMoleRecon = false
-				}
-			)
+			if let context = currentMoleReconContext {
+				MoleReconView(
+					context: context,
+					speakBrailleDots: $speakBrailleDots,
+					beginPractice: { selectedItems, updatedContext in
+						isShowingMoleRecon = false
+						beginMoleRecon(selectedItems, updatedContext)
+					},
+					cancel: {
+						isShowingMoleRecon = false
+					}
+				)
+			}
 		}
 			.onAppear {
 				isResultsContentAccessible = false
@@ -70,6 +88,23 @@ struct RoundResultsView: View {
 	private var grudgeMatchItems: [BrailleItem] {
 		guard let result else { return [] }
 		return result.grudgeMatchItems.filter { !dotPatternText(for: $0).isEmpty }
+	}
+
+	private var currentMoleReconContext: MoleReconTrainingContext? {
+		if let moleReconContext {
+			return moleReconContext
+		}
+
+		let reconItems = moleReconItems
+		let grudgeMatchItems = grudgeMatchItems
+		guard !reconItems.isEmpty || !grudgeMatchItems.isEmpty else { return nil }
+
+		return MoleReconTrainingContext(
+			reconItems: reconItems,
+			grudgeMatchItems: grudgeMatchItems,
+			selectedMode: reconItems.isEmpty ? .grudgeMatch : .recon,
+			selectedGrudgeItemIDs: Set(grudgeMatchItems.map(\.id))
+		)
 	}
 
 	private func resultContent(accessibilityLayout: Bool) -> some View {
@@ -146,7 +181,17 @@ struct RoundResultsView: View {
 					.frame(maxWidth: .infinity, minHeight: accessibilityLayout ? 120 : 96)
 					.accessibilityHidden(!isResultsContentAccessible)
 
-				if !result.isTraining && (!moleReconItems.isEmpty || !grudgeMatchItems.isEmpty) {
+				if result.isTraining, currentMoleReconContext != nil {
+					Button("Back to Recon") {
+						isShowingMoleRecon = true
+					}
+					.buttonStyle(FullRegionSecondaryGameButton(horizontalInset: 24, verticalInset: 20))
+					.frame(maxWidth: .infinity, minHeight: accessibilityLayout ? 104 : 88)
+					.accessibilityHint("Opens Mole Recon to adjust this training session.")
+					.accessibilityHidden(!isResultsContentAccessible)
+				}
+
+				if !result.isTraining && currentMoleReconContext != nil {
 					Button("Mole Recon") {
 						isShowingMoleRecon = true
 					}
@@ -231,22 +276,15 @@ struct RoundResultsView: View {
 
 private struct MoleReconView: View {
 
-	private enum ReconMode: String, CaseIterable, Identifiable {
-		case recon = "Recon"
-		case grudgeMatch = "Grudge Match"
-
-		var id: String { rawValue }
-	}
-
-	let reconItems: [BrailleItem]
-	let grudgeMatchItems: [BrailleItem]
-	let beginPractice: ([BrailleItem], Bool) -> Void
+	let context: MoleReconTrainingContext
+	@Binding var speakBrailleDots: Bool
+	let beginPractice: ([BrailleItem], MoleReconTrainingContext) -> Void
 	let cancel: () -> Void
 
 	@Environment(\.colorScheme) private var colorScheme
 	@Environment(\.dismiss) private var dismiss
 	@AccessibilityFocusState private var isHeadingFocused: Bool
-	@State private var selectedMode: ReconMode = .recon
+	@State private var selectedMode: MoleReconPracticeMode = .recon
 	@State private var selectedItemIDs = Set<String>()
 	@State private var isShowingEmptySelectionAlert = false
 
@@ -273,6 +311,10 @@ private struct MoleReconView: View {
 						Text(moleReconBlurb)
 							.foregroundStyle(secondaryTextColor)
 							.fixedSize(horizontal: false, vertical: true)
+
+						Toggle("Speak Braille Dots", isOn: $speakBrailleDots)
+							.foregroundStyle(primaryTextColor)
+							.fixedSize(horizontal: false, vertical: true)
 					}
 					.appCard()
 					.accessibilityTouchRegion(minHeight: 0, topPadding: 24, bottomPadding: 10, horizontalPadding: 24, alignment: .leading)
@@ -297,7 +339,7 @@ private struct MoleReconView: View {
 							return
 						}
 						dismiss()
-						beginPractice(practiceItems, activeMode == .grudgeMatch)
+						beginPractice(practiceItems, updatedContext)
 					}
 					.buttonStyle(FullRegionPrimaryGameButton(visibleMinHeight: 72, horizontalInset: 24, verticalInset: 20))
 					.accessibilityHint("Starts a training round using the moles in Mole Recon.")
@@ -318,26 +360,28 @@ private struct MoleReconView: View {
 			Text("Pick at least one mole. An empty recon mission is just dramatic standing around with nothing to whack.")
 		}
 		.onAppear {
-			selectedMode = reconItems.isEmpty ? .grudgeMatch : .recon
-			selectedItemIDs = Set(grudgeMatchItems.map(\.id))
+			selectedMode = context.selectedMode
+			selectedItemIDs = context.selectedGrudgeItemIDs.isEmpty
+				? Set(context.grudgeMatchItems.map(\.id))
+				: context.selectedGrudgeItemIDs
 			DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
 				isHeadingFocused = true
 			}
 		}
 	}
 
-	private var availableModes: [ReconMode] {
-		ReconMode.allCases.filter { mode in
+	private var availableModes: [MoleReconPracticeMode] {
+		MoleReconPracticeMode.allCases.filter { mode in
 			switch mode {
 			case .recon:
-				return !reconItems.isEmpty
+				return !context.reconItems.isEmpty
 			case .grudgeMatch:
-				return !grudgeMatchItems.isEmpty
+				return !context.grudgeMatchItems.isEmpty
 			}
 		}
 	}
 
-	private var activeMode: ReconMode {
+	private var activeMode: MoleReconPracticeMode {
 		availableModes.contains(selectedMode) ? selectedMode : (availableModes.first ?? .grudgeMatch)
 	}
 
@@ -350,15 +394,24 @@ private struct MoleReconView: View {
 	}
 
 	private var displayedItems: [BrailleItem] {
-		activeMode == .grudgeMatch ? grudgeMatchItems : reconItems
+		activeMode == .grudgeMatch ? context.grudgeMatchItems : context.reconItems
 	}
 
 	private var selectedPracticeItems: [BrailleItem] {
 		if activeMode == .grudgeMatch {
-			return grudgeMatchItems.filter { selectedItemIDs.contains($0.id) }
+			return context.grudgeMatchItems.filter { selectedItemIDs.contains($0.id) }
 		}
 
-		return reconItems
+		return context.reconItems
+	}
+
+	private var updatedContext: MoleReconTrainingContext {
+		MoleReconTrainingContext(
+			reconItems: context.reconItems,
+			grudgeMatchItems: context.grudgeMatchItems,
+			selectedMode: activeMode,
+			selectedGrudgeItemIDs: selectedItemIDs
+		)
 	}
 
 	@ViewBuilder

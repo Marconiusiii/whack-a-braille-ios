@@ -153,6 +153,10 @@ final class GameViewModel: ObservableObject {
 		gameLoop.repeatCurrentTarget()
 	}
 
+	func setSpeakBrailleDotsDuringRound(_ enabled: Bool) {
+		gameLoop.setSpeakBrailleDots(enabled)
+	}
+
 	func prepareCashOut() {
 		guard totalAccruedTickets >= 0 else { return }
 		cashOutPrizes = Self.pickRandomPrizes(from: PrizeCatalog.eligible(for: totalAccruedTickets), count: 3)

@@ -127,7 +127,7 @@ struct HomeView: View {
 					focusedElement = .heading
 				}
 			}
-				.onChange(of: howToPlayFocusToken, initial: true) { _, _ in
+				.onChange(of: howToPlayFocusToken, initial: false) { _, _ in
 					guard howToPlayFocusToken > 0 else { return }
 					DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
 						focusedElement = .howToPlay
@@ -139,13 +139,13 @@ struct HomeView: View {
 					focusedElement = .heading
 				}
 			}
-			.onChange(of: gameSettingsFocusToken, initial: true) { _, _ in
+			.onChange(of: gameSettingsFocusToken, initial: false) { _, _ in
 				guard gameSettingsFocusToken > 0 else { return }
 					DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
 						focusedElement = .gameSettings
 					}
 				}
-				.onChange(of: cashInFocusToken, initial: true) { _, _ in
+				.onChange(of: cashInFocusToken, initial: false) { _, _ in
 					guard cashInFocusToken > 0 else { return }
 					DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
 						focusedElement = .cashInTickets

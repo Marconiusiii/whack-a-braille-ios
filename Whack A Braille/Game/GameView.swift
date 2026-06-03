@@ -47,6 +47,7 @@ struct GameView: View {
 	@State private var cashOutOrigin: CashOutOrigin = .roundResults
 	@State private var pendingRoundStartID = UUID()
 	@State private var lastTrainingOptions: GameLoop.Options?
+	@State private var lastMoleReconContext: MoleReconTrainingContext?
 
 	var body: some View {
 		Group {
@@ -72,17 +73,20 @@ struct GameView: View {
 					viewModel: viewModel,
 					inputMode: effectiveInputMode,
 					gameplayFocusToken: viewModel.gameplayFocusToken,
+					speakBrailleDots: $speakBrailleDots,
 					exitGame: viewModel.exitRoundToResults
 				)
 			case .roundResults:
 				RoundResultsView(
 					result: viewModel.lastRoundResult,
 					totalTickets: viewModel.totalAccruedTickets,
+					moleReconContext: lastMoleReconContext,
 					keepWhacking: keepWhackingFromResults,
 					beginMoleRecon: startMoleRecon,
 					cashInTickets: cashInTickets,
 					saveTicketsAndReturnHome: viewModel.saveTicketsAndReturnHome,
-					returnHome: returnHomeFromResults
+					returnHome: returnHomeFromResults,
+					speakBrailleDots: $speakBrailleDots
 				)
 			}
 		}
@@ -265,24 +269,25 @@ struct GameView: View {
 		startRound(with: options)
 	}
 
-	private func startMoleRecon(items: [BrailleItem], isGrudgeMatch: Bool) {
+	private func startMoleRecon(items: [BrailleItem], context: MoleReconTrainingContext) {
 		guard !items.isEmpty else { return }
 
 		pendingRoundStartID = UUID()
 		applySpeechSettings()
+		lastMoleReconContext = context
 
 		let options = GameLoop.Options(
 			modeId: "moleRecon",
 			durationSeconds: 30,
 			inputMode: effectiveInputMode,
 			difficulty: .training,
-			speakBrailleDots: true,
+			speakBrailleDots: speakBrailleDots,
 			characterEcho: characterEcho,
 			timerMusicEnabled: false,
 			spatialMoleMappingEnabled: false,
 			customMolePlayMode: .individual,
 			customMoleIDs: items.map(\.id),
-			trainingIntroKind: isGrudgeMatch ? .grudgeMatch : .moleRecon
+			trainingIntroKind: context.selectedMode == .grudgeMatch ? .grudgeMatch : .moleRecon
 		)
 
 		startRound(with: options)
@@ -300,7 +305,23 @@ struct GameView: View {
 		}
 
 		applySpeechSettings()
-		startRound(with: lastTrainingOptions)
+		startRound(with: options(lastTrainingOptions, speakBrailleDots: speakBrailleDots))
+	}
+
+	private func options(_ options: GameLoop.Options, speakBrailleDots: Bool) -> GameLoop.Options {
+		GameLoop.Options(
+			modeId: options.modeId,
+			durationSeconds: options.durationSeconds,
+			inputMode: options.inputMode,
+			difficulty: options.difficulty,
+			speakBrailleDots: speakBrailleDots,
+			characterEcho: options.characterEcho,
+			timerMusicEnabled: options.timerMusicEnabled,
+			spatialMoleMappingEnabled: options.spatialMoleMappingEnabled,
+			customMolePlayMode: options.customMolePlayMode,
+			customMoleIDs: options.customMoleIDs,
+			trainingIntroKind: options.trainingIntroKind
+		)
 	}
 
 	private func startRound(with options: GameLoop.Options) {
@@ -310,6 +331,7 @@ struct GameView: View {
 			lastTrainingOptions = options
 		} else {
 			lastTrainingOptions = nil
+			lastMoleReconContext = nil
 		}
 		viewModel.startRound(options: options)
 		applyAudioSettings()
@@ -321,7 +343,11 @@ struct GameView: View {
 
 	private func returnHomeFromResults() {
 		viewModel.returnHomeFromResults()
-		viewModel.returnFocusToHomeHeading()
+		lastTrainingOptions = nil
+		lastMoleReconContext = nil
+		DispatchQueue.main.async {
+			viewModel.returnFocusToHomeHeading()
+		}
 	}
 
 	private func cashInTickets() {

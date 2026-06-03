@@ -6,6 +6,7 @@ struct GameplayView: View {
 	@ObservedObject var viewModel: GameViewModel
 	let inputMode: InputMode
 	let gameplayFocusToken: Int
+	@Binding var speakBrailleDots: Bool
 	let exitGame: () -> Void
 	@Environment(\.colorScheme) private var colorScheme
 	@ScaledMetric(relativeTo: .title2) private var activeMoleFontSize: CGFloat = 30
@@ -81,13 +82,21 @@ struct GameplayView: View {
 					.accessibilityTouchRegion(minHeight: 0, verticalPadding: 8, alignment: .leading)
 
 					if viewModel.lastRoundWasTraining {
+						Toggle("Speak Braille Dots", isOn: $speakBrailleDots)
+							.foregroundStyle(primaryTextColor)
+							.fixedSize(horizontal: false, vertical: true)
+							.accessibilityTouchRegion(verticalPadding: 6)
+							.onChange(of: speakBrailleDots) { _, newValue in
+								viewModel.setSpeakBrailleDotsDuringRound(newValue)
+							}
+
 						Button("Repeat Current Mole", action: viewModel.repeatCurrentTarget)
 							.buttonStyle(SecondaryGameButton())
 							.accessibilityHint("Speaks the current mole again.")
 							.accessibilityTouchRegion(verticalPadding: 6)
 					}
 
-					Button("Exit Game", action: exitGame)
+					Button(viewModel.lastRoundWasTraining ? "End Practice" : "Exit Game", action: exitGame)
 						.buttonStyle(SecondaryGameButton())
 						.accessibilityTouchRegion(verticalPadding: 6)
 				}
@@ -159,6 +168,10 @@ struct GameplayView: View {
 
 	private var boardBorder: Color {
 		AppTheme.focus.opacity(0.22)
+	}
+
+	private var primaryTextColor: Color {
+		colorScheme == .dark ? AppTheme.darkText : AppTheme.lightText
 	}
 
 	private var secondaryTextColor: Color {

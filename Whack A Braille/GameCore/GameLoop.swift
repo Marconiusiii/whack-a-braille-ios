@@ -204,6 +204,22 @@ final class GameLoop {
 		SpeechEngine.shared.speak(buildAnnounceText(for: item), interrupt: true)
 	}
 
+	func setSpeakBrailleDots(_ enabled: Bool) {
+		currentOptions = Options(
+			modeId: currentOptions.modeId,
+			durationSeconds: currentOptions.durationSeconds,
+			inputMode: currentOptions.inputMode,
+			difficulty: currentOptions.difficulty,
+			speakBrailleDots: enabled,
+			characterEcho: currentOptions.characterEcho,
+			timerMusicEnabled: currentOptions.timerMusicEnabled,
+			spatialMoleMappingEnabled: currentOptions.spatialMoleMappingEnabled,
+			customMolePlayMode: currentOptions.customMolePlayMode,
+			customMoleIDs: currentOptions.customMoleIDs,
+			trainingIntroKind: currentOptions.trainingIntroKind
+		)
+	}
+
 	func handleAttempt(_ attempt: Attempt) {
 		guard isRunning, !roundEnding else { return }
 		guard let activeLane, let currentItem = laneItem(for: activeLane) else { return }
