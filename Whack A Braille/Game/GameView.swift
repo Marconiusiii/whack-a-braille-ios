@@ -46,6 +46,7 @@ struct GameView: View {
 	@State private var shouldRestoreHowToPlayFocus = false
 	@State private var cashOutOrigin: CashOutOrigin = .roundResults
 	@State private var pendingRoundStartID = UUID()
+	@State private var lastTrainingOptions: GameLoop.Options?
 
 	var body: some View {
 		Group {
@@ -77,7 +78,7 @@ struct GameView: View {
 				RoundResultsView(
 					result: viewModel.lastRoundResult,
 					totalTickets: viewModel.totalAccruedTickets,
-					keepWhacking: startRound,
+					keepWhacking: keepWhackingFromResults,
 					beginMoleRecon: startMoleRecon,
 					cashInTickets: cashInTickets,
 					saveTicketsAndReturnHome: viewModel.saveTicketsAndReturnHome,
@@ -257,20 +258,14 @@ struct GameView: View {
 			timerMusicEnabled: timerMusicEnabled,
 			spatialMoleMappingEnabled: spatialMoleMappingEnabled,
 			customMolePlayMode: customMolePlayMode,
-			customMoleIDs: selectedCustomMoleIDs
+			customMoleIDs: selectedCustomMoleIDs,
+			trainingIntroKind: .standard
 		)
 
-		let startID = UUID()
-		pendingRoundStartID = startID
-		viewModel.startRound(options: options)
-		applyAudioSettings()
-		SpeechEngine.shared.prewarm()
-		GameAudioEngine.shared.prewarm {
-			beginPreparedRound(startID: startID, options: options)
-		}
+		startRound(with: options)
 	}
 
-	private func startMoleRecon(items: [BrailleItem]) {
+	private func startMoleRecon(items: [BrailleItem], isGrudgeMatch: Bool) {
 		guard !items.isEmpty else { return }
 
 		pendingRoundStartID = UUID()
@@ -286,11 +281,36 @@ struct GameView: View {
 			timerMusicEnabled: false,
 			spatialMoleMappingEnabled: false,
 			customMolePlayMode: .individual,
-			customMoleIDs: items.map(\.id)
+			customMoleIDs: items.map(\.id),
+			trainingIntroKind: isGrudgeMatch ? .grudgeMatch : .moleRecon
 		)
 
+		startRound(with: options)
+	}
+
+	private func keepWhackingFromResults() {
+		guard viewModel.lastRoundResult?.isTraining == true else {
+			startRound()
+			return
+		}
+
+		guard let lastTrainingOptions else {
+			startRound()
+			return
+		}
+
+		applySpeechSettings()
+		startRound(with: lastTrainingOptions)
+	}
+
+	private func startRound(with options: GameLoop.Options) {
 		let startID = UUID()
 		pendingRoundStartID = startID
+		if options.difficulty == .training {
+			lastTrainingOptions = options
+		} else {
+			lastTrainingOptions = nil
+		}
 		viewModel.startRound(options: options)
 		applyAudioSettings()
 		SpeechEngine.shared.prewarm()
@@ -335,7 +355,11 @@ struct GameView: View {
 			dismissTextInputSystem()
 			SpeechEngine.shared.cancel()
 			GameAudioEngine.shared.stopRound()
-			GameAudioEngine.shared.playEndCue()
+			if viewModel.lastRoundResult?.isTraining == true {
+				GameAudioEngine.shared.playTrainingEndCue()
+			} else {
+				GameAudioEngine.shared.playEndCue()
+			}
 		}
 	}
 
@@ -359,6 +383,8 @@ struct GameView: View {
 		let introText = isInvasionMode
 			? (invasionIntroPhrases.randomElement() ?? "Incoming moles!")
 			: "Ready?"
+		let trainingIntroText = trainingIntroPhrases(for: options.trainingIntroKind).randomElement() ?? "Ready for Training?"
+		let announcementText = options.difficulty == .training ? trainingIntroText : introText
 		let focusHandoffDelayMs = options.inputMode.usesBufferedTextEntry ? 600 : 300
 		let focusSettleDelayMs: Int
 		switch options.inputMode {
@@ -370,14 +396,21 @@ struct GameView: View {
 			focusSettleDelayMs = 900
 		}
 		let postSpeechBeatMs = options.difficulty == .training ? 850 : 300
+		let announcementDelayMs = options.difficulty == .training
+			? max(focusSettleDelayMs, 1_850)
+			: focusSettleDelayMs
 
 		DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(focusHandoffDelayMs)) {
 			guard pendingRoundStartID == startID else { return }
-			GameAudioEngine.shared.playOpeningCue(playEverythingIntro: isInvasionMode)
+			if options.difficulty == .training {
+				GameAudioEngine.shared.playTrainingOpeningCue()
+			} else {
+				GameAudioEngine.shared.playOpeningCue(playEverythingIntro: isInvasionMode)
+			}
 
-			DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(focusSettleDelayMs)) {
+			DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(announcementDelayMs)) {
 				guard pendingRoundStartID == startID else { return }
-				let speechDurationMs = SpeechEngine.shared.speak(introText, interrupt: true)
+				let speechDurationMs = SpeechEngine.shared.speak(announcementText, interrupt: true)
 				let startDelayMs = min(3_000, speechDurationMs + postSpeechBeatMs)
 
 				DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(startDelayMs)) {
@@ -385,6 +418,29 @@ struct GameView: View {
 					viewModel.beginRound(options: options)
 				}
 			}
+		}
+	}
+
+	private func trainingIntroPhrases(for kind: GameLoop.TrainingIntroKind) -> [String] {
+		switch kind {
+		case .standard:
+			return [
+				"Training Mode",
+				"Ready for Training?",
+				"Warm up those dots!"
+			]
+		case .moleRecon:
+			return [
+				"Mole Recon Training",
+				"Ready for Recon?",
+				"Target practice begins!"
+			]
+		case .grudgeMatch:
+			return [
+				"Grudge Match!",
+				"Show 'em What's For!",
+				"Time for Payback Practice!"
+			]
 		}
 	}
 

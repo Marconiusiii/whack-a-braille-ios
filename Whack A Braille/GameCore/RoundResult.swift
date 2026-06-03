@@ -13,6 +13,7 @@ struct RoundResult {
 	let streakBonusCount: Int
 	let canceled: Bool
 	let moleReconItems: [BrailleItem]
+	let grudgeMatchItems: [BrailleItem]
 	let usesAllShownMolesForRecon: Bool
 
 	let baseTickets: Int

@@ -60,6 +60,8 @@ final class GameAudioEngine {
 	private lazy var openingCueData: Data? = makeStartFlourishData()
 	private lazy var everythingCueData: Data? = makeEverythingStingerData()
 	private lazy var endCueData: Data? = makeEndCueData()
+	private lazy var trainingOpeningCueData: [Data] = [1, 2, 3].compactMap { makeTrainingOpeningCueData(seed: $0) }
+	private lazy var trainingEndCueData: [Data] = [1, 2, 3].compactMap { makeTrainingEndCueData(seed: $0) }
 	private lazy var tier1PrizeFanfareData: [Data] = [1, 2, 3].compactMap { makeTier1PrizeFanfareData(seed: $0) }
 	private lazy var tier2PrizeFanfareData: [Data] = [1, 2, 3].compactMap { makeTier2PrizeFanfareData(seed: $0) }
 	private lazy var tier3PrizeFanfareData: [Data] = [1, 2, 3].compactMap { makeTier3PrizeFanfareData(seed: $0) }
@@ -109,6 +111,8 @@ final class GameAudioEngine {
 			_ = self.openingCueData
 			_ = self.everythingCueData
 			_ = self.endCueData
+			_ = self.trainingOpeningCueData
+			_ = self.trainingEndCueData
 
 			DispatchQueue.main.async {
 				self.hasFinishedGameplayPrewarm = true
@@ -142,6 +146,14 @@ final class GameAudioEngine {
 
 	func playEndCue() {
 		playGeneratedSound(endCueData, volume: 1.0, pan: 0)
+	}
+
+	func playTrainingOpeningCue() {
+		playGeneratedSound(trainingOpeningCueData.randomElement(), volume: 0.98, pan: 0)
+	}
+
+	func playTrainingEndCue() {
+		playGeneratedSound(trainingEndCueData.randomElement(), volume: 1.0, pan: 0)
 	}
 
 	func playPrizeFanfare(for tier: PrizeTier) {
@@ -748,6 +760,93 @@ final class GameAudioEngine {
 			}
 
 			return clampSample(sample * 0.45)
+		}
+	}
+
+	private func makeTrainingOpeningCueData(seed: Int) -> Data? {
+		let beat = 60.0 / 220.0
+		let rootChord = [261.63, 329.63, 392.0]
+		let resolveChoices: [[Double]] = [
+			rootChord.map { $0 * 1.5 },
+			[261.63, 392.0, 523.25],
+			[246.94, 329.63, 392.0]
+		]
+		let resolveChord = resolveChoices[(seed - 1) % resolveChoices.count]
+		let secondHitStart = beat * (seed == 2 ? 1.25 : 1.4)
+		let sustainStart = beat * (seed == 3 ? 2.2 : 2.0)
+		let duration = beat * 6.0
+
+		return makeWaveFile(duration: duration) { time in
+			var sample = 0.0
+
+			sample += chordBurst(time: time, start: 0, duration: beat, frequencies: rootChord, peak: 0.58)
+			sample += chordBurst(time: time, start: secondHitStart, duration: beat, frequencies: rootChord, peak: 0.52)
+			sample += sustainedChord(
+				time: time,
+				start: sustainStart,
+				duration: duration - sustainStart,
+				frequencies: resolveChord,
+				peak: seed == 1 ? 0.66 : 0.62,
+				vibratoRate: 4.1,
+				vibratoDepth: 2.6
+			)
+
+			return clampSample(sample * 0.43)
+		}
+	}
+
+	private func makeTrainingEndCueData(seed: Int) -> Data? {
+		let beat = 60.0 / 180.0
+		let progressionChoices: [[([Double], Double, Double)]] = [
+			[
+				([261.63, 329.63, 392.0], 130.81, beat),
+				([261.63, 392.0, 523.25], 130.81, beat),
+				([196.0, 246.94, 392.0, 493.88], 98.0, beat * 3.2)
+			],
+			[
+				([261.63, 329.63, 392.0], 130.81, beat),
+				([277.18, 329.63, 392.0], 138.59, beat),
+				([196.0, 246.94, 392.0, 493.88], 98.0, beat * 3.2)
+			],
+			[
+				([261.63, 329.63, 392.0], 130.81, beat),
+				([293.66, 369.99, 440.0], 146.83, beat),
+				([196.0, 246.94, 392.0, 493.88], 98.0, beat * 3.2)
+			]
+		]
+		let progression = progressionChoices[(seed - 1) % progressionChoices.count]
+		let totalDuration = progression.reduce(0.0) { $0 + $1.2 }
+
+		return makeWaveFile(duration: totalDuration) { time in
+			var sample = 0.0
+			var cursor = 0.0
+
+			for (index, step) in progression.enumerated() {
+				let chord = step.0
+				let bass = step.1
+				let stepDuration = step.2
+
+				if time >= cursor, time <= cursor + stepDuration {
+					let chordSample = chordBurst(
+						time: time,
+						start: cursor,
+						duration: stepDuration,
+						frequencies: chord,
+						peak: index == progression.count - 1 ? 0.82 : 0.62,
+						vibratoRate: index == progression.count - 1 ? 3.8 : nil,
+						vibratoDepth: index == progression.count - 1 ? 2.2 : nil
+					)
+					sample += chordSample
+
+					let local = time - cursor
+					let bassEnv = envelope(local, attack: 0.05, release: stepDuration, peak: 0.5)
+					sample += sine(bass, local) * bassEnv
+				}
+
+				cursor += stepDuration
+			}
+
+			return clampSample(sample * 0.44)
 		}
 	}
 

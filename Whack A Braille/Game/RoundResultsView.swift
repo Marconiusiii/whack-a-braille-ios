@@ -6,7 +6,7 @@ struct RoundResultsView: View {
 	let result: RoundResult?
 	let totalTickets: Int
 	let keepWhacking: () -> Void
-	let beginMoleRecon: ([BrailleItem]) -> Void
+	let beginMoleRecon: ([BrailleItem], Bool) -> Void
 	let cashInTickets: () -> Void
 	let saveTicketsAndReturnHome: () -> Void
 	let returnHome: () -> Void
@@ -26,11 +26,11 @@ struct RoundResultsView: View {
 		.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 		.sheet(isPresented: $isShowingMoleRecon) {
 			MoleReconView(
-				items: moleReconItems,
-				isGrudgeMatch: result?.usesAllShownMolesForRecon == true,
-				beginPractice: { selectedItems in
+				reconItems: moleReconItems,
+				grudgeMatchItems: grudgeMatchItems,
+				beginPractice: { selectedItems, isGrudgeMatch in
 					isShowingMoleRecon = false
-					beginMoleRecon(selectedItems)
+					beginMoleRecon(selectedItems, isGrudgeMatch)
 				},
 				cancel: {
 					isShowingMoleRecon = false
@@ -65,6 +65,11 @@ struct RoundResultsView: View {
 	private var moleReconItems: [BrailleItem] {
 		guard let result else { return [] }
 		return result.moleReconItems.filter { !dotPatternText(for: $0).isEmpty }
+	}
+
+	private var grudgeMatchItems: [BrailleItem] {
+		guard let result else { return [] }
+		return result.grudgeMatchItems.filter { !dotPatternText(for: $0).isEmpty }
 	}
 
 	private func resultContent(accessibilityLayout: Bool) -> some View {
@@ -141,13 +146,13 @@ struct RoundResultsView: View {
 					.frame(maxWidth: .infinity, minHeight: accessibilityLayout ? 120 : 96)
 					.accessibilityHidden(!isResultsContentAccessible)
 
-				if !result.isTraining && !moleReconItems.isEmpty {
+				if !result.isTraining && (!moleReconItems.isEmpty || !grudgeMatchItems.isEmpty) {
 					Button("Mole Recon") {
 						isShowingMoleRecon = true
 					}
 					.buttonStyle(FullRegionSecondaryGameButton(horizontalInset: 24, verticalInset: 20))
 					.frame(maxWidth: .infinity, minHeight: accessibilityLayout ? 104 : 88)
-					.accessibilityHint("Opens a training briefing for the moles you missed or let escape.")
+					.accessibilityHint("Opens Mole Recon training options for this round's moles.")
 					.accessibilityHidden(!isResultsContentAccessible)
 				}
 
@@ -226,14 +231,22 @@ struct RoundResultsView: View {
 
 private struct MoleReconView: View {
 
-	let items: [BrailleItem]
-	let isGrudgeMatch: Bool
-	let beginPractice: ([BrailleItem]) -> Void
+	private enum ReconMode: String, CaseIterable, Identifiable {
+		case recon = "Recon"
+		case grudgeMatch = "Grudge Match"
+
+		var id: String { rawValue }
+	}
+
+	let reconItems: [BrailleItem]
+	let grudgeMatchItems: [BrailleItem]
+	let beginPractice: ([BrailleItem], Bool) -> Void
 	let cancel: () -> Void
 
 	@Environment(\.colorScheme) private var colorScheme
 	@Environment(\.dismiss) private var dismiss
 	@AccessibilityFocusState private var isHeadingFocused: Bool
+	@State private var selectedMode: ReconMode = .recon
 	@State private var selectedItemIDs = Set<String>()
 	@State private var isShowingEmptySelectionAlert = false
 
@@ -249,6 +262,14 @@ private struct MoleReconView: View {
 							.accessibilityAddTraits(.isHeader)
 							.accessibilityFocused($isHeadingFocused)
 
+						Picker("Mole Recon mode", selection: $selectedMode) {
+							ForEach(availableModes) { mode in
+								Text(mode.rawValue).tag(mode)
+							}
+						}
+						.pickerStyle(.segmented)
+						.accessibilityHint("Changes the Mole Recon training target list.")
+
 						Text(moleReconBlurb)
 							.foregroundStyle(secondaryTextColor)
 							.fixedSize(horizontal: false, vertical: true)
@@ -257,8 +278,8 @@ private struct MoleReconView: View {
 					.accessibilityTouchRegion(minHeight: 0, topPadding: 24, bottomPadding: 10, horizontalPadding: 24, alignment: .leading)
 
 					VStack(alignment: .leading, spacing: 0) {
-						ForEach(items, id: \.id) { item in
-							if isGrudgeMatch {
+						ForEach(displayedItems, id: \.id) { item in
+							if activeMode == .grudgeMatch {
 								interactiveMoleRow(for: item)
 							} else {
 								staticMoleRow(for: item)
@@ -276,7 +297,7 @@ private struct MoleReconView: View {
 							return
 						}
 						dismiss()
-						beginPractice(practiceItems)
+						beginPractice(practiceItems, activeMode == .grudgeMatch)
 					}
 					.buttonStyle(FullRegionPrimaryGameButton(visibleMinHeight: 72, horizontalInset: 24, verticalInset: 20))
 					.accessibilityHint("Starts a training round using the moles in Mole Recon.")
@@ -297,29 +318,47 @@ private struct MoleReconView: View {
 			Text("Pick at least one mole. An empty recon mission is just dramatic standing around with nothing to whack.")
 		}
 		.onAppear {
-			if isGrudgeMatch {
-				selectedItemIDs = Set(items.map(\.id))
-			}
+			selectedMode = reconItems.isEmpty ? .grudgeMatch : .recon
+			selectedItemIDs = Set(grudgeMatchItems.map(\.id))
 			DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
 				isHeadingFocused = true
 			}
 		}
 	}
 
+	private var availableModes: [ReconMode] {
+		ReconMode.allCases.filter { mode in
+			switch mode {
+			case .recon:
+				return !reconItems.isEmpty
+			case .grudgeMatch:
+				return !grudgeMatchItems.isEmpty
+			}
+		}
+	}
+
+	private var activeMode: ReconMode {
+		availableModes.contains(selectedMode) ? selectedMode : (availableModes.first ?? .grudgeMatch)
+	}
+
 	private var moleReconBlurb: String {
-		if isGrudgeMatch {
+		if activeMode == .grudgeMatch {
 			return "Have a grudge against these particular moles? Show them what's what in this training session! Choose the moles you want to whack:"
 		}
 
 		return "These moles remain at large. Study their dot patterns, prepare your fingers, and begin a training round so they don't get away twice."
 	}
 
+	private var displayedItems: [BrailleItem] {
+		activeMode == .grudgeMatch ? grudgeMatchItems : reconItems
+	}
+
 	private var selectedPracticeItems: [BrailleItem] {
-		if isGrudgeMatch {
-			return items.filter { selectedItemIDs.contains($0.id) }
+		if activeMode == .grudgeMatch {
+			return grudgeMatchItems.filter { selectedItemIDs.contains($0.id) }
 		}
 
-		return items
+		return reconItems
 	}
 
 	@ViewBuilder

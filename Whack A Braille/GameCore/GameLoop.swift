@@ -8,6 +8,12 @@ final class GameLoop {
 		case miss
 	}
 
+	enum TrainingIntroKind {
+		case standard
+		case moleRecon
+		case grudgeMatch
+	}
+
 	struct Options {
 		let modeId: String
 		let durationSeconds: Int
@@ -19,6 +25,7 @@ final class GameLoop {
 		let spatialMoleMappingEnabled: Bool
 		let customMolePlayMode: CustomMolePlayMode
 		let customMoleIDs: [String]
+		let trainingIntroKind: TrainingIntroKind
 	}
 
 	var onRoundEnded: ((RoundResult) -> Void)?
@@ -73,7 +80,8 @@ final class GameLoop {
 		timerMusicEnabled: true,
 		spatialMoleMappingEnabled: true,
 		customMolePlayMode: .individual,
-		customMoleIDs: []
+		customMoleIDs: [],
+		trainingIntroKind: .standard
 	)
 
 	private var availableItems: [BrailleItem] = []
@@ -290,7 +298,6 @@ final class GameLoop {
 		let streakTickets = adjustedTickets(rawStreakTickets)
 		let speedTickets = adjustedTickets(rawSpeedTickets)
 		let usesAllShownMolesForRecon = !isTraining && moleReconItems.isEmpty && !shownMoleReconItems.isEmpty
-		let reconItems = usesAllShownMolesForRecon ? shownMoleReconItems : moleReconItems
 
 		onRoundEnded?(
 			RoundResult(
@@ -306,7 +313,8 @@ final class GameLoop {
 				bestStreak: bestStreakThisRound,
 				streakBonusCount: streakBonusCount,
 				canceled: canceled,
-				moleReconItems: reconItems,
+				moleReconItems: moleReconItems,
+				grudgeMatchItems: shownMoleReconItems,
 				usesAllShownMolesForRecon: usesAllShownMolesForRecon,
 				baseTickets: baseTickets,
 				streakBonusTickets: streakTickets,
