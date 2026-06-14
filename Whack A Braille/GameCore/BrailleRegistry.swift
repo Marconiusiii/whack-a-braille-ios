@@ -380,7 +380,7 @@ enum BrailleRegistry {
 		makeSequenceItem(id: "ount", announce: "O U N T", sequenceDots: [[4, 6], [2, 3, 4, 5]], modes: ["grade2Suffixes"], acceptedInputs: ["-ount", ".t"], textTokenSequences: [[".", "t"]]),
 		makeSequenceItem(id: "ence", announce: "E N C E", sequenceDots: [[5, 6], [1, 5]], modes: ["grade2Suffixes"], acceptedInputs: ["-ence", ";e", "e"], textTokenSequences: [[";", "e"]]),
 		makeSequenceItem(id: "ong", announce: "O N G", sequenceDots: [[5, 6], [1, 2, 4, 5]], modes: ["grade2Suffixes"], acceptedInputs: ["-ong", ";g", "g"], textTokenSequences: [[";", "g"]]),
-		makeSequenceItem(id: "ful", announce: "F U L", sequenceDots: [[5, 6], [1, 2, 4]], modes: ["grade2Suffixes"], acceptedInputs: ["-ful", ";f", "f"], textTokenSequences: [[";", "f"]]),
+		makeSequenceItem(id: "ful", announce: "F U L", sequenceDots: [[5, 6], [1, 2, 3]], modes: ["grade2Suffixes"], acceptedInputs: ["-ful", ";l", "l"], textTokenSequences: [[";", "l"]]),
 		makeSequenceItem(id: "tion", announce: "T I O N", sequenceDots: [[5, 6], [2, 3, 4, 5]], modes: ["grade2Suffixes"], acceptedInputs: ["-tion", ";t", "t"], textTokenSequences: [[";", "t"]]),
 		makeSequenceItem(id: "ness", announce: "N E S S", sequenceDots: [[5, 6], [1, 3, 4, 5]], modes: ["grade2Suffixes"], acceptedInputs: ["-ness", ";n", "n"], textTokenSequences: [[";", "n"]]),
 		makeSequenceItem(id: "ment", announce: "M E N T", sequenceDots: [[5, 6], [1, 3, 4]], modes: ["grade2Suffixes"], acceptedInputs: ["-ment", ";m", "m"], textTokenSequences: [[";", "m"]]),
