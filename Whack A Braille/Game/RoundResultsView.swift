@@ -118,12 +118,10 @@ struct RoundResultsView: View {
 						.accessibilityAddTraits(.isHeader)
 						.accessibilityFocused($isHeadingFocused)
 
-					if !result.isTraining {
-						Text(resultsFlavorLine(for: result))
-							.font(.headline)
-							.foregroundStyle(primaryTextColor)
-							.fixedSize(horizontal: false, vertical: true)
-					}
+					Text(result.isTraining ? trainingFlavorLine(for: result) : resultsFlavorLine(for: result))
+						.font(.headline)
+						.foregroundStyle(primaryTextColor)
+						.fixedSize(horizontal: false, vertical: true)
 				}
 				.appCard()
 				.accessibilityTouchRegion(minHeight: 0, topPadding: 24, bottomPadding: 10, horizontalPadding: 24, alignment: .leading)
@@ -247,30 +245,180 @@ struct RoundResultsView: View {
 		let accuracy = accuracyPercent(for: result)
 
 		if result.hits == 0 {
-			return "The moles won this round. Rude, but temporary."
+			return selectedFlavorLine(from: veryRoughFlavorLines, for: result)
 		}
 
 		if accuracy >= 90 && result.escapes == 0 {
-			return "You brought study skills to a bonk fight."
-		}
-
-		if result.bestStreak >= 10 {
-			return "Fast hands. Suspiciously fast."
-		}
-
-		if result.escapes >= result.hits {
-			return "The escaped moles are acting brave. For now."
-		}
-
-		if result.misses + result.escapes >= result.hits {
-			return "That was valuable reconnaissance disguised as chaos."
+			return selectedFlavorLine(from: excellentFlavorLines, for: result)
 		}
 
 		if accuracy >= 75 {
-			return "Braille fluency increased. Mole confidence decreased."
+			return selectedFlavorLine(from: strongFlavorLines, for: result)
 		}
 
-		return "A few moles got away, but they know you're learning."
+		if accuracy >= 45 {
+			return selectedFlavorLine(from: mixedFlavorLines, for: result)
+		}
+
+		return selectedFlavorLine(from: roughFlavorLines, for: result)
+	}
+
+	private func trainingFlavorLine(for result: RoundResult) -> String {
+		let accuracy = accuracyPercent(for: result)
+
+		if result.hits == 0 || accuracy < 45 {
+			return selectedFlavorLine(from: roughTrainingFlavorLines, for: result)
+		}
+
+		if accuracy >= 90 && result.escapes == 0 {
+			return selectedFlavorLine(from: excellentTrainingFlavorLines, for: result)
+		}
+
+		return selectedFlavorLine(from: strongTrainingFlavorLines, for: result)
+	}
+
+	private func selectedFlavorLine(from lines: [String], for result: RoundResult) -> String {
+		guard !lines.isEmpty else { return "" }
+		let seed = result.score + result.hits * 31 + result.misses * 17 + result.escapes * 13 + result.bestStreak * 7 + result.speedBonusTickets * 5 + result.totalTickets
+		return lines[abs(seed) % lines.count]
+	}
+
+	private var excellentFlavorLines: [String] {
+		[
+			"Clean round! The moles popped up and immediately regretted the schedule.",
+			"Every dot got read, every mole got the message.",
+			"That was pure arcade bonk poetry.",
+			"The hammer was singing, the dots were clicking, and the moles were doomed.",
+			"Beautiful round. The moles barely had time to blink.",
+			"That was a dazzling display of braille-powered whackery.",
+			"The prize counter just got nervous.",
+			"You read the dots and brought the bonks. Simple. Elegant. Loud.",
+			"Dots read, moles bonked, arcade delighted.",
+			"Fast hands. Suspiciously fast.",
+			"Braille literacy: now with extra bonk velocity.",
+			"That round had Grade A dot-to-hammer translation."
+		]
+	}
+
+	private var strongFlavorLines: [String] {
+		[
+			"Solid bonking! The moles are pretending they planned it that way.",
+			"Nice work. The dots lined up and the moles got thumped.",
+			"You kept the rhythm and the arcade kept cheering.",
+			"Good round. Several moles are now reconsidering their pop-up choices.",
+			"Your hammer and your braille brain were clearly in sync.",
+			"That was a tasty little serving of arcade thwack.",
+			"The moles brought nonsense. You brought dot knowledge.",
+			"Strong whacks, sharp reads, excellent mole confusion.",
+			"Sharp reading, clean bonking, nervous moles.",
+			"Your dot game had excellent thwap timing.",
+			"The dots clicked and the bonks landed.",
+			"Braille focus strong. Mole confidence weak."
+		]
+	}
+
+	private var mixedFlavorLines: [String] {
+		[
+			"Some moles got away, but plenty got bonked with style.",
+			"A little chaos, a little triumph, a lot of arcade noise.",
+			"Not bad! The moles had tricks, but your hammer had opinions.",
+			"The dots got spicy, but you stayed in the game.",
+			"Some bonks landed, some moles escaped, and the arcade remains entertained.",
+			"That round had wobble, but it also had whacks.",
+			"A respectable rumble with a few slippery moles.",
+			"The moles caused trouble, but they did not leave unbothered.",
+			"Braille practice happened, moles were bonked, and the arcade survived.",
+			"The dots had meaning, and the moles had problems.",
+			"You turned braille cells into bonk instructions.",
+			"Dot by dot, thwack by thwack, the moles learned."
+		]
+	}
+
+	private var roughFlavorLines: [String] {
+		[
+			"Tough round. The moles are getting smug, which is always a mistake.",
+			"The moles slipped away today, but revenge has excellent rhythm.",
+			"That one got messy. The next bonk is already warming up.",
+			"The arcade says shake it off and whack again.",
+			"The moles had a good run. Suspiciously temporary.",
+			"Rough one, but the hammer is still hungry.",
+			"The dots got rowdy and the moles took advantage.",
+			"Some rounds are training. Some rounds are mole propaganda. This was both.",
+			"The moles got slippery, but the dots are still on your side.",
+			"Tough round. The next cell is a fresh whack opportunity.",
+			"The hammer missed a few, but your braille brain is still charging.",
+			"The dots got rowdy, but you are still in the bonk zone."
+		]
+	}
+
+	private var veryRoughFlavorLines: [String] {
+		[
+			"The moles got away with absolute foolishness.",
+			"That round was mostly moles doing crimes with dots attached.",
+			"The hammer demands a rematch.",
+			"The arcade is chanting your comeback music.",
+			"The moles are feeling brave. Terrible idea.",
+			"Not your finest bonk parade, but the comeback is loading.",
+			"A suspicious number of moles remain unbonked.",
+			"The moles won this skirmish. The next round has other plans.",
+			"The moles won this round. Rude, but temporary.",
+			"Rough bonks happen. The arcade believes in the comeback."
+		]
+	}
+
+	private var excellentTrainingFlavorLines: [String] {
+		[
+			"Beautiful training round. The moles barely got to participate.",
+			"Those dots got recognized with authority.",
+			"Clean practice. The hammer and braille brain are syncing nicely.",
+			"That was excellent dot-to-bonk translation.",
+			"Sharp dots, clean thwacks, nervous moles.",
+			"You practiced so well the moles are requesting easier homework.",
+			"That training round had premium whack energy.",
+			"Your braille skills just made the moles flinch.",
+			"Training complete. The next real round should be interesting.",
+			"That was a polished little festival of practice bonks."
+		]
+	}
+
+	private var strongTrainingFlavorLines: [String] {
+		[
+			"Training complete. The moles are pretending they were not worried.",
+			"Practice bonks logged. Mole confidence reduced.",
+			"Nice training round. The dots got clearer and the moles got quieter.",
+			"You practiced the pattern, then introduced it to the hammer.",
+			"Training works. The moles hate that.",
+			"Your braille brain just got another arcade upgrade.",
+			"Good practice. The dots are starting to behave.",
+			"You turned practice into a tiny mole crisis.",
+			"Training round complete. The hammer learned things.",
+			"The moles came for practice and found consequences.",
+			"That is how dot knowledge becomes bonk power.",
+			"Every practice round makes the next mole sweat a little more.",
+			"Those dots are getting less mysterious and more whackable.",
+			"Practice today, mole panic tomorrow.",
+			"The hammer is improving because the reader is improving.",
+			"Your future rounds just got a little scarier for the moles.",
+			"Excellent training energy. Deeply inconvenient for mole-kind.",
+			"Training complete. The bonk strategy is getting sharper.",
+			"This was a fine session of pre-bonk science.",
+			"The arcade has detected improved thwack readiness."
+		]
+	}
+
+	private var roughTrainingFlavorLines: [String] {
+		[
+			"Tough practice still counts. The moles do not get to vote on that.",
+			"Training is where messy bonks become mighty bonks.",
+			"A few patterns fought back, but you stayed in the arcade.",
+			"Practice rounds are allowed to wobble. That is why they are practice.",
+			"The dots got spicy, but you kept showing up.",
+			"Even missed training moles are teaching you where to swing next.",
+			"That round had chaos, but also progress. The arcade accepts this.",
+			"The moles got slippery, but your next attempt has more data.",
+			"Training complete. The comeback is now warming up.",
+			"A rough practice round is just future accuracy stretching first."
+		]
 	}
 }
 
