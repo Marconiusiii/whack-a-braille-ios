@@ -301,7 +301,7 @@ final class GameAudioEngine {
 
 	private func configureAudioSession() {
 		do {
-			try session.setCategory(.playback, mode: .default, options: [.duckOthers])
+			try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
 			try session.setActive(true, options: [])
 		} catch {
 			// Keep gameplay running even if audio session activation fails.
