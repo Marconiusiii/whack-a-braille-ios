@@ -11,6 +11,7 @@ final class SpeechEngine {
 	private var currentRate: Float = AVSpeechUtteranceDefaultSpeechRate
 	private var currentVolume: Float = 0.85
 	private var sessionObservers: [NSObjectProtocol] = []
+	private var hasActivatedAudioSession = false
 
 	private init() {
 		currentVoice = AVSpeechSynthesisVoice(language: Locale.current.identifier) ?? AVSpeechSynthesisVoice(language: "en-US")
@@ -82,10 +83,11 @@ final class SpeechEngine {
 
 	private func activateAudioSession() {
 		let session = AVAudioSession.sharedInstance()
+		guard !hasActivatedAudioSession else { return }
 
 		do {
-			try session.setCategory(.playback, mode: .default, options: [.duckOthers])
 			try session.setActive(true, options: [])
+			hasActivatedAudioSession = true
 		} catch {
 			// Keep the game usable even if the audio session cannot be updated.
 		}
@@ -132,6 +134,7 @@ final class SpeechEngine {
 
 				if type == .ended {
 					Task { @MainActor [weak self] in
+						self?.hasActivatedAudioSession = false
 						self?.recoverSpeechSystem(rebuildSynthesizer: true)
 					}
 				}
@@ -145,6 +148,7 @@ final class SpeechEngine {
 				queue: .main
 			) { [weak self] _ in
 				Task { @MainActor [weak self] in
+					self?.hasActivatedAudioSession = false
 					self?.recoverSpeechSystem(rebuildSynthesizer: true)
 				}
 			}

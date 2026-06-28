@@ -27,13 +27,32 @@ final class GameAudioEngine {
 
 	static let shared = GameAudioEngine()
 
+	private enum PreparedSoundID: Hashable {
+		case pop
+		case hit
+		case alternateHit
+		case miss
+		case retreat
+		case sillyHit
+		case fiftyPoint
+		case goofyHit(Int)
+		case goofyMiss
+		case goofyRetreat
+		case retroHit(Int)
+		case retroMiss
+		case retroRetreat
+		case beat(Int)
+	}
+
 	private let session = AVAudioSession.sharedInstance()
 	private let lanePanMap: [Float] = [-1.0, -0.5, 0.0, 0.5, 1.0]
 	private let sampleRate = 44_100.0
+	private let maxPreparedPlayersPerSound = 4
 
 	private var timerMusicEnabled = true
 	private var gameAudioMode: GameAudioMode = .original
 	private var activePlayers: [AVAudioPlayer] = []
+	private var preparedPlayers: [PreparedSoundID: [AVAudioPlayer]] = [:]
 	private var hasStartedGameplayPrewarm = false
 	private var hasFinishedGameplayPrewarm = false
 	private var pendingGameplayPrewarmHandlers: [() -> Void] = []
@@ -68,6 +87,16 @@ final class GameAudioEngine {
 	private lazy var tier4PrizeFanfareData: [Data] = [1, 2, 3].compactMap { makeTier4PrizeFanfareData(seed: $0) }
 	private lazy var tier5PrizeFanfareData: [Data] = [1, 2, 3].compactMap { makeTier5PrizeFanfareData(seed: $0) }
 	private lazy var tier6PrizeFanfareData: [Data] = [1, 2, 3].compactMap { makeTier6PrizeFanfareData(seed: $0) }
+	private lazy var beatPulseDataByMidi: [Int: Data] = {
+		Dictionary(uniqueKeysWithValues: (48...84).compactMap { midi in
+			makeBeatPulseData(frequency: midiFrequency(midi)).map { (midi, $0) }
+		})
+	}()
+	private lazy var retroHitSoundDataByRoot: [Int: Data] = {
+		Dictionary(uniqueKeysWithValues: (48...84).compactMap { root in
+			makeRetroHitSoundData(root: root).map { (root, $0) }
+		})
+	}()
 
 	private init() {
 		observeAudioSession()
@@ -113,8 +142,11 @@ final class GameAudioEngine {
 			_ = self.endCueData
 			_ = self.trainingOpeningCueData
 			_ = self.trainingEndCueData
+			_ = self.beatPulseDataByMidi
+			_ = self.retroHitSoundDataByRoot
 
 			DispatchQueue.main.async {
+				self.prewarmPreparedPlayerPools()
 				self.hasFinishedGameplayPrewarm = true
 				let handlers = self.pendingGameplayPrewarmHandlers
 				self.pendingGameplayPrewarmHandlers.removeAll()
@@ -206,16 +238,19 @@ final class GameAudioEngine {
 		case .original:
 			let useAlternateHit = (max(0, scoreBeforeHit) / 10).isMultiple(of: 2)
 			let soundData = useAlternateHit ? alternateHitSoundData : hitSoundData
-			playGeneratedSound(soundData, volume: 1.34, pan: pan)
+			playPreparedSound(useAlternateHit ? .alternateHit : .hit, data: soundData, volume: 1.34, pan: pan)
 		case .silly:
 			let rate = Float.random(in: 0.9...1.12)
-			playGeneratedSound(sillyHitSoundData, volume: 0.62, pan: pan, rate: rate)
+			playPreparedSound(.sillyHit, data: sillyHitSoundData, volume: 0.62, pan: pan, rate: rate)
 			playFiftyPointCueIfNeeded(scoreBeforeHit: scoreBeforeHit)
 		case .goofy:
 			let rate = Float.random(in: 0.94...1.06)
-			playGeneratedSound(goofyHitSoundData.randomElement(), volume: 1.0, pan: pan, rate: rate)
+			let index = goofyHitSoundData.indices.randomElement()
+			let soundData = index.map { goofyHitSoundData[$0] }
+			playPreparedSound(.goofyHit(index ?? 0), data: soundData, volume: 1.0, pan: pan, rate: rate)
 		case .retro:
-			playGeneratedSound(makeRetroHitSoundData(root: currentTimerRootMidi()), volume: 0.72, pan: pan)
+			let root = currentTimerRootMidi()
+			playPreparedSound(.retroHit(root), data: retroHitSoundData(for: root), volume: 0.72, pan: pan)
 		}
 	}
 
@@ -224,16 +259,16 @@ final class GameAudioEngine {
 
 		switch gameAudioMode {
 		case .original, .silly:
-			playGeneratedSound(missSoundData, volume: 0.72, pan: pan)
+			playPreparedSound(.miss, data: missSoundData, volume: 0.72, pan: pan)
 		case .goofy:
-			playGeneratedSound(goofyMissSoundData, volume: 0.74, pan: pan)
+			playPreparedSound(.goofyMiss, data: goofyMissSoundData, volume: 0.74, pan: pan)
 		case .retro:
-			playGeneratedSound(retroMissSoundData, volume: 0.5, pan: pan)
+			playPreparedSound(.retroMiss, data: retroMissSoundData, volume: 0.5, pan: pan)
 		}
 	}
 
 	func playMolePop(lane: Int) {
-		playGeneratedSound(popSoundData, volume: 0.45, pan: pan(for: lane))
+		playPreparedSound(.pop, data: popSoundData, volume: 0.45, pan: pan(for: lane))
 	}
 
 	func playRetreat(lane: Int) {
@@ -241,11 +276,11 @@ final class GameAudioEngine {
 
 		switch gameAudioMode {
 		case .original, .silly:
-			playGeneratedSound(retreatSoundData, volume: 1.0, pan: pan)
+			playPreparedSound(.retreat, data: retreatSoundData, volume: 1.0, pan: pan)
 		case .goofy:
-			playGeneratedSound(goofyRetreatSoundData, volume: 0.48, pan: pan)
+			playPreparedSound(.goofyRetreat, data: goofyRetreatSoundData, volume: 0.48, pan: pan)
 		case .retro:
-			playGeneratedSound(retroRetreatSoundData, volume: 0.24, pan: pan)
+			playPreparedSound(.retroRetreat, data: retroRetreatSoundData, volume: 0.24, pan: pan)
 		}
 	}
 
@@ -264,6 +299,84 @@ final class GameAudioEngine {
 			try session.setActive(true, options: [])
 		} catch {
 			// Keep gameplay running even if audio session activation fails.
+		}
+	}
+
+	private func prewarmPreparedPlayerPools() {
+		prewarmPreparedSound(.pop, data: popSoundData, count: 5)
+		prewarmPreparedSound(.hit, data: hitSoundData)
+		prewarmPreparedSound(.alternateHit, data: alternateHitSoundData)
+		prewarmPreparedSound(.miss, data: missSoundData)
+		prewarmPreparedSound(.retreat, data: retreatSoundData)
+		prewarmPreparedSound(.sillyHit, data: sillyHitSoundData)
+		prewarmPreparedSound(.fiftyPoint, data: fiftyPointSoundData)
+		for (index, data) in goofyHitSoundData.enumerated() {
+			prewarmPreparedSound(.goofyHit(index), data: data)
+		}
+		prewarmPreparedSound(.goofyMiss, data: goofyMissSoundData)
+		prewarmPreparedSound(.goofyRetreat, data: goofyRetreatSoundData)
+		prewarmPreparedSound(.retroMiss, data: retroMissSoundData)
+		prewarmPreparedSound(.retroRetreat, data: retroRetreatSoundData)
+		for (midi, data) in beatPulseDataByMidi {
+			prewarmPreparedSound(.beat(midi), data: data, count: 2)
+		}
+		for (root, data) in retroHitSoundDataByRoot {
+			prewarmPreparedSound(.retroHit(root), data: data)
+		}
+	}
+
+	private func prewarmPreparedSound(_ id: PreparedSoundID, data: Data?, count: Int = 2) {
+		guard let data, data.count > 44 else { return }
+		let players = (0..<count).compactMap { _ -> AVAudioPlayer? in
+			do {
+				let player = try AVAudioPlayer(data: data)
+				guard player.duration > 0 else { return nil }
+				player.enableRate = true
+				player.prepareToPlay()
+				return player
+			} catch {
+				return nil
+			}
+		}
+
+		guard !players.isEmpty else { return }
+		preparedPlayers[id] = players
+	}
+
+	private func playPreparedSound(_ id: PreparedSoundID, data: Data?, volume: Float, pan: Float, rate: Float = 1.0) {
+		guard let data, data.count > 44 else { return }
+
+		if let player = availablePreparedPlayer(for: id, data: data) {
+			player.stop()
+			player.currentTime = 0
+			player.volume = volume
+			player.pan = pan
+			player.enableRate = true
+			player.rate = rate
+			player.play()
+			return
+		}
+
+		playGeneratedSound(data, volume: volume, pan: pan, rate: rate)
+	}
+
+	private func availablePreparedPlayer(for id: PreparedSoundID, data: Data) -> AVAudioPlayer? {
+		if let existing = preparedPlayers[id]?.first(where: { !$0.isPlaying }) {
+			return existing
+		}
+
+		let currentCount = preparedPlayers[id]?.count ?? 0
+		guard currentCount < maxPreparedPlayersPerSound else { return nil }
+
+		do {
+			let player = try AVAudioPlayer(data: data)
+			guard player.duration > 0 else { return nil }
+			player.enableRate = true
+			player.prepareToPlay()
+			preparedPlayers[id, default: []].append(player)
+			return player
+		} catch {
+			return nil
 		}
 	}
 
@@ -355,7 +468,7 @@ final class GameAudioEngine {
 
 		DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
 			guard let self else { return }
-			self.playGeneratedSound(self.fiftyPointSoundData, volume: 0.75, pan: 0)
+			self.playPreparedSound(.fiftyPoint, data: self.fiftyPointSoundData, volume: 0.75, pan: 0)
 		}
 	}
 
@@ -427,12 +540,10 @@ final class GameAudioEngine {
 	private func playBeatPulse(progress: Double) {
 		let pattern = [0, 4, 7, 2]
 		let step = pattern[beatStepIndex % pattern.count]
-		let targetMidi = beatRootMidi + step
-		let targetFreq = 440.0 * pow(2.0, Double(targetMidi - 69) / 12.0)
+		let targetMidi = min(max(beatRootMidi + step, 48), 84)
 		let volume = Float(0.25 + (progress * 0.2))
 
-		let data = makeBeatPulseData(frequency: targetFreq)
-		playGeneratedSound(data, volume: volume, pan: 0)
+		playPreparedSound(.beat(targetMidi), data: beatPulseData(for: targetMidi), volume: volume, pan: 0)
 
 		beatStepIndex += 1
 
@@ -455,6 +566,21 @@ final class GameAudioEngine {
 			player.stop()
 		}
 		activePlayers.removeAll()
+
+		for players in preparedPlayers.values {
+			for player in players {
+				player.stop()
+				player.currentTime = 0
+			}
+		}
+	}
+
+	private func beatPulseData(for midi: Int) -> Data? {
+		beatPulseDataByMidi[midi] ?? makeBeatPulseData(frequency: midiFrequency(midi))
+	}
+
+	private func retroHitSoundData(for root: Int) -> Data? {
+		retroHitSoundDataByRoot[root] ?? makeRetroHitSoundData(root: root)
 	}
 
 	private func makeHitSoundData() -> Data? {
