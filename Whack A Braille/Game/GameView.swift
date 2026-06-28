@@ -337,8 +337,10 @@ struct GameView: View {
 		applyAudioSettings()
 		SpeechEngine.shared.prewarm()
 		GameAudioEngine.shared.prewarm {
-			viewModel.gameLoop.prepareSpeechCache(options: options) {
-				beginPreparedRound(startID: startID, options: options)
+			viewModel.gameLoop.prepareSpeechCache(options: options) { speechData in
+				GameAudioEngine.shared.prepareSpeechData(speechData) {
+					beginPreparedRound(startID: startID, options: options)
+				}
 			}
 		}
 	}
@@ -442,12 +444,17 @@ struct GameView: View {
 
 				SpeechEngine.shared.prepareCachedSpeech(for: [announcementText]) {
 					guard pendingRoundStartID == startID else { return }
-					playPreparedSpeech(announcementText)
-					let startDelayMs = min(3_000, speechDurationMs + postSpeechBeatMs)
+					let speechData = SpeechEngine.shared.cachedSpeechData(for: announcementText).map { [$0] } ?? []
 
-					DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(startDelayMs)) {
+					GameAudioEngine.shared.prepareSpeechData(speechData) {
 						guard pendingRoundStartID == startID else { return }
-						viewModel.beginRound(options: options)
+						playPreparedSpeech(announcementText)
+						let startDelayMs = min(3_000, speechDurationMs + postSpeechBeatMs)
+
+						DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(startDelayMs)) {
+							guard pendingRoundStartID == startID else { return }
+							viewModel.beginRound(options: options)
+						}
 					}
 				}
 			}

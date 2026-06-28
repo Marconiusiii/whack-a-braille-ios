@@ -191,7 +191,7 @@ final class GameLoop {
 		scheduleNextMole(extraDelayMs: 0)
 	}
 
-	func prepareSpeechCache(options: Options, completion: @escaping () -> Void) {
+	func prepareSpeechCache(options: Options, completion: @escaping ([Data]) -> Void) {
 		let previousOptions = currentOptions
 		let previousAvailableItems = availableItems
 
@@ -203,7 +203,10 @@ final class GameLoop {
 		currentOptions = previousOptions
 		availableItems = previousAvailableItems
 
-		SpeechEngine.shared.prepareCachedSpeech(for: texts, completion: completion)
+		SpeechEngine.shared.prepareCachedSpeech(for: texts) {
+			let speechData = texts.compactMap { SpeechEngine.shared.cachedSpeechData(for: $0) }
+			completion(speechData)
+		}
 	}
 
 	func stopRound() {

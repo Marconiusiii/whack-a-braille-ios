@@ -48,11 +48,19 @@ final class GameAudioEngine {
 	private let lanePanMap: [Float] = [-1.0, -0.5, 0.0, 0.5, 1.0]
 	private let sampleRate = 44_100.0
 	private let maxPreparedPlayersPerSound = 4
+	private let maxPreparedSpeechPlayersPerClip = 2
+	private let maxLowLatencyPlayersPerSound = 4
 
 	private var timerMusicEnabled = true
 	private var gameAudioMode: GameAudioMode = .original
+	private let lowLatencyEngine = AVAudioEngine()
+	private let lowLatencyMixer = AVAudioMixerNode()
 	private var activePlayers: [AVAudioPlayer] = []
 	private var preparedPlayers: [PreparedSoundID: [AVAudioPlayer]] = [:]
+	private var preparedSpeechPlayers: [Data: [AVAudioPlayer]] = [:]
+	private var lowLatencyBuffers: [PreparedSoundID: AVAudioPCMBuffer] = [:]
+	private var lowLatencyPlayers: [PreparedSoundID: [AVAudioPlayerNode]] = [:]
+	private var hasConfiguredLowLatencyEngine = false
 	private var hasStartedGameplayPrewarm = false
 	private var hasFinishedGameplayPrewarm = false
 	private var pendingGameplayPrewarmHandlers: [() -> Void] = []
@@ -217,7 +225,60 @@ final class GameAudioEngine {
 	}
 
 	func playSpeechData(_ data: Data?) {
+		guard let data, data.count > 44 else { return }
+
+		if let player = availablePreparedSpeechPlayer(for: data) {
+			player.stop()
+			player.currentTime = 0
+			player.volume = 1.0
+			player.pan = 0
+			player.enableRate = true
+			player.rate = 1.0
+			player.play()
+			return
+		}
+
 		playGeneratedSound(data, volume: 1.0, pan: 0)
+	}
+
+	func prepareSpeechData(_ speechData: [Data], completion: @escaping () -> Void) {
+		let clips = Array(Set(speechData.filter { $0.count > 44 }))
+		let clipsToPrepare = clips.filter {
+			(preparedSpeechPlayers[$0]?.count ?? 0) < maxPreparedSpeechPlayersPerClip
+		}
+		let playerCount = maxPreparedSpeechPlayersPerClip
+
+		guard !clipsToPrepare.isEmpty else {
+			completion()
+			return
+		}
+
+		DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+			guard let self else { return }
+
+			let preparedClips: [(Data, [AVAudioPlayer])] = clipsToPrepare.map { data in
+				let players = (0..<playerCount).compactMap { _ -> AVAudioPlayer? in
+					do {
+						let player = try AVAudioPlayer(data: data)
+						guard player.duration > 0 else { return nil }
+						player.enableRate = true
+						player.prepareToPlay()
+						return player
+					} catch {
+						return nil
+					}
+				}
+
+				return (data, players)
+			}
+
+			DispatchQueue.main.async {
+				for (data, players) in preparedClips where !players.isEmpty {
+					self.preparedSpeechPlayers[data, default: []].append(contentsOf: players)
+				}
+				completion()
+			}
+		}
 	}
 
 	func startRoundAudio(progressProvider: @escaping () -> Double, timerMusicEnabled: Bool) {
@@ -307,6 +368,7 @@ final class GameAudioEngine {
 	}
 
 	private func prewarmPreparedPlayerPools() {
+		configureLowLatencyEngineIfNeeded()
 		prewarmPreparedSound(.pop, data: popSoundData, count: 5)
 		prewarmPreparedSound(.hit, data: hitSoundData)
 		prewarmPreparedSound(.alternateHit, data: alternateHitSoundData)
@@ -327,10 +389,13 @@ final class GameAudioEngine {
 		for (root, data) in retroHitSoundDataByRoot {
 			prewarmPreparedSound(.retroHit(root), data: data)
 		}
+		startLowLatencyEngine()
 	}
 
 	private func prewarmPreparedSound(_ id: PreparedSoundID, data: Data?, count: Int = 2) {
 		guard let data, data.count > 44 else { return }
+		prewarmLowLatencySound(id, data: data, count: count)
+
 		let players = (0..<count).compactMap { _ -> AVAudioPlayer? in
 			do {
 				let player = try AVAudioPlayer(data: data)
@@ -349,6 +414,10 @@ final class GameAudioEngine {
 
 	private func playPreparedSound(_ id: PreparedSoundID, data: Data?, volume: Float, pan: Float, rate: Float = 1.0) {
 		guard let data, data.count > 44 else { return }
+
+		if rate == 1.0, playLowLatencySound(id, volume: volume, pan: pan) {
+			return
+		}
 
 		if let player = availablePreparedPlayer(for: id, data: data) {
 			player.stop()
@@ -381,6 +450,178 @@ final class GameAudioEngine {
 			return player
 		} catch {
 			return nil
+		}
+	}
+
+	private func availablePreparedSpeechPlayer(for data: Data) -> AVAudioPlayer? {
+		if let existing = preparedSpeechPlayers[data]?.first(where: { !$0.isPlaying }) {
+			return existing
+		}
+
+		let currentCount = preparedSpeechPlayers[data]?.count ?? 0
+		guard currentCount < maxPreparedSpeechPlayersPerClip else { return nil }
+
+		do {
+			let player = try AVAudioPlayer(data: data)
+			guard player.duration > 0 else { return nil }
+			player.enableRate = true
+			player.prepareToPlay()
+			preparedSpeechPlayers[data, default: []].append(player)
+			return player
+		} catch {
+			return nil
+		}
+	}
+
+	private func configureLowLatencyEngineIfNeeded() {
+		guard !hasConfiguredLowLatencyEngine else { return }
+		hasConfiguredLowLatencyEngine = true
+
+		lowLatencyEngine.attach(lowLatencyMixer)
+		lowLatencyEngine.connect(lowLatencyMixer, to: lowLatencyEngine.mainMixerNode, format: nil)
+		lowLatencyEngine.prepare()
+	}
+
+	private func startLowLatencyEngine() {
+		configureLowLatencyEngineIfNeeded()
+		guard !lowLatencyEngine.isRunning else { return }
+
+		do {
+			try lowLatencyEngine.start()
+		} catch {
+			// Fall back to prepared AVAudioPlayer playback if the engine cannot start.
+		}
+	}
+
+	private func prewarmLowLatencySound(_ id: PreparedSoundID, data: Data, count: Int) {
+		configureLowLatencyEngineIfNeeded()
+
+		if lowLatencyBuffers[id] == nil, let buffer = pcmBuffer(fromWaveData: data) {
+			lowLatencyBuffers[id] = buffer
+		}
+
+		guard let buffer = lowLatencyBuffers[id] else { return }
+		let currentCount = lowLatencyPlayers[id]?.count ?? 0
+		let targetCount = min(max(count, currentCount), maxLowLatencyPlayersPerSound)
+		guard currentCount < targetCount else { return }
+
+		let players = (currentCount..<targetCount).map { _ in
+			let player = AVAudioPlayerNode()
+			lowLatencyEngine.attach(player)
+			lowLatencyEngine.connect(player, to: lowLatencyMixer, format: buffer.format)
+			return player
+		}
+
+		lowLatencyPlayers[id, default: []].append(contentsOf: players)
+	}
+
+	private func playLowLatencySound(_ id: PreparedSoundID, volume: Float, pan: Float) -> Bool {
+		guard let buffer = lowLatencyBuffers[id], let players = lowLatencyPlayers[id], !players.isEmpty else {
+			return false
+		}
+
+		startLowLatencyEngine()
+		guard lowLatencyEngine.isRunning else { return false }
+
+		let player = players.first(where: { !$0.isPlaying }) ?? players[0]
+		player.stop()
+		player.volume = volume
+		player.pan = pan
+		player.scheduleBuffer(buffer, at: nil, options: .interrupts, completionHandler: nil)
+		player.play()
+		return true
+	}
+
+	private func pcmBuffer(fromWaveData data: Data) -> AVAudioPCMBuffer? {
+		guard data.count > 44 else { return nil }
+		guard String(data: data[0..<4], encoding: .ascii) == "RIFF" else { return nil }
+		guard String(data: data[8..<12], encoding: .ascii) == "WAVE" else { return nil }
+
+		var offset = 12
+		var audioFormat: UInt16 = 0
+		var channelCount: UInt16 = 0
+		var waveSampleRate: UInt32 = 0
+		var bitsPerSample: UInt16 = 0
+		var pcmStart = 0
+		var pcmLength = 0
+
+		while offset + 8 <= data.count {
+			let chunkID = String(data: data[offset..<(offset + 4)], encoding: .ascii)
+			let chunkSize = Int(readUInt32LittleEndian(in: data, at: offset + 4))
+			let chunkStart = offset + 8
+			let chunkEnd = chunkStart + chunkSize
+			guard chunkEnd <= data.count else { return nil }
+
+			if chunkID == "fmt " {
+				guard chunkSize >= 16 else { return nil }
+				audioFormat = readUInt16LittleEndian(in: data, at: chunkStart)
+				channelCount = readUInt16LittleEndian(in: data, at: chunkStart + 2)
+				waveSampleRate = readUInt32LittleEndian(in: data, at: chunkStart + 4)
+				bitsPerSample = readUInt16LittleEndian(in: data, at: chunkStart + 14)
+			} else if chunkID == "data" {
+				pcmStart = chunkStart
+				pcmLength = chunkSize
+			}
+
+			offset = chunkEnd + (chunkSize % 2)
+		}
+
+		guard audioFormat == 1, bitsPerSample == 16, channelCount > 0, waveSampleRate > 0, pcmLength > 0 else {
+			return nil
+		}
+
+		let channels = Int(channelCount)
+		let bytesPerFrame = channels * MemoryLayout<Int16>.size
+		let frameCount = pcmLength / bytesPerFrame
+		guard frameCount > 0 else { return nil }
+		guard let format = AVAudioFormat(
+			commonFormat: .pcmFormatFloat32,
+			sampleRate: Double(waveSampleRate),
+			channels: AVAudioChannelCount(channelCount),
+			interleaved: false
+		) else {
+			return nil
+		}
+		guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(frameCount)) else {
+			return nil
+		}
+
+		buffer.frameLength = AVAudioFrameCount(frameCount)
+		guard let floatChannelData = buffer.floatChannelData else { return nil }
+
+		data.withUnsafeBytes { rawBuffer in
+			guard let baseAddress = rawBuffer.bindMemory(to: UInt8.self).baseAddress else { return }
+
+			for frame in 0..<frameCount {
+				for channel in 0..<channels {
+					let sampleOffset = pcmStart + (frame * bytesPerFrame) + (channel * MemoryLayout<Int16>.size)
+					let low = UInt16(baseAddress[sampleOffset])
+					let high = UInt16(baseAddress[sampleOffset + 1]) << 8
+					let sample = Int16(bitPattern: low | high)
+					floatChannelData[channel][frame] = Float(sample) / Float(Int16.max)
+				}
+			}
+		}
+
+		return buffer
+	}
+
+	private func readUInt16LittleEndian(in data: Data, at offset: Int) -> UInt16 {
+		guard offset + 1 < data.count else { return 0 }
+		return data.withUnsafeBytes { rawBuffer in
+			guard let baseAddress = rawBuffer.bindMemory(to: UInt8.self).baseAddress else { return 0 }
+			return UInt16(baseAddress[offset]) | (UInt16(baseAddress[offset + 1]) << 8)
+		}
+	}
+
+	private func readUInt32LittleEndian(in data: Data, at offset: Int) -> UInt32 {
+		guard offset + 3 < data.count else { return 0 }
+		return data.withUnsafeBytes { rawBuffer in
+			guard let baseAddress = rawBuffer.bindMemory(to: UInt8.self).baseAddress else { return 0 }
+			return UInt32(baseAddress[offset])
+				| (UInt32(baseAddress[offset + 1]) << 8)
+				| (UInt32(baseAddress[offset + 2]) << 16)
+				| (UInt32(baseAddress[offset + 3]) << 24)
 		}
 	}
 
@@ -575,6 +816,12 @@ final class GameAudioEngine {
 			for player in players {
 				player.stop()
 				player.currentTime = 0
+			}
+		}
+
+		for players in lowLatencyPlayers.values {
+			for player in players {
+				player.stop()
 			}
 		}
 	}
