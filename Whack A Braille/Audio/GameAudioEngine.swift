@@ -597,7 +597,6 @@ final class GameAudioEngine {
 				queue: .main
 			) { [weak self] _ in
 				self?.configureAudioSession()
-				self?.restartLowLatencyEngine()
 			}
 		)
 
@@ -629,7 +628,6 @@ final class GameAudioEngine {
 				queue: .main
 			) { [weak self] _ in
 				self?.configureAudioSession()
-				self?.restartLowLatencyEngine()
 			}
 		)
 
@@ -640,7 +638,6 @@ final class GameAudioEngine {
 				queue: .main
 			) { [weak self] _ in
 				self?.configureAudioSession()
-				self?.restartLowLatencyEngine()
 			}
 		)
 
