@@ -191,6 +191,21 @@ final class GameLoop {
 		scheduleNextMole(extraDelayMs: 0)
 	}
 
+	func prepareSpeechCache(options: Options, completion: @escaping () -> Void) {
+		let previousOptions = currentOptions
+		let previousAvailableItems = availableItems
+
+		currentOptions = options
+		availableItems = items(for: options)
+
+		let texts = availableItems.map { buildAnnounceText(for: $0) }
+
+		currentOptions = previousOptions
+		availableItems = previousAvailableItems
+
+		SpeechEngine.shared.prepareCachedSpeech(for: texts, completion: completion)
+	}
+
 	func stopRound() {
 		endRoundNow(canceled: true)
 	}
@@ -199,10 +214,10 @@ final class GameLoop {
 		endRoundNow(canceled: false)
 	}
 
-	func repeatCurrentTarget() {
-		guard let item = currentItem else { return }
-		SpeechEngine.shared.speak(buildAnnounceText(for: item), interrupt: true)
-	}
+    func repeatCurrentTarget() {
+        guard let item = currentItem else { return }
+        playGameplaySpeech(buildAnnounceText(for: item))
+    }
 
 	func setSpeakBrailleDots(_ enabled: Bool) {
 		currentOptions = Options(
@@ -416,10 +431,11 @@ final class GameLoop {
 		onActiveMoleChanged?(nil, nil)
 
 		let announceText = buildAnnounceText(for: item)
-		let speechDurationMs = SpeechEngine.shared.speak(announceText, interrupt: true)
+		let speechDurationMs = SpeechEngine.shared.estimatedDurationMs(for: announceText)
 		let baseUpTimeMs = trainingMode ? 0 : getCurrentUpTime()
+		let moleRevealDelayMs = 140
 
-		DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(80)) { [weak self] in
+		DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(moleRevealDelayMs)) { [weak self] in
 			guard let self else { return }
 			guard self.isRunning, !self.roundEnding else { return }
 			guard self.currentMoleId == moleId, self.activeLane == lane else { return }
@@ -427,6 +443,7 @@ final class GameLoop {
 			self.activeMoleShownAtMs = TimeUtils.nowMs()
 			self.onActiveMoleChanged?(lane, item)
 			GameAudioEngine.shared.playMolePop(lane: lane)
+			self.playGameplaySpeech(announceText)
 		}
 
 		if trainingMode {
@@ -642,6 +659,15 @@ final class GameLoop {
 		}
 
 		return text
+	}
+
+	private func playGameplaySpeech(_ text: String) {
+		if let data = SpeechEngine.shared.cachedSpeechData(for: text) {
+			GameAudioEngine.shared.playSpeechData(data)
+			return
+		}
+
+		SpeechEngine.shared.speak(text, interrupt: true)
 	}
 
 	private func isItemAvailable(_ id: String) -> Bool {

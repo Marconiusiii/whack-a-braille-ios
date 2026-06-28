@@ -6,12 +6,24 @@ final class SpeechEngine {
 
 	static let shared = SpeechEngine()
 
+	private struct SpeechCacheKey: Hashable {
+		let text: String
+		let voiceIdentifier: String
+		let rate: Float
+		let volume: Float
+	}
+
 	private var synthesizer = AVSpeechSynthesizer()
+	private var renderingSynthesizer = AVSpeechSynthesizer()
 	private var currentVoice: AVSpeechSynthesisVoice?
 	private var currentRate: Float = AVSpeechUtteranceDefaultSpeechRate
 	private var currentVolume: Float = 0.85
 	private var sessionObservers: [NSObjectProtocol] = []
 	private var hasActivatedAudioSession = false
+	private var cachedSpeechData: [SpeechCacheKey: Data] = [:]
+	private var activeRenderID = UUID()
+	private var isRenderingCachedSpeech = false
+	private var pendingCacheCompletions: [() -> Void] = []
 
 	private init() {
 		currentVoice = AVSpeechSynthesisVoice(language: Locale.current.identifier) ?? AVSpeechSynthesisVoice(language: "en-US")
@@ -29,9 +41,23 @@ final class SpeechEngine {
 	}
 
 	func configure(voice: AVSpeechSynthesisVoice?, rate: Float, volume: Float) {
-		currentVoice = voice ?? AVSpeechSynthesisVoice(language: Locale.current.identifier) ?? AVSpeechSynthesisVoice(language: "en-US")
+		let resolvedVoice = voice ?? AVSpeechSynthesisVoice(language: Locale.current.identifier) ?? AVSpeechSynthesisVoice(language: "en-US")
+		let resolvedVolume = min(max(volume, 0.0), 1.0)
+		let didChange = currentVoice?.identifier != resolvedVoice?.identifier
+			|| currentRate != rate
+			|| currentVolume != resolvedVolume
+
+		currentVoice = resolvedVoice
 		currentRate = rate
-		currentVolume = min(max(volume, 0.0), 1.0)
+		currentVolume = resolvedVolume
+
+		if didChange {
+			activeRenderID = UUID()
+			isRenderingCachedSpeech = false
+			pendingCacheCompletions.removeAll()
+			renderingSynthesizer.stopSpeaking(at: .immediate)
+			cachedSpeechData.removeAll()
+		}
 	}
 
 	func playVoiceSample(voice: AVSpeechSynthesisVoice?, ratePercent: Int, volumePercent: Int) {
@@ -50,7 +76,7 @@ final class SpeechEngine {
 
 		activateAudioSession()
 
-		if interrupt {
+		if interrupt, synthesizer.isSpeaking {
 			synthesizer.stopSpeaking(at: .immediate)
 		}
 
@@ -64,8 +90,37 @@ final class SpeechEngine {
 		return estimatedDurationMs(for: normalized)
 	}
 
+	func prepareCachedSpeech(for texts: [String], completion: @escaping () -> Void) {
+		let normalizedTexts = Array(Set(texts.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }))
+		guard !normalizedTexts.isEmpty else {
+			completion()
+			return
+		}
+
+		let keys = normalizedTexts.map(cacheKey(for:))
+		let missingKeys = keys.filter { cachedSpeechData[$0] == nil }
+		guard !missingKeys.isEmpty else {
+			completion()
+			return
+		}
+
+		pendingCacheCompletions.append(completion)
+		guard !isRenderingCachedSpeech else { return }
+
+		let renderID = UUID()
+		activeRenderID = renderID
+		isRenderingCachedSpeech = true
+		renderCachedSpeech(keys: missingKeys, index: 0, renderID: renderID)
+	}
+
+	func cachedSpeechData(for text: String) -> Data? {
+		cachedSpeechData[cacheKey(for: text.trimmingCharacters(in: .whitespacesAndNewlines))]
+	}
+
 	func cancel() {
-		synthesizer.stopSpeaking(at: .immediate)
+		if synthesizer.isSpeaking {
+			synthesizer.stopSpeaking(at: .immediate)
+		}
 	}
 
 	func estimatedDurationMs(for text: String) -> Int {
@@ -98,8 +153,147 @@ final class SpeechEngine {
 
 		guard rebuildSynthesizer else { return }
 
-		synthesizer.stopSpeaking(at: .immediate)
+		if synthesizer.isSpeaking {
+			synthesizer.stopSpeaking(at: .immediate)
+		}
 		synthesizer = AVSpeechSynthesizer()
+		renderingSynthesizer.stopSpeaking(at: .immediate)
+		renderingSynthesizer = AVSpeechSynthesizer()
+	}
+
+	private func cacheKey(for text: String) -> SpeechCacheKey {
+		SpeechCacheKey(
+			text: text,
+			voiceIdentifier: currentVoice?.identifier ?? "default",
+			rate: currentRate,
+			volume: currentVolume
+		)
+	}
+
+	private func renderCachedSpeech(keys: [SpeechCacheKey], index: Int, renderID: UUID) {
+		guard renderID == activeRenderID else { return }
+		guard index < keys.count else {
+			isRenderingCachedSpeech = false
+			let completions = pendingCacheCompletions
+			pendingCacheCompletions.removeAll()
+			for completion in completions {
+				completion()
+			}
+			return
+		}
+
+		let key = keys[index]
+		if cachedSpeechData[key] != nil {
+			renderCachedSpeech(keys: keys, index: index + 1, renderID: renderID)
+			return
+		}
+
+		renderSpeechData(for: key) { [weak self] data in
+			guard let self, renderID == self.activeRenderID else { return }
+			if let data {
+				self.cachedSpeechData[key] = data
+			}
+			self.renderCachedSpeech(keys: keys, index: index + 1, renderID: renderID)
+		}
+	}
+
+	private func renderSpeechData(for key: SpeechCacheKey, completion: @escaping (Data?) -> Void) {
+		let utterance = AVSpeechUtterance(string: key.text)
+		utterance.voice = currentVoice
+		utterance.rate = key.rate
+		utterance.volume = key.volume
+		utterance.prefersAssistiveTechnologySettings = false
+
+		var pcm = Data()
+		var sampleRate = Int(self.sampleRateFallback)
+		var didFinish = false
+
+		renderingSynthesizer.write(utterance) { [weak self] buffer in
+			guard let self else { return }
+			guard !didFinish else { return }
+
+			guard let pcmBuffer = buffer as? AVAudioPCMBuffer, pcmBuffer.frameLength > 0 else {
+				didFinish = true
+				completion(self.makeWaveFile(fromPCM: pcm, sampleRate: sampleRate))
+				return
+			}
+
+			sampleRate = Int(pcmBuffer.format.sampleRate.rounded())
+			pcm.append(self.monoInt16PCMData(from: pcmBuffer))
+		}
+	}
+
+	private var sampleRateFallback: Double {
+		44_100.0
+	}
+
+	private func monoInt16PCMData(from buffer: AVAudioPCMBuffer) -> Data {
+		let frameCount = Int(buffer.frameLength)
+		let channelCount = max(1, Int(buffer.format.channelCount))
+		var data = Data(capacity: frameCount * MemoryLayout<Int16>.size)
+
+		if let floatChannels = buffer.floatChannelData {
+			for frame in 0..<frameCount {
+				var sample = 0.0
+				for channel in 0..<channelCount {
+					sample += Double(floatChannels[channel][frame])
+				}
+				appendInt16Sample(sample / Double(channelCount), to: &data)
+			}
+			return data
+		}
+
+		if let int16Channels = buffer.int16ChannelData {
+			for frame in 0..<frameCount {
+				var sample = 0
+				for channel in 0..<channelCount {
+					sample += Int(int16Channels[channel][frame])
+				}
+				appendRawInt16Sample(Int16(clamping: sample / channelCount), to: &data)
+			}
+			return data
+		}
+
+		return data
+	}
+
+	private func appendInt16Sample(_ sample: Double, to data: inout Data) {
+		let clamped = max(-1.0, min(1.0, sample))
+		let value = Int16(clamped * Double(Int16.max))
+		appendRawInt16Sample(value, to: &data)
+	}
+
+	private func appendRawInt16Sample(_ sample: Int16, to data: inout Data) {
+		var littleEndianSample = sample.littleEndian
+		withUnsafeBytes(of: &littleEndianSample) { bytes in
+			data.append(contentsOf: bytes)
+		}
+	}
+
+	private func makeWaveFile(fromPCM pcm: Data, sampleRate: Int) -> Data? {
+		guard !pcm.isEmpty else { return nil }
+		let channelCount = 1
+		let bitsPerSample = 16
+		let byteRate = sampleRate * channelCount * bitsPerSample / 8
+		let blockAlign = channelCount * bitsPerSample / 8
+		let chunkSize = 36 + pcm.count
+
+		var data = Data()
+		data.append("RIFF".data(using: .ascii)!)
+		data.append(UInt32(chunkSize).speechLittleEndianData)
+		data.append("WAVE".data(using: .ascii)!)
+		data.append("fmt ".data(using: .ascii)!)
+		data.append(UInt32(16).speechLittleEndianData)
+		data.append(UInt16(1).speechLittleEndianData)
+		data.append(UInt16(channelCount).speechLittleEndianData)
+		data.append(UInt32(sampleRate).speechLittleEndianData)
+		data.append(UInt32(byteRate).speechLittleEndianData)
+		data.append(UInt16(blockAlign).speechLittleEndianData)
+		data.append(UInt16(bitsPerSample).speechLittleEndianData)
+		data.append("data".data(using: .ascii)!)
+		data.append(UInt32(pcm.count).speechLittleEndianData)
+		data.append(pcm)
+		return data
 	}
 
 	private func observeAudioSession() {
@@ -188,5 +382,12 @@ final class SpeechEngine {
 	private func speechVolumeForPercent(_ percent: Int) -> Float {
 		let clamped = min(max(percent, 5), 100)
 		return Float(clamped) / 100.0
+	}
+}
+
+private extension FixedWidthInteger {
+	var speechLittleEndianData: Data {
+		var value = self.littleEndian
+		return Data(bytes: &value, count: MemoryLayout<Self>.size)
 	}
 }

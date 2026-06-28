@@ -216,6 +216,10 @@ final class GameAudioEngine {
 		playGeneratedSound(variants.randomElement(), volume: volume, pan: 0)
 	}
 
+	func playSpeechData(_ data: Data?) {
+		playGeneratedSound(data, volume: 1.0, pan: 0)
+	}
+
 	func startRoundAudio(progressProvider: @escaping () -> Double, timerMusicEnabled: Bool) {
 		self.timerMusicEnabled = timerMusicEnabled
 		stopRoundBeat()

@@ -337,7 +337,9 @@ struct GameView: View {
 		applyAudioSettings()
 		SpeechEngine.shared.prewarm()
 		GameAudioEngine.shared.prewarm {
-			beginPreparedRound(startID: startID, options: options)
+			viewModel.gameLoop.prepareSpeechCache(options: options) {
+				beginPreparedRound(startID: startID, options: options)
+			}
 		}
 	}
 
@@ -436,15 +438,29 @@ struct GameView: View {
 
 			DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(announcementDelayMs)) {
 				guard pendingRoundStartID == startID else { return }
-				let speechDurationMs = SpeechEngine.shared.speak(announcementText, interrupt: true)
-				let startDelayMs = min(3_000, speechDurationMs + postSpeechBeatMs)
+				let speechDurationMs = SpeechEngine.shared.estimatedDurationMs(for: announcementText)
 
-				DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(startDelayMs)) {
+				SpeechEngine.shared.prepareCachedSpeech(for: [announcementText]) {
 					guard pendingRoundStartID == startID else { return }
-					viewModel.beginRound(options: options)
+					playPreparedSpeech(announcementText)
+					let startDelayMs = min(3_000, speechDurationMs + postSpeechBeatMs)
+
+					DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(startDelayMs)) {
+						guard pendingRoundStartID == startID else { return }
+						viewModel.beginRound(options: options)
+					}
 				}
 			}
 		}
+	}
+
+	private func playPreparedSpeech(_ text: String) {
+		if let data = SpeechEngine.shared.cachedSpeechData(for: text) {
+			GameAudioEngine.shared.playSpeechData(data)
+			return
+		}
+
+		SpeechEngine.shared.speak(text, interrupt: true)
 	}
 
 	private func trainingIntroPhrases(for kind: GameLoop.TrainingIntroKind) -> [String] {
