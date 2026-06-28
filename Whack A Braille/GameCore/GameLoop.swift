@@ -191,24 +191,6 @@ final class GameLoop {
 		scheduleNextMole(extraDelayMs: 0)
 	}
 
-	func prepareSpeechCache(options: Options, completion: @escaping ([Data]) -> Void) {
-		let previousOptions = currentOptions
-		let previousAvailableItems = availableItems
-
-		currentOptions = options
-		availableItems = items(for: options)
-
-		let texts = availableItems.map { buildAnnounceText(for: $0) }
-
-		currentOptions = previousOptions
-		availableItems = previousAvailableItems
-
-		SpeechEngine.shared.prepareCachedSpeech(for: texts) {
-			let speechData = texts.compactMap { SpeechEngine.shared.cachedSpeechData(for: $0) }
-			completion(speechData)
-		}
-	}
-
 	func stopRound() {
 		endRoundNow(canceled: true)
 	}
@@ -217,10 +199,10 @@ final class GameLoop {
 		endRoundNow(canceled: false)
 	}
 
-    func repeatCurrentTarget() {
-        guard let item = currentItem else { return }
-        playGameplaySpeech(buildAnnounceText(for: item))
-    }
+	func repeatCurrentTarget() {
+		guard let item = currentItem else { return }
+		SpeechEngine.shared.speak(buildAnnounceText(for: item), interrupt: true)
+	}
 
 	func setSpeakBrailleDots(_ enabled: Bool) {
 		currentOptions = Options(
@@ -665,11 +647,6 @@ final class GameLoop {
 	}
 
 	private func playGameplaySpeech(_ text: String) {
-		if let data = SpeechEngine.shared.cachedSpeechData(for: text) {
-			GameAudioEngine.shared.playSpeechData(data)
-			return
-		}
-
 		SpeechEngine.shared.speak(text, interrupt: true)
 	}
 

@@ -48,7 +48,6 @@ final class GameAudioEngine {
 	private let lanePanMap: [Float] = [-1.0, -0.5, 0.0, 0.5, 1.0]
 	private let sampleRate = 44_100.0
 	private let maxPreparedPlayersPerSound = 4
-	private let maxPreparedSpeechPlayersPerClip = 2
 	private let maxLowLatencyPlayersPerSound = 4
 
 	private var timerMusicEnabled = true
@@ -57,7 +56,6 @@ final class GameAudioEngine {
 	private let lowLatencyMixer = AVAudioMixerNode()
 	private var activePlayers: [AVAudioPlayer] = []
 	private var preparedPlayers: [PreparedSoundID: [AVAudioPlayer]] = [:]
-	private var preparedSpeechPlayers: [Data: [AVAudioPlayer]] = [:]
 	private var lowLatencyBuffers: [PreparedSoundID: AVAudioPCMBuffer] = [:]
 	private var lowLatencyPlayers: [PreparedSoundID: [AVAudioPlayerNode]] = [:]
 	private var hasConfiguredLowLatencyEngine = false
@@ -222,63 +220,6 @@ final class GameAudioEngine {
 		}
 
 		playGeneratedSound(variants.randomElement(), volume: volume, pan: 0)
-	}
-
-	func playSpeechData(_ data: Data?) {
-		guard let data, data.count > 44 else { return }
-
-		if let player = availablePreparedSpeechPlayer(for: data) {
-			player.stop()
-			player.currentTime = 0
-			player.volume = 1.0
-			player.pan = 0
-			player.enableRate = true
-			player.rate = 1.0
-			player.play()
-			return
-		}
-
-		playGeneratedSound(data, volume: 1.0, pan: 0)
-	}
-
-	func prepareSpeechData(_ speechData: [Data], completion: @escaping () -> Void) {
-		let clips = Array(Set(speechData.filter { $0.count > 44 }))
-		let clipsToPrepare = clips.filter {
-			(preparedSpeechPlayers[$0]?.count ?? 0) < maxPreparedSpeechPlayersPerClip
-		}
-		let playerCount = maxPreparedSpeechPlayersPerClip
-
-		guard !clipsToPrepare.isEmpty else {
-			completion()
-			return
-		}
-
-		DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-			guard let self else { return }
-
-			let preparedClips: [(Data, [AVAudioPlayer])] = clipsToPrepare.map { data in
-				let players = (0..<playerCount).compactMap { _ -> AVAudioPlayer? in
-					do {
-						let player = try AVAudioPlayer(data: data)
-						guard player.duration > 0 else { return nil }
-						player.enableRate = true
-						player.prepareToPlay()
-						return player
-					} catch {
-						return nil
-					}
-				}
-
-				return (data, players)
-			}
-
-			DispatchQueue.main.async {
-				for (data, players) in preparedClips where !players.isEmpty {
-					self.preparedSpeechPlayers[data, default: []].append(contentsOf: players)
-				}
-				completion()
-			}
-		}
 	}
 
 	func startRoundAudio(progressProvider: @escaping () -> Double, timerMusicEnabled: Bool) {
@@ -453,26 +394,6 @@ final class GameAudioEngine {
 		}
 	}
 
-	private func availablePreparedSpeechPlayer(for data: Data) -> AVAudioPlayer? {
-		if let existing = preparedSpeechPlayers[data]?.first(where: { !$0.isPlaying }) {
-			return existing
-		}
-
-		let currentCount = preparedSpeechPlayers[data]?.count ?? 0
-		guard currentCount < maxPreparedSpeechPlayersPerClip else { return nil }
-
-		do {
-			let player = try AVAudioPlayer(data: data)
-			guard player.duration > 0 else { return nil }
-			player.enableRate = true
-			player.prepareToPlay()
-			preparedSpeechPlayers[data, default: []].append(player)
-			return player
-		} catch {
-			return nil
-		}
-	}
-
 	private func configureLowLatencyEngineIfNeeded() {
 		guard !hasConfiguredLowLatencyEngine else { return }
 		hasConfiguredLowLatencyEngine = true
@@ -491,6 +412,33 @@ final class GameAudioEngine {
 		} catch {
 			// Fall back to prepared AVAudioPlayer playback if the engine cannot start.
 		}
+	}
+
+	private func restartLowLatencyEngine() {
+		configureLowLatencyEngineIfNeeded()
+		lowLatencyEngine.stop()
+		lowLatencyEngine.prepare()
+		startLowLatencyEngine()
+	}
+
+	private func rebuildLowLatencyEngine() {
+		lowLatencyEngine.stop()
+		lowLatencyEngine.reset()
+		for players in lowLatencyPlayers.values {
+			for player in players {
+				player.stop()
+				lowLatencyEngine.detach(player)
+			}
+		}
+		lowLatencyPlayers.removeAll()
+
+		let preparedCounts = preparedPlayers.mapValues { min(max($0.count, 1), maxLowLatencyPlayersPerSound) }
+		for (id, buffer) in lowLatencyBuffers {
+			let count = preparedCounts[id] ?? 2
+			prewarmLowLatencyBuffer(id, buffer: buffer, count: count)
+		}
+
+		startLowLatencyEngine()
 	}
 
 	private func prewarmLowLatencySound(_ id: PreparedSoundID, data: Data, count: Int) {
@@ -513,6 +461,20 @@ final class GameAudioEngine {
 		}
 
 		lowLatencyPlayers[id, default: []].append(contentsOf: players)
+	}
+
+	private func prewarmLowLatencyBuffer(_ id: PreparedSoundID, buffer: AVAudioPCMBuffer, count: Int) {
+		configureLowLatencyEngineIfNeeded()
+
+		let targetCount = min(max(count, 1), maxLowLatencyPlayersPerSound)
+		let players = (0..<targetCount).map { _ in
+			let player = AVAudioPlayerNode()
+			lowLatencyEngine.attach(player)
+			lowLatencyEngine.connect(player, to: lowLatencyMixer, format: buffer.format)
+			return player
+		}
+
+		lowLatencyPlayers[id] = players
 	}
 
 	private func playLowLatencySound(_ id: PreparedSoundID, volume: Float, pan: Float) -> Bool {
@@ -635,6 +597,7 @@ final class GameAudioEngine {
 				queue: .main
 			) { [weak self] _ in
 				self?.configureAudioSession()
+				self?.restartLowLatencyEngine()
 			}
 		)
 
@@ -654,6 +617,7 @@ final class GameAudioEngine {
 
 				if type == .ended {
 					self?.configureAudioSession()
+					self?.restartLowLatencyEngine()
 				}
 			}
 		)
@@ -665,6 +629,7 @@ final class GameAudioEngine {
 				queue: .main
 			) { [weak self] _ in
 				self?.configureAudioSession()
+				self?.restartLowLatencyEngine()
 			}
 		)
 
@@ -675,6 +640,7 @@ final class GameAudioEngine {
 				queue: .main
 			) { [weak self] _ in
 				self?.configureAudioSession()
+				self?.restartLowLatencyEngine()
 			}
 		)
 
@@ -685,6 +651,7 @@ final class GameAudioEngine {
 				queue: .main
 			) { [weak self] _ in
 				self?.configureAudioSession()
+				self?.rebuildLowLatencyEngine()
 			}
 		)
 	}
