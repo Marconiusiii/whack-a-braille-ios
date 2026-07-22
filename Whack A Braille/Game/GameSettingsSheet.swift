@@ -1,5 +1,6 @@
 import AVFoundation
 import MessageUI
+import StoreKit
 import SwiftUI
 
 struct GameSettingsSheet: View {
@@ -24,6 +25,7 @@ struct GameSettingsSheet: View {
 	@Environment(\.openURL) private var openURL
 	@Environment(\.colorScheme) private var colorScheme
 	@AccessibilityFocusState private var focusedElement: FocusTarget?
+	@StateObject private var supportStore = SupportStore.shared
 
 	@State private var isShowingMailComposer = false
 	@State private var isShowingCustomMolePicker = false
@@ -208,6 +210,8 @@ struct GameSettingsSheet: View {
 					.accessibilityFocused($focusedElement, equals: .sendFeedbackButton)
 				}
 
+				supportSection
+
 				Section {
 					externalLink(title: "Privacy Policy", url: "https://marconius.com/wabPrivacy/")
 				}
@@ -275,6 +279,9 @@ struct GameSettingsSheet: View {
 			UITableView.appearance().backgroundColor = .clear
 			refreshCachedVoices()
 			sanitizeModeSelection()
+		}
+		.task {
+			await supportStore.loadProducts()
 		}
 		.onChange(of: inputMode) { _, _ in
 			shouldSkipNextModeFocusRestore = sanitizeModeSelection()
@@ -359,6 +366,86 @@ struct GameSettingsSheet: View {
 
 	private var availableVoices: [AVSpeechSynthesisVoice] {
 		cachedVoices
+	}
+
+	private var supportSection: some View {
+		Section("Support Whack A Braille") {
+			VStack(alignment: .leading, spacing: 8) {
+				Text("Toss in a few tokens to support future bonks, prize nonsense, and the Developer's coffee addiction!")
+					.fixedSize(horizontal: false, vertical: true)
+
+				if let latestThankYou = supportStore.latestThankYou {
+					Text("Thanks for the \(latestThankYou.supportName) on \(supportDateFormatter.string(from: latestThankYou.date)).")
+						.fixedSize(horizontal: false, vertical: true)
+				}
+			}
+			.accessibilityTouchRegion(minHeight: 72, alignment: .leading)
+
+			ForEach(SupportStore.supportOptions) { option in
+				Button {
+					Task {
+						await supportStore.purchase(option)
+					}
+				} label: {
+					VStack(alignment: .leading, spacing: 4) {
+						Text(option.fallbackName)
+							.fixedSize(horizontal: false, vertical: true)
+						Text(supportPriceText(for: option))
+							.foregroundStyle(secondaryTextColor)
+							.fixedSize(horizontal: false, vertical: true)
+					}
+				}
+				.disabled(!canPurchase(option))
+				.accessibilityLabel("\(option.fallbackName), \(supportPriceText(for: option))")
+				.accessibilityHint("Purchases optional support for Whack A Braille.")
+				.accessibilityTouchRegion(minHeight: 60, alignment: .leading)
+			}
+
+			if let statusText = supportStatusText {
+				Text(statusText)
+					.foregroundStyle(secondaryTextColor)
+					.fixedSize(horizontal: false, vertical: true)
+					.accessibilityTouchRegion(minHeight: 54, alignment: .leading)
+			}
+		}
+	}
+
+	private var supportStatusText: String? {
+		switch supportStore.status {
+		case .idle:
+			return nil
+		case .loading:
+			return "Loading support options..."
+		case .purchasing(let name):
+			return "Sending \(name) through the token slot..."
+		case .success:
+			return "Thanks for supporting Whack A Braille. The moles are pretending not to be impressed."
+		case .pending:
+			return "The arcade cashier is counting slowly. Your support is still pending."
+		case .failed(let message):
+			return message
+		}
+	}
+
+	private var supportDateFormatter: DateFormatter {
+		let formatter = DateFormatter()
+		formatter.dateStyle = .long
+		formatter.timeStyle = .none
+		return formatter
+	}
+
+	private func canPurchase(_ option: SupportStore.SupportOption) -> Bool {
+		guard supportStore.product(for: option) != nil else { return false }
+
+		if case .purchasing = supportStore.status {
+			return false
+		}
+
+		return true
+	}
+
+	private func supportPriceText(for option: SupportStore.SupportOption) -> String {
+		supportStore.product(for: option)?.displayPrice ?? option.fallbackPrice
 	}
 
 	private func refreshCachedVoices() {
