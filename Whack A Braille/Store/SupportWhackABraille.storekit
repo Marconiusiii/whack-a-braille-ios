@@ -1,0 +1,98 @@
+{
+  "appPolicies" : {
+    "eula" : "",
+    "policies" : [
+      {
+        "locale" : "en_US",
+        "policyText" : "",
+        "policyURL" : ""
+      }
+    ]
+  },
+  "identifier" : "WABSUPPORT",
+  "nonRenewingSubscriptions" : [
+  ],
+  "products" : [
+    {
+      "displayPrice" : "0.99",
+      "familyShareable" : false,
+      "internalID" : "LIGHT001",
+      "localizations" : [
+        {
+          "description" : "Toss in a few tokens to support future bonks, prize nonsense, and the Developer's coffee addiction!",
+          "displayName" : "Light Thwap",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.marconius.whackabraille.support.lightthwap",
+      "referenceName" : "Light Thwap",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "1.99",
+      "familyShareable" : false,
+      "internalID" : "BIGB001",
+      "localizations" : [
+        {
+          "description" : "Toss in a few tokens to support future bonks, prize nonsense, and the Developer's coffee addiction!",
+          "displayName" : "Big Bonk",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.marconius.whackabraille.support.bigbonk",
+      "referenceName" : "Big Bonk",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "2.99",
+      "familyShareable" : false,
+      "internalID" : "MEGA001",
+      "localizations" : [
+        {
+          "description" : "Toss in a few tokens to support future bonks, prize nonsense, and the Developer's coffee addiction!",
+          "displayName" : "Mega Whack",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.marconius.whackabraille.support.megawhack",
+      "referenceName" : "Mega Whack",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "4.99",
+      "familyShareable" : false,
+      "internalID" : "ULTI001",
+      "localizations" : [
+        {
+          "description" : "Toss in a few tokens to support future bonks, prize nonsense, and the Developer's coffee addiction!",
+          "displayName" : "Ultimate Whackage",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.marconius.whackabraille.support.ultimatewhackage",
+      "referenceName" : "Ultimate Whackage",
+      "type" : "Consumable"
+    }
+  ],
+  "settings" : {
+    "_askToBuyEnabled" : false,
+    "_billingGracePeriodEnabled" : false,
+    "_billingIssuesEnabled" : false,
+    "_disableDialogs" : false,
+    "_failTransactionsEnabled" : false,
+    "_locale" : "en_US",
+    "_renewalBillingIssuesEnabled" : false,
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
+    ],
+    "_timeRate" : 0
+  },
+  "subscriptionGroups" : [
+  ],
+  "subscriptionSuiteGroups" : [
+  ],
+  "version" : {
+    "major" : 6,
+    "minor" : 3
+  }
+}

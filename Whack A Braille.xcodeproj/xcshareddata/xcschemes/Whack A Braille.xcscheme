@@ -51,6 +51,9 @@
             ReferencedContainer = "container:Whack A Braille.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
+      <StoreKitConfigurationFileReference
+         identifier = "../Whack A Braille/Store/SupportWhackABraille.storekit">
+      </StoreKitConfigurationFileReference>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"

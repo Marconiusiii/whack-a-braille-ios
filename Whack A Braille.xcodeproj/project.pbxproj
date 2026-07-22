@@ -10,9 +10,22 @@
 		82789CD82F15B47F000CFC0A /* Whack A Braille.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Whack A Braille.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		82789CE62F15B480000CFC0A /* Exceptions for "Whack A Braille" folder in "Whack A Braille" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Store/SupportWhackABraille.storekit,
+			);
+			target = 82789CD72F15B47F000CFC0A /* Whack A Braille */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		82789CDA2F15B47F000CFC0A /* Whack A Braille */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				82789CE62F15B480000CFC0A /* Exceptions for "Whack A Braille" folder in "Whack A Braille" target */,
+			);
 			path = "Whack A Braille";
 			sourceTree = "<group>";
 		};
