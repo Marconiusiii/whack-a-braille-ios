@@ -194,6 +194,11 @@ struct GameSettingsSheet: View {
 					.accessibilityTouchRegion(minHeight: 54, alignment: .leading)
 					.accessibilityFocused($focusedElement, equals: .voiceSampleButton)
 
+				}
+
+				supportSection
+
+				Section("About and Feedback") {
 					Button {
 						if MFMailComposeViewController.canSendMail() {
 							isShowingMailComposer = true
@@ -208,15 +213,9 @@ struct GameSettingsSheet: View {
 					.accessibilityTouchRegion(minHeight: 54, alignment: .leading)
 					.accessibilityHint("Opens Mail so you can send feedback about the game.")
 					.accessibilityFocused($focusedElement, equals: .sendFeedbackButton)
-				}
 
-				supportSection
-
-				Section {
 					externalLink(title: "Privacy Policy", url: "https://marconius.com/wabPrivacy/")
-				}
 
-				Section {
 					Text(appFooterText)
 						.font(.footnote)
 						.multilineTextAlignment(.center)
@@ -397,7 +396,6 @@ struct GameSettingsSheet: View {
 				}
 				.disabled(!canPurchase(option))
 				.accessibilityLabel("\(option.fallbackName), \(supportPriceText(for: option))")
-				.accessibilityHint("Purchases optional support for Whack A Braille.")
 				.accessibilityTouchRegion(minHeight: 60, alignment: .leading)
 			}
 
