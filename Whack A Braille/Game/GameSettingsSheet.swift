@@ -54,16 +54,14 @@ struct GameSettingsSheet: View {
 	var body: some View {
 		NavigationStack {
 			Form {
-				Section("Keyboard Input Mode") {
+				Section("Gameplay") {
 					Picker("Keyboard input mode", selection: $inputMode) {
 						ForEach(InputMode.allCases) { mode in
 							Text(mode.label).tag(mode)
 						}
 					}
 					.accessibilityFocused($focusedElement, equals: .keyboardInputModePicker)
-				}
 
-				Section("Mole Chooser") {
 					Picker("Mole chooser", selection: $modeId) {
 						ForEach(availableModeOptions, id: \.id) { option in
 							Text(option.label).tag(option.id)
@@ -81,24 +79,14 @@ struct GameSettingsSheet: View {
 						.accessibilityTouchRegion(minHeight: 54, alignment: .leading)
 						.accessibilityFocused($focusedElement, equals: .customMolePickerButton)
 					}
-				}
 
-				Section("Difficulty") {
 					Picker("Difficulty", selection: $difficulty) {
 						ForEach(Difficulty.allCases) { level in
 							Text(level.label).tag(level)
 						}
 					}
 					.accessibilityFocused($focusedElement, equals: .difficultyPicker)
-				}
 
-				Section("Training Options") {
-					Toggle("Speak Braille Dots", isOn: $speakBrailleDots)
-						.disabled(difficulty != .training)
-						.accessibilityFocused($focusedElement, equals: .speakBrailleDotsToggle)
-				}
-
-				Section("Round Length") {
 					Picker("Round length", selection: $roundDurationSeconds) {
 						Text("30 seconds").tag(30)
 						Text("45 seconds").tag(45)
@@ -110,27 +98,29 @@ struct GameSettingsSheet: View {
 					.accessibilityFocused($focusedElement, equals: .roundLengthPicker)
 				}
 
-				Section("Timer Music") {
-					Toggle("Enable timer music", isOn: $timerMusicEnabled)
-						.accessibilityFocused($focusedElement, equals: .timerMusicToggle)
+				Section("Training") {
+					Toggle("Speak Braille Dots", isOn: $speakBrailleDots)
+						.disabled(difficulty != .training)
+						.accessibilityFocused($focusedElement, equals: .speakBrailleDotsToggle)
 				}
 
-				Section("Game Sounds") {
+				Section("Audio") {
+					Toggle("Enable timer music", isOn: $timerMusicEnabled)
+						.accessibilityFocused($focusedElement, equals: .timerMusicToggle)
+
 					Picker("Game sounds", selection: $gameAudioModeRawValue) {
 						ForEach(GameAudioMode.allCases) { mode in
 							Text(mode.label).tag(mode.rawValue)
 						}
 					}
 					.accessibilityFocused($focusedElement, equals: .gameSoundsPicker)
-				}
 
-				Section("Spatial Mole Mapping") {
 					Toggle("Enable spatial mole mapping", isOn: $spatialMoleMappingEnabled)
 						.accessibilityHint("Matches mole location with key positions on keyboard.")
 						.accessibilityFocused($focusedElement, equals: .spatialMoleMappingToggle)
 				}
 
-				Section("Voice Settings") {
+				Section("Speech") {
 					Picker("System Voice", selection: $selectedVoiceId) {
 						Text("System default").tag("")
 
