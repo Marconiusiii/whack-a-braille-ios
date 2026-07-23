@@ -6,7 +6,12 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		8267AFA730118CB200821E01 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8267AFA630118CB200821E01 /* StoreKit.framework */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
+		8267AFA630118CB200821E01 /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 		82789CD82F15B47F000CFC0A /* Whack A Braille.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Whack A Braille.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -36,16 +41,26 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8267AFA730118CB200821E01 /* StoreKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		8267AFA530118CB200821E01 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				8267AFA630118CB200821E01 /* StoreKit.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		82789CCF2F15B47F000CFC0A = {
 			isa = PBXGroup;
 			children = (
 				82789CDA2F15B47F000CFC0A /* Whack A Braille */,
+				8267AFA530118CB200821E01 /* Frameworks */,
 				82789CD92F15B47F000CFC0A /* Products */,
 			);
 			sourceTree = "<group>";

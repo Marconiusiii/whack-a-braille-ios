@@ -47,6 +47,7 @@ struct GameSettingsSheet: View {
 		case speechRateSlider
 		case speechVolumeSlider
 		case voiceSampleButton
+		case supportConfirmation
 		case sendFeedbackButton
 		case customMolePickerButton
 	}
@@ -366,6 +367,7 @@ struct GameSettingsSheet: View {
 				if let latestThankYou = supportStore.latestThankYou {
 					Text("Thanks for the \(latestThankYou.supportName) on \(supportDateFormatter.string(from: latestThankYou.date)).")
 						.fixedSize(horizontal: false, vertical: true)
+						.accessibilityFocused($focusedElement, equals: .supportConfirmation)
 				}
 			}
 			.accessibilityTouchRegion(minHeight: 72, alignment: .leading)
@@ -374,6 +376,9 @@ struct GameSettingsSheet: View {
 				Button {
 					Task {
 						await supportStore.purchase(option)
+						if case .success = supportStore.status {
+							restoreFocus(to: .supportConfirmation)
+						}
 					}
 				} label: {
 					VStack(alignment: .leading, spacing: 4) {
@@ -394,6 +399,7 @@ struct GameSettingsSheet: View {
 					.foregroundStyle(secondaryTextColor)
 					.fixedSize(horizontal: false, vertical: true)
 					.accessibilityTouchRegion(minHeight: 54, alignment: .leading)
+					.accessibilityFocused($focusedElement, equals: .supportConfirmation)
 			}
 		}
 	}
