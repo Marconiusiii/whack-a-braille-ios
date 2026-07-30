@@ -75,7 +75,7 @@ final class GameAudioEngine {
 	private lazy var alternateHitSoundData: Data? = makeAlternateHitSoundData()
 	private lazy var blitzWordHitSoundData: [GameAudioMode: [Int: [Data]]] = {
 		var sounds: [GameAudioMode: [Int: [Data]]] = [:]
-		for mode in GameAudioMode.allCases {
+		for mode in GameAudioMode.allCases where mode != .retro {
 			var soundsByLength: [Int: [Data]] = [:]
 			for wordLength in 3...5 {
 				soundsByLength[wordLength] = (1...4).compactMap { variant in
@@ -83,6 +83,20 @@ final class GameAudioEngine {
 				}
 			}
 			sounds[mode] = soundsByLength
+		}
+		return sounds
+	}()
+	private lazy var retroBlitzWordHitSoundDataByRoot: [Int: [Int: Data]] = {
+		var sounds: [Int: [Int: Data]] = [:]
+		for root in 48...84 {
+			var soundsByLength: [Int: Data] = [:]
+			for wordLength in 3...5 {
+				soundsByLength[wordLength] = makeRetroBlitzWordHitSoundData(
+					root: root,
+					wordLength: wordLength
+				)
+			}
+			sounds[root] = soundsByLength
 		}
 		return sounds
 	}()
@@ -148,6 +162,7 @@ final class GameAudioEngine {
 			_ = self.hitSoundData
 			_ = self.alternateHitSoundData
 			_ = self.blitzWordHitSoundData
+			_ = self.retroBlitzWordHitSoundDataByRoot
 			_ = self.missSoundData
 			_ = self.retreatSoundData
 			_ = self.sillyHitSoundData
@@ -280,7 +295,16 @@ final class GameAudioEngine {
 
 	func playBlitzWordHit(wordLength: Int, scoreBeforeHit: Int, scoreAfterHit: Int) {
 		let wordLength = min(max(wordLength, 3), 5)
-		guard let soundData = blitzWordHitSoundData[gameAudioMode]?[wordLength]?.randomElement() else {
+		let soundData: Data?
+		if gameAudioMode == .retro {
+			let root = currentTimerRootMidi()
+			soundData = retroBlitzWordHitSoundDataByRoot[root]?[wordLength]
+				?? makeRetroBlitzWordHitSoundData(root: root, wordLength: wordLength)
+		} else {
+			soundData = blitzWordHitSoundData[gameAudioMode]?[wordLength]?.randomElement()
+		}
+
+		guard let soundData else {
 			playHit(scoreBeforeHit: scoreBeforeHit, pan: 0)
 			return
 		}
@@ -294,14 +318,14 @@ final class GameAudioEngine {
 		case .goofy:
 			volume = 0.52
 		case .retro:
-			volume = 0.68
+			volume = 0.72
 		}
 
 		playGeneratedSound(
 			soundData,
 			volume: volume,
 			pan: 0,
-			rate: Float.random(in: 0.97...1.03)
+			rate: gameAudioMode == .retro ? 1 : Float.random(in: 0.97...1.03)
 		)
 
 		if gameAudioMode == .silly, scoreBeforeHit < 50, scoreAfterHit >= 50 {
@@ -1050,37 +1074,7 @@ final class GameAudioEngine {
 						envelope(squeakTime, attack: 0.003, release: 0.17, peak: 0.22)
 					sample = ((rubber * env) + boing + squeak)
 				case .retro:
-					let roots = [261.63, 293.66, 329.63, 392.0]
-					let root = roots[(variant + letterIndex - 1) % roots.count] * pitchJitter
-					let intervals = [1.0, 1.25, 1.5, 2.0]
-					let stepDuration = 0.034
-					let stepIndex = min(
-						intervals.count - 1,
-						max(0, Int(local / stepDuration))
-					)
-					let stepLocal = local - (Double(stepIndex) * stepDuration)
-					let note = root * intervals[stepIndex]
-					let noteEnvelope = linearEnvelope(
-						stepLocal,
-						attack: 0.0015,
-						release: stepDuration * 0.72,
-						peak: 0.72
-					)
-					let sparkle = square(note, stepLocal) * noteEnvelope
-					let glint = triangle(note * 2.01, stepLocal) * noteEnvelope * 0.28
-
-					let tickEnvelope = envelope(
-						local,
-						attack: 0.001,
-						release: 0.018,
-						peak: 0.32
-					)
-					let tick = filteredNoise(
-						seed: UInt64(53_011 + (variant * 79) + (letterIndex * 23)),
-						time: local,
-						carrier: 1_900
-					) * tickEnvelope
-					sample = sparkle + glint + tick
+					sample = 0
 				}
 
 				let gains = stereoGains(pan: pans[letterIndex])
@@ -1091,6 +1085,64 @@ final class GameAudioEngine {
 			return (
 				clampSample(left * normalization),
 				clampSample(right * normalization)
+			)
+		}
+	}
+
+	private func makeRetroBlitzWordHitSoundData(root: Int, wordLength: Int) -> Data? {
+		let pansByLength: [Int: [Double]] = [
+			3: [-0.5, 0, 0.5],
+			4: [-0.75, -0.25, 0.25, 0.75],
+			5: [-1, -0.5, 0, 0.5, 1]
+		]
+		let revealOrderByLength: [Int: [Int]] = [
+			3: [1, 0, 2],
+			4: [1, 2, 0, 3],
+			5: [2, 1, 3, 0, 4]
+		]
+		guard
+			let pans = pansByLength[wordLength],
+			let revealOrder = revealOrderByLength[wordLength]
+		else {
+			return nil
+		}
+
+		let progression = [0, 4, 7, 12, 16]
+		let offsetStep = 0.032
+		let noteDuration = 0.075
+		let duration = noteDuration + (Double(wordLength - 1) * offsetStep) + 0.025
+		let outputGain = 0.62
+
+		return makeStereoWaveFile(duration: duration) { time in
+			var left = 0.0
+			var right = 0.0
+
+			for letterIndex in 0..<wordLength {
+				guard let revealIndex = revealOrder.firstIndex(of: letterIndex) else { continue }
+				let start = Double(revealIndex) * offsetStep
+				let local = time - start
+				guard local >= 0, local <= noteDuration else { continue }
+
+				let note = root + progression[revealIndex]
+				let frequency = midiFrequency(note)
+				let noteEnvelope = linearEnvelope(
+					local,
+					attack: 0.002,
+					release: noteDuration,
+					peak: 0.9
+				)
+				let body = sine(frequency, local) * noteEnvelope
+				let sparkle = triangle(frequency * 2, local) * noteEnvelope * 0.18
+				let sample = body + sparkle
+
+				let gains = stereoGains(pan: pans[letterIndex])
+				left += sample * gains.left
+				right += sample * gains.right
+			}
+
+			return (
+				clampSample(left * outputGain),
+				clampSample(right * outputGain)
 			)
 		}
 	}
