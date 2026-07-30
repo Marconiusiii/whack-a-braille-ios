@@ -32,6 +32,7 @@ struct GameView: View {
 	@AppStorage("whackABraille.gameAudioMode") private var gameAudioModeRawValue = GameAudioMode.original.rawValue
 	@AppStorage("whackABraille.spatialMoleMappingEnabled") private var spatialMoleMappingEnabled = true
 	@AppStorage("whackABraille.speakBrailleDots") private var speakBrailleDots = false
+	@AppStorage("whackABraille.spellBlitzWords") private var spellBlitzWords = false
 	@AppStorage("whackABraille.characterEcho") private var characterEcho = false
 	@AppStorage("whackABraille.speechRatePercent") private var speechRatePercent = 35
 	@AppStorage("whackABraille.speechVolumePercent") private var speechVolumePercent = 85
@@ -104,6 +105,7 @@ struct GameView: View {
 				gameAudioModeRawValue: $gameAudioModeRawValue,
 				spatialMoleMappingEnabled: $spatialMoleMappingEnabled,
 				speakBrailleDots: $speakBrailleDots,
+				spellBlitzWords: $spellBlitzWords,
 				characterEcho: $characterEcho,
 				speechRatePercent: $speechRatePercent,
 				speechVolumePercent: $speechVolumePercent,
@@ -263,7 +265,8 @@ struct GameView: View {
 			spatialMoleMappingEnabled: spatialMoleMappingEnabled,
 			customMolePlayMode: customMolePlayMode,
 			customMoleIDs: selectedCustomMoleIDs,
-			trainingIntroKind: .standard
+			trainingIntroKind: .standard,
+			spellBlitzWords: spellBlitzWords
 		)
 
 		startRound(with: options)
@@ -291,6 +294,7 @@ struct GameView: View {
 			customMolePlayMode: .individual,
 			customMoleIDs: blitzModeId == nil ? items.map(\.id) : [],
 			trainingIntroKind: context.selectedMode == .grudgeMatch ? .grudgeMatch : .moleRecon,
+			spellBlitzWords: spellBlitzWords,
 			customBlitzWords: blitzModeId == nil ? [] : items.map(\.id)
 		)
 
@@ -325,6 +329,7 @@ struct GameView: View {
 			customMolePlayMode: options.customMolePlayMode,
 				customMoleIDs: options.customMoleIDs,
 				trainingIntroKind: options.trainingIntroKind,
+				spellBlitzWords: options.spellBlitzWords,
 				customBlitzWords: options.customBlitzWords
 		)
 	}

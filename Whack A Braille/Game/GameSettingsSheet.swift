@@ -13,6 +13,7 @@ struct GameSettingsSheet: View {
 	@Binding var gameAudioModeRawValue: String
 	@Binding var spatialMoleMappingEnabled: Bool
 	@Binding var speakBrailleDots: Bool
+	@Binding var spellBlitzWords: Bool
 	@Binding var characterEcho: Bool
 	@Binding var speechRatePercent: Int
 	@Binding var speechVolumePercent: Int
@@ -39,6 +40,7 @@ struct GameSettingsSheet: View {
 		case moleChooserPicker
 		case difficultyPicker
 		case speakBrailleDotsToggle
+		case spellWordToggle
 		case roundLengthPicker
 		case timerMusicToggle
 		case gameSoundsPicker
@@ -71,6 +73,12 @@ struct GameSettingsSheet: View {
 						}
 					}
 					.accessibilityFocused($focusedElement, equals: .moleChooserPicker)
+
+					if BlitzWord.isBlitzMode(modeId) {
+						Toggle("Spell Word", isOn: $spellBlitzWords)
+							.accessibilityHint("Speaks each letter immediately after speaking the word.")
+							.accessibilityFocused($focusedElement, equals: .spellWordToggle)
+					}
 
 					if modeId == "customMoles" {
 						Button {
@@ -307,6 +315,9 @@ struct GameSettingsSheet: View {
 		}
 		.onChange(of: speakBrailleDots) { _, _ in
 			restoreFocus(to: .speakBrailleDotsToggle)
+		}
+		.onChange(of: spellBlitzWords) { _, _ in
+			restoreFocus(to: .spellWordToggle)
 		}
 		.onChange(of: roundDurationSeconds) { _, _ in
 			restoreFocus(to: .roundLengthPicker)

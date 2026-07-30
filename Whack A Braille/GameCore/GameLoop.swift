@@ -29,6 +29,7 @@ final class GameLoop {
 		let inputMode: InputMode
 		let difficulty: Difficulty
 		let speakBrailleDots: Bool
+		let spellBlitzWords: Bool
 		let characterEcho: Bool
 		let timerMusicEnabled: Bool
 		let spatialMoleMappingEnabled: Bool
@@ -49,6 +50,7 @@ final class GameLoop {
 			customMolePlayMode: CustomMolePlayMode,
 			customMoleIDs: [String],
 			trainingIntroKind: TrainingIntroKind,
+			spellBlitzWords: Bool = false,
 			customBlitzWords: [String] = []
 		) {
 			self.modeId = modeId
@@ -56,6 +58,7 @@ final class GameLoop {
 			self.inputMode = inputMode
 			self.difficulty = difficulty
 			self.speakBrailleDots = speakBrailleDots
+			self.spellBlitzWords = spellBlitzWords
 			self.characterEcho = characterEcho
 			self.timerMusicEnabled = timerMusicEnabled
 			self.spatialMoleMappingEnabled = spatialMoleMappingEnabled
@@ -274,6 +277,7 @@ final class GameLoop {
 			customMolePlayMode: currentOptions.customMolePlayMode,
 			customMoleIDs: currentOptions.customMoleIDs,
 			trainingIntroKind: currentOptions.trainingIntroKind,
+			spellBlitzWords: currentOptions.spellBlitzWords,
 			customBlitzWords: currentOptions.customBlitzWords
 		)
 	}
@@ -783,8 +787,13 @@ final class GameLoop {
 	}
 
 	private func buildBlitzAnnounceText(for word: BlitzWord) -> String {
+		var announcementParts = [word.text]
+		if currentOptions.spellBlitzWords {
+			announcementParts.append(word.letters.map(String.init).joined(separator: " "))
+		}
+
 		guard currentOptions.difficulty == .training, currentOptions.speakBrailleDots else {
-			return word.text
+			return announcementParts.joined(separator: ", ")
 		}
 
 		let letterByID = Dictionary(uniqueKeysWithValues: BrailleRegistry.grade1Letters.map { ($0.id, $0) })
@@ -792,8 +801,10 @@ final class GameLoop {
 			guard let item = letterByID[String(letter)], let phrase = dotsPhrase(for: item.dots) else { return nil }
 			return "\(letter), \(phrase)"
 		}
-		guard !patterns.isEmpty else { return word.text }
-		return word.text + ", " + patterns.joined(separator: ", then ")
+		if !patterns.isEmpty {
+			announcementParts.append(patterns.joined(separator: ", then "))
+		}
+		return announcementParts.joined(separator: ", ")
 	}
 
 	private func handleHit() {
