@@ -73,6 +73,19 @@ final class GameAudioEngine {
 	private lazy var popSoundData: Data? = makePopSoundData()
 	private lazy var hitSoundData: Data? = makeHitSoundData()
 	private lazy var alternateHitSoundData: Data? = makeAlternateHitSoundData()
+	private lazy var blitzWordHitSoundData: [GameAudioMode: [Int: [Data]]] = {
+		var sounds: [GameAudioMode: [Int: [Data]]] = [:]
+		for mode in GameAudioMode.allCases {
+			var soundsByLength: [Int: [Data]] = [:]
+			for wordLength in 3...5 {
+				soundsByLength[wordLength] = (1...4).compactMap { variant in
+					makeBlitzWordHitSoundData(mode: mode, wordLength: wordLength, variant: variant)
+				}
+			}
+			sounds[mode] = soundsByLength
+		}
+		return sounds
+	}()
 	private lazy var missSoundData: Data? = makeMissSoundData()
 	private lazy var retreatSoundData: Data? = makeRetreatSoundData()
 	private lazy var sillyHitSoundData: Data? = loadAudioResourceData(name: "ChanceyBonk_6", fileExtension: "m4a")
@@ -134,6 +147,7 @@ final class GameAudioEngine {
 			_ = self.popSoundData
 			_ = self.hitSoundData
 			_ = self.alternateHitSoundData
+			_ = self.blitzWordHitSoundData
 			_ = self.missSoundData
 			_ = self.retreatSoundData
 			_ = self.sillyHitSoundData
@@ -261,6 +275,37 @@ final class GameAudioEngine {
 		case .retro:
 			let root = currentTimerRootMidi()
 			playPreparedSound(.retroHit(root), data: retroHitSoundData(for: root), volume: 0.72, pan: pan)
+		}
+	}
+
+	func playBlitzWordHit(wordLength: Int, scoreBeforeHit: Int, scoreAfterHit: Int) {
+		let wordLength = min(max(wordLength, 3), 5)
+		guard let soundData = blitzWordHitSoundData[gameAudioMode]?[wordLength]?.randomElement() else {
+			playHit(scoreBeforeHit: scoreBeforeHit, pan: 0)
+			return
+		}
+
+		let volume: Float
+		switch gameAudioMode {
+		case .original:
+			volume = 0.48
+		case .silly:
+			volume = 0.44
+		case .goofy:
+			volume = 0.48
+		case .retro:
+			volume = 0.42
+		}
+
+		playGeneratedSound(
+			soundData,
+			volume: volume,
+			pan: 0,
+			rate: Float.random(in: 0.97...1.03)
+		)
+
+		if gameAudioMode == .silly, scoreBeforeHit < 50, scoreAfterHit >= 50 {
+			playFiftyPointCueIfNeeded(scoreBeforeHit: scoreBeforeHit, scoreAfterHit: scoreAfterHit)
 		}
 	}
 
@@ -692,8 +737,9 @@ final class GameAudioEngine {
 		}
 	}
 
-	private func playFiftyPointCueIfNeeded(scoreBeforeHit: Int) {
-		guard scoreBeforeHit < 50, scoreBeforeHit + 10 >= 50 else { return }
+	private func playFiftyPointCueIfNeeded(scoreBeforeHit: Int, scoreAfterHit: Int? = nil) {
+		let scoreAfterHit = scoreAfterHit ?? scoreBeforeHit + 10
+		guard scoreBeforeHit < 50, scoreAfterHit >= 50 else { return }
 
 		DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
 			guard let self else { return }
@@ -869,6 +915,106 @@ final class GameAudioEngine {
 			)
 
 			return clampSample((sub + body + click + snapNoise + ring) * 0.58)
+		}
+	}
+
+	private func makeBlitzWordHitSoundData(
+		mode: GameAudioMode,
+		wordLength: Int,
+		variant: Int
+	) -> Data? {
+		let pansByLength: [Int: [Double]] = [
+			3: [-0.5, 0, 0.5],
+			4: [-0.75, -0.25, 0.25, 0.75],
+			5: [-1, -0.5, 0, 0.5, 1]
+		]
+		let revealOrderByLength: [Int: [Int]] = [
+			3: [1, 0, 2],
+			4: [1, 2, 0, 3],
+			5: [2, 1, 3, 0, 4]
+		]
+		guard
+			let pans = pansByLength[wordLength],
+			let revealOrder = revealOrderByLength[wordLength]
+		else {
+			return nil
+		}
+
+		let impactDuration = mode == .retro ? 0.2 : 0.28
+		let offsetStep = mode == .silly ? 0.024 : 0.02
+		let duration = impactDuration + (Double(wordLength - 1) * offsetStep) + 0.05
+		let normalization = 0.38 / sqrt(Double(wordLength))
+
+		return makeStereoWaveFile(duration: duration) { time in
+			var left = 0.0
+			var right = 0.0
+
+			for letterIndex in 0..<wordLength {
+				guard let revealIndex = revealOrder.firstIndex(of: letterIndex) else { continue }
+				let timingJitter = Double(((variant * 7) + (letterIndex * 5)) % 5 - 2) * 0.0015
+				let start = max(0, Double(revealIndex) * offsetStep + timingJitter)
+				let local = time - start
+				guard local >= 0, local <= impactDuration else { continue }
+
+				let pitchJitter = 1 + (Double(((variant * 11) + (letterIndex * 3)) % 9 - 4) * 0.012)
+				let gainJitter = 0.9 + (Double(((variant * 13) + (letterIndex * 7)) % 7) * 0.025)
+				let env = linearEnvelope(
+					local,
+					attack: mode == .retro ? 0.003 : 0.007,
+					release: impactDuration,
+					peak: gainJitter
+				)
+
+				let sample: Double
+				switch mode {
+				case .original:
+					let bodyPitch = lerpExp(
+						start: (190 + Double(letterIndex * 9)) * pitchJitter,
+						end: (88 + Double(letterIndex * 4)) * pitchJitter,
+						progress: min(local / 0.16, 1)
+					)
+					let body = sine(bodyPitch, local) * 0.72
+					let wood = triangle(bodyPitch * 1.82, local) * 0.2
+					sample = (body + wood) * env
+				case .silly:
+					let bounceProgress = min(local / impactDuration, 1)
+					let wobble = sin(2 * .pi * (12 + Double(variant)) * local) * 48
+					let bouncePitch = lerpExp(
+						start: (210 + Double(letterIndex * 18)) * pitchJitter,
+						end: (560 + Double(letterIndex * 24)) * pitchJitter,
+						progress: bounceProgress
+					)
+					let bubble = sine(bouncePitch + wobble, local) * 0.7
+					let squeak = sine((bouncePitch * 1.65) - wobble, local) * 0.18
+					sample = (bubble + squeak) * env
+				case .goofy:
+					let rubberProgress = min(local / impactDuration, 1)
+					let rubberPitch = lerpExp(
+						start: (155 + Double(letterIndex * 7)) * pitchJitter,
+						end: (74 + Double(letterIndex * 3)) * pitchJitter,
+						progress: rubberProgress
+					)
+					let wobble = sin(2 * .pi * 17 * local) * (1 - rubberProgress) * 38
+					let rubber = triangle(rubberPitch + wobble, local) * 0.65
+					let boing = sine((rubberPitch * 2.3) - wobble, local) * 0.22
+					sample = (rubber + boing) * env
+				case .retro:
+					let notes = [130.81, 164.81, 196.0, 261.63, 329.63]
+					let note = notes[(letterIndex + variant - 1) % notes.count] * pitchJitter
+					let arcadeBody = triangle(note, local) * 0.72
+					let arcadeSpark = triangle(note * 2, local) * 0.18
+					sample = (arcadeBody + arcadeSpark) * env
+				}
+
+				let gains = stereoGains(pan: pans[letterIndex])
+				left += sample * gains.left
+				right += sample * gains.right
+			}
+
+			return (
+				clampSample(left * normalization),
+				clampSample(right * normalization)
+			)
 		}
 	}
 
@@ -1625,6 +1771,29 @@ final class GameAudioEngine {
 		return makeWaveFile(fromPCM: pcm, sampleRate: Int(sampleRate), channelCount: 1, bitsPerSample: 16)
 	}
 
+	private func makeStereoWaveFile(
+		duration: Double,
+		sample: (Double) -> (left: Double, right: Double)
+	) -> Data? {
+		let frameCount = max(1, Int(duration * sampleRate))
+		let bytesPerFrame = 2 * MemoryLayout<Int16>.size
+		var pcm = Data(capacity: frameCount * bytesPerFrame)
+
+		for frame in 0..<frameCount {
+			let time = Double(frame) / sampleRate
+			let stereoSample = sample(time)
+			for channelSample in [stereoSample.left, stereoSample.right] {
+				let value = Int16(clampSample(channelSample) * Double(Int16.max))
+				var littleEndianSample = value.littleEndian
+				withUnsafeBytes(of: &littleEndianSample) { bytes in
+					pcm.append(contentsOf: bytes)
+				}
+			}
+		}
+
+		return makeWaveFile(fromPCM: pcm, sampleRate: Int(sampleRate), channelCount: 2, bitsPerSample: 16)
+	}
+
 	private func makeWaveFile(fromPCM pcm: Data, sampleRate: Int, channelCount: Int, bitsPerSample: Int) -> Data? {
 		guard !pcm.isEmpty else { return nil }
 		let byteRate = sampleRate * channelCount * bitsPerSample / 8
@@ -1731,6 +1900,12 @@ final class GameAudioEngine {
 
 		let remaining = max(release - time, 0)
 		return peak * (remaining / max(release - attack, 0.0001))
+	}
+
+	private func stereoGains(pan: Double) -> (left: Double, right: Double) {
+		let clampedPan = min(max(pan, -1), 1)
+		let angle = (clampedPan + 1) * .pi / 4
+		return (cos(angle), sin(angle))
 	}
 
 	private func triangle(_ frequency: Double, _ time: Double) -> Double {

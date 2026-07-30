@@ -651,7 +651,11 @@ final class GameLoop {
 		}
 
 		if usesSingleSubmissionSound {
-			GameAudioEngine.shared.playHit(scoreBeforeHit: scoreBeforeSubmission, pan: 0)
+			GameAudioEngine.shared.playBlitzWordHit(
+				wordLength: word.length,
+				scoreBeforeHit: scoreBeforeSubmission,
+				scoreAfterHit: score
+			)
 		}
 	}
 
