@@ -288,13 +288,13 @@ final class GameAudioEngine {
 		let volume: Float
 		switch gameAudioMode {
 		case .original:
-			volume = 0.52
+			volume = 0.62
 		case .silly:
 			volume = 0.44
 		case .goofy:
 			volume = 0.52
 		case .retro:
-			volume = 0.62
+			volume = 0.68
 		}
 
 		playGeneratedSound(
@@ -953,8 +953,8 @@ final class GameAudioEngine {
 			impactDuration = 0.38
 			offsetStep = 0.026
 		case .retro:
-			impactDuration = 0.26
-			offsetStep = 0.018
+			impactDuration = 0.2
+			offsetStep = 0.022
 		}
 		let duration = impactDuration + (Double(wordLength - 1) * offsetStep) + 0.05
 		let normalization = 0.38 / sqrt(Double(wordLength))
@@ -993,7 +993,7 @@ final class GameAudioEngine {
 						progress: min(local / 0.045, 1)
 					)
 					let hardKnock = triangle(knockPitch, local) *
-						envelope(local, attack: 0.0015, release: 0.055, peak: 0.7)
+						envelope(local, attack: 0.0015, release: 0.06, peak: 0.88)
 					let woodGrainSeed = UInt64(41_003 + (variant * 101) + (letterIndex * 17))
 					let woodGrainNoise = filteredNoise(
 						seed: woodGrainSeed,
@@ -1050,19 +1050,37 @@ final class GameAudioEngine {
 						envelope(squeakTime, attack: 0.003, release: 0.17, peak: 0.22)
 					sample = ((rubber * env) + boing + squeak)
 				case .retro:
-					let notes = [130.81, 164.81, 196.0, 261.63, 329.63]
-					let note = notes[(letterIndex + variant - 1) % notes.count] * pitchJitter
-					let arcadeBody = square(note, local) * 0.64
-					let bassImpact = square(note * 0.5, local) *
-						envelope(local, attack: 0.002, release: 0.12, peak: 0.5)
+					let roots = [261.63, 293.66, 329.63, 392.0]
+					let root = roots[(variant + letterIndex - 1) % roots.count] * pitchJitter
+					let intervals = [1.0, 1.25, 1.5, 2.0]
+					let stepDuration = 0.034
+					let stepIndex = min(
+						intervals.count - 1,
+						max(0, Int(local / stepDuration))
+					)
+					let stepLocal = local - (Double(stepIndex) * stepDuration)
+					let note = root * intervals[stepIndex]
+					let noteEnvelope = linearEnvelope(
+						stepLocal,
+						attack: 0.0015,
+						release: stepDuration * 0.72,
+						peak: 0.72
+					)
+					let sparkle = square(note, stepLocal) * noteEnvelope
+					let glint = triangle(note * 2.01, stepLocal) * noteEnvelope * 0.28
 
-					let sparkleTime = max(0, local - 0.075)
-					let sparkleStep = min(2, max(0, Int(sparkleTime / 0.045)))
-					let sparkleNotes = [note * 2, note * 2.5, note * 3]
-					let stepLocal = sparkleTime - (Double(sparkleStep) * 0.045)
-					let arcadeSpark = square(sparkleNotes[sparkleStep], stepLocal) *
-						linearEnvelope(stepLocal, attack: 0.002, release: 0.045, peak: 0.34)
-					sample = ((arcadeBody + bassImpact) * env) + arcadeSpark
+					let tickEnvelope = envelope(
+						local,
+						attack: 0.001,
+						release: 0.018,
+						peak: 0.32
+					)
+					let tick = filteredNoise(
+						seed: UInt64(53_011 + (variant * 79) + (letterIndex * 23)),
+						time: local,
+						carrier: 1_900
+					) * tickEnvelope
+					sample = sparkle + glint + tick
 				}
 
 				let gains = stereoGains(pan: pans[letterIndex])
