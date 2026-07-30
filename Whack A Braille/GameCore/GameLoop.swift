@@ -87,6 +87,8 @@ final class GameLoop {
 	private let trainingMoleCap = 15
 	private let trainingFirstMoleDelayMs = 650
 	private let trainingPostHitDelayMs = 750
+	private let blitzCompletionSoundDelayMs = 80
+	private let blitzCompletionMinimumTransitionDelayMs = 650
 
 	private let startIntervalMs = 1_000
 	private let endIntervalMs = 360
@@ -426,10 +428,11 @@ final class GameLoop {
 		currentOptions.inputMode
 	}
 
-	private func scheduleNextMole(extraDelayMs: Int) {
+	private func scheduleNextMole(extraDelayMs: Int, minimumDelayMs: Int = 0) {
 		guard isRunning, !roundEnding else { return }
 
-		let delay = getCurrentInterval() + Int.random(in: 0..<120) + extraDelayMs
+		let normalDelay = getCurrentInterval() + Int.random(in: 0..<120) + extraDelayMs
+		let delay = max(normalDelay, minimumDelayMs)
 		let timer = DispatchSource.makeTimerSource(queue: .main)
 		timer.schedule(deadline: .now() + .milliseconds(delay))
 		timer.setEventHandler { [weak self] in
@@ -667,14 +670,9 @@ final class GameLoop {
 		let scoreBeforeSubmission = score
 		for _ in submittedLetters {
 			guard activeBlitzWord != nil else { break }
-			handleBlitzLetterHit(playsSound: !usesSingleSubmissionSound)
-		}
-
-		if usesSingleSubmissionSound {
-			GameAudioEngine.shared.playBlitzWordHit(
-				wordLength: word.length,
-				scoreBeforeHit: scoreBeforeSubmission,
-				scoreAfterHit: score
+			handleBlitzLetterHit(
+				playsSound: !usesSingleSubmissionSound,
+				completionScoreBaseline: usesSingleSubmissionSound ? scoreBeforeSubmission : nil
 			)
 		}
 	}
@@ -704,7 +702,10 @@ final class GameLoop {
 		onInputResetRequested?()
 	}
 
-	private func handleBlitzLetterHit(playsSound: Bool = true) {
+	private func handleBlitzLetterHit(
+		playsSound: Bool = true,
+		completionScoreBaseline: Int? = nil
+	) {
 		guard let word = activeBlitzWord, activeBlitzLetterIndex < word.length else { return }
 		let hitIndex = activeBlitzLetterIndex
 		let pan = BlitzWord.pan(forLetterAt: hitIndex, wordLength: word.length)
@@ -728,10 +729,18 @@ final class GameLoop {
 			return
 		}
 
-		finishBlitzWord(word)
+		finishBlitzWord(
+			word,
+			completionScoreBaseline: completionScoreBaseline ?? score,
+			completionSoundDelayMs: playsSound ? blitzCompletionSoundDelayMs : 0
+		)
 	}
 
-	private func finishBlitzWord(_ word: BlitzWord) {
+	private func finishBlitzWord(
+		_ word: BlitzWord,
+		completionScoreBaseline: Int,
+		completionSoundDelayMs: Int
+	) {
 		moleUpTimer?.cancel()
 		moleUpTimer = nil
 		hitsThisRound += 1
@@ -739,6 +748,12 @@ final class GameLoop {
 
 		if currentOptions.difficulty == .training {
 			trainingMolesCompleted += 1
+			playBlitzCompletionSound(
+				wordLength: word.length,
+				scoreBeforeHit: completionScoreBaseline,
+				scoreAfterHit: score,
+				delayMs: completionSoundDelayMs
+			)
 			clearActiveMole()
 			scheduleNextTrainingMole(extraDelayMs: trainingPostHitDelayMs)
 			return
@@ -762,9 +777,45 @@ final class GameLoop {
 			}
 		}
 
+		playBlitzCompletionSound(
+			wordLength: word.length,
+			scoreBeforeHit: completionScoreBaseline,
+			scoreAfterHit: score,
+			delayMs: completionSoundDelayMs
+		)
 		clearActiveMole()
 		onScoreUpdated?(score, hitStreak)
-		scheduleNextMole(extraDelayMs: 0)
+		scheduleNextMole(
+			extraDelayMs: 0,
+			minimumDelayMs: blitzCompletionMinimumTransitionDelayMs
+		)
+	}
+
+	private func playBlitzCompletionSound(
+		wordLength: Int,
+		scoreBeforeHit: Int,
+		scoreAfterHit: Int,
+		delayMs: Int
+	) {
+		let playSound = {
+			GameAudioEngine.shared.playBlitzWordHit(
+				wordLength: wordLength,
+				scoreBeforeHit: scoreBeforeHit,
+				scoreAfterHit: scoreAfterHit
+			)
+		}
+
+		guard delayMs > 0 else {
+			playSound()
+			return
+		}
+
+		let completedMoleId = currentMoleId
+		DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(delayMs)) { [weak self] in
+			guard let self else { return }
+			guard self.isRunning, !self.roundEnding, self.currentMoleId == completedMoleId else { return }
+			playSound()
+		}
 	}
 
 	private func publishActiveBlitzMoles() {

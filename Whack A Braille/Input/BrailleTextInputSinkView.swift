@@ -164,8 +164,6 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 		private var focusAttemptCount = 0
 		private var lastAccessibilityFocusToken = -1
 		private var lastResetToken = -1
-		private var suppressedInsertText: String?
-		private var suppressInsertTextUntil = 0.0
 		private var dismissObserver: NSObjectProtocol?
 
 		override var canBecomeFirstResponder: Bool {
@@ -242,11 +240,6 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 				return
 			}
 
-			let now = Date.timeIntervalSinceReferenceDate
-			if suppressedInsertText == text.lowercased(), now <= suppressInsertTextUntil {
-				return
-			}
-
 			onTextInput?(text)
 			clearBufferedText()
 		}
@@ -264,7 +257,7 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 		}
 
 		override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
-			var handledPerkins = false
+			var handledPress = false
 
 			for press in presses {
 				guard let key = press.key else { continue }
@@ -272,6 +265,7 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 
 				if input == "`" {
 					onRepeatTarget?()
+					handledPress = true
 					continue
 				}
 
@@ -280,31 +274,37 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 				if PerkinsKeyMapper.dot(forKey: input) != nil {
 					activePerkinsKeys.insert(input)
 					usedPerkinsKeys.insert(input)
-					handledPerkins = true
+					handledPress = true
 				}
 			}
 
-			if !handledPerkins {
+			if !handledPress {
 				super.pressesBegan(presses, with: event)
 			}
 		}
 
 		override func pressesEnded(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
-			var handledPerkins = false
+			var handledPress = false
 
 			for press in presses {
 				guard let key = press.key else { continue }
 				let input = key.charactersIgnoringModifiers.lowercased()
 
+				if input == "`" {
+					handledPress = true
+					continue
+				}
+
 				guard inputModeSelection == .perkins else { continue }
 
 				if PerkinsKeyMapper.dot(forKey: input) != nil {
 					activePerkinsKeys.remove(input)
-					handledPerkins = true
+					handledPress = true
 				}
 			}
 
-			if handledPerkins, activePerkinsKeys.isEmpty, !usedPerkinsKeys.isEmpty {
+			if handledPress, inputModeSelection == .perkins,
+				activePerkinsKeys.isEmpty, !usedPerkinsKeys.isEmpty {
 				let dots = Set(usedPerkinsKeys.compactMap { PerkinsKeyMapper.dot(forKey: $0) })
 				let dotMask = PerkinsKeyMapper.mask(forDots: dots)
 				usedPerkinsKeys.removeAll()
@@ -314,33 +314,8 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 				}
 			}
 
-			if !handledPerkins {
+			if !handledPress {
 				super.pressesEnded(presses, with: event)
-
-				for press in presses {
-					guard let key = press.key else { continue }
-					let input = key.charactersIgnoringModifiers.lowercased()
-
-					if inputModeSelection.usesBufferedTextEntry {
-						if inputModeSelection == .brailleDisplayInput {
-							continue
-						}
-						if input == " " || input == "\n" || input == "\r" {
-							submitBufferedText()
-						}
-						continue
-					}
-
-					if input == " " || input == "\n" || input == "\r" {
-						continue
-					}
-
-					guard input.count == 1 else { continue }
-					suppressedInsertText = input
-					suppressInsertTextUntil = Date.timeIntervalSinceReferenceDate + 0.2
-					onTextInput?(input)
-					clearBufferedText()
-				}
 			}
 		}
 
@@ -380,14 +355,10 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 		func applyResetToken(_ token: Int) {
 			guard token != lastResetToken else { return }
 			lastResetToken = token
-			suppressedInsertText = nil
-			suppressInsertTextUntil = 0
 			clearBufferedText()
 		}
 
 		func clearForTransition() {
-			suppressedInsertText = nil
-			suppressInsertTextUntil = 0
 			activePerkinsKeys.removeAll()
 			usedPerkinsKeys.removeAll()
 			clearBufferedText()
@@ -413,12 +384,6 @@ struct BrailleTextInputSinkView: UIViewRepresentable {
 
 			let normalized = buffered.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
 			guard let token = normalized.last.map(String.init), !token.isEmpty else { return }
-
-			let now = Date.timeIntervalSinceReferenceDate
-			if suppressedInsertText == token, now <= suppressInsertTextUntil {
-				clearBufferedText()
-				return
-			}
 
 			onTextInput?(token)
 			clearBufferedText()
