@@ -238,7 +238,11 @@ final class GameAudioEngine {
 	}
 
 	func playHit(scoreBeforeHit: Int, lane: Int) {
-		let pan = pan(for: lane)
+		playHit(scoreBeforeHit: scoreBeforeHit, pan: pan(for: lane))
+	}
+
+	func playHit(scoreBeforeHit: Int, pan: Float) {
+		let pan = min(max(pan, -1), 1)
 
 		switch gameAudioMode {
 		case .original:
@@ -261,7 +265,11 @@ final class GameAudioEngine {
 	}
 
 	func playMiss(lane: Int) {
-		let pan = pan(for: lane)
+		playMiss(pan: pan(for: lane))
+	}
+
+	func playMiss(pan: Float) {
+		let pan = min(max(pan, -1), 1)
 
 		switch gameAudioMode {
 		case .original, .silly:
@@ -274,11 +282,19 @@ final class GameAudioEngine {
 	}
 
 	func playMolePop(lane: Int) {
-		playPreparedSound(.pop, data: popSoundData, volume: 0.45, pan: pan(for: lane))
+		playMolePop(pan: pan(for: lane))
+	}
+
+	func playMolePop(pan: Float) {
+		playPreparedSound(.pop, data: popSoundData, volume: 0.45, pan: min(max(pan, -1), 1))
 	}
 
 	func playRetreat(lane: Int) {
-		let pan = pan(for: lane)
+		playRetreat(pan: pan(for: lane))
+	}
+
+	func playRetreat(pan: Float) {
+		let pan = min(max(pan, -1), 1)
 
 		switch gameAudioMode {
 		case .original, .silly:

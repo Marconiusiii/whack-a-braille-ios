@@ -35,6 +35,9 @@ final class GameViewModel: ObservableObject {
 	@Published private(set) var hitStreak = 0
 	@Published private(set) var activeLane: Int?
 	@Published private(set) var activeTargetLabel = "Waiting to start"
+	@Published private(set) var activeBlitzMoles: [GameLoop.ActiveBlitzMole] = []
+	@Published private(set) var isBlitzRound = false
+	@Published private(set) var blitzWordLength = 3
 	@Published private(set) var lastRoundResult: RoundResult?
 	@Published private(set) var lastRoundWasTraining = false
 	@Published private(set) var totalAccruedTickets: Int
@@ -73,6 +76,14 @@ final class GameViewModel: ObservableObject {
 			self.activeTargetLabel = item?.announceText ?? "Listen for the next mole"
 		}
 
+		self.gameLoop.onActiveBlitzMolesChanged = { [weak self] moles in
+			guard let self else { return }
+			self.activeBlitzMoles = moles
+			if !moles.isEmpty {
+				self.blitzWordLength = moles.count
+			}
+		}
+
 		self.gameLoop.onInputResetRequested = { [weak self] in
 			self?.inputResetToken += 1
 		}
@@ -95,6 +106,8 @@ final class GameViewModel: ObservableObject {
 			guard let self else { return }
 			self.isRunning = false
 			self.activeLane = nil
+			self.activeBlitzMoles = []
+			self.isBlitzRound = false
 			self.activeTargetLabel = result.canceled ? "Round stopped" : "Round finished"
 			self.feedbackResetTask?.cancel()
 			self.feedbackLane = nil
@@ -127,6 +140,16 @@ final class GameViewModel: ObservableObject {
 		score = 0
 		hitStreak = 0
 		activeLane = nil
+		activeBlitzMoles = []
+		isBlitzRound = BlitzWord.isBlitzMode(options.modeId)
+		switch options.modeId {
+		case "grade1FourLetterBlitz":
+			blitzWordLength = 4
+		case "grade1MoleBlitz":
+			blitzWordLength = 5
+		default:
+			blitzWordLength = 3
+		}
 		activeTargetLabel = "Get ready"
 		feedbackResetTask?.cancel()
 		feedbackLane = nil
@@ -189,6 +212,8 @@ final class GameViewModel: ObservableObject {
 		cashOutPrizes = []
 		isRunning = false
 		activeLane = nil
+		activeBlitzMoles = []
+		isBlitzRound = false
 		feedbackResetTask?.cancel()
 		feedbackLane = nil
 		feedbackKind = nil

@@ -138,7 +138,12 @@ struct RoundResultsView: View {
 						.accessibilityElement(children: .combine)
 
 						VStack(alignment: .leading, spacing: 4) {
-							Text("Hits: \(result.hits), Misses: \(result.misses), Escapes: \(result.escapes)")
+							if result.isBlitzMode {
+								Text("Words completed: \(result.hits), Misses: \(result.misses), Escapes: \(result.escapes)")
+								Text("Letters whacked: \(result.lettersWhacked)")
+							} else {
+								Text("Hits: \(result.hits), Misses: \(result.misses), Escapes: \(result.escapes)")
+							}
 						}
 						.fixedSize(horizontal: false, vertical: true)
 						.summaryRowCard()
@@ -162,7 +167,9 @@ struct RoundResultsView: View {
 						.accessibilityTouchRegion(verticalPadding: 5, alignment: .leading)
 						.accessibilityElement(children: .combine)
 					} else {
-						Text("Training moles completed: \(result.trainingMolesCompleted)")
+						Text(result.isBlitzMode
+							? "Training words completed: \(result.trainingMolesCompleted)"
+							: "Training moles completed: \(result.trainingMolesCompleted)")
 							.fixedSize(horizontal: false, vertical: true)
 							.summaryRowCard()
 							.accessibilityTouchRegion(verticalPadding: 5, alignment: .leading)
@@ -534,11 +541,24 @@ private struct MoleReconView: View {
 	}
 
 	private var moleReconBlurb: String {
+		if isBlitzContext {
+			if activeMode == .grudgeMatch {
+				return "Have a grudge against these particular words? Choose the ones you want back on the board, then spell them into a proper mole panic."
+			}
+
+			return "These words remain at large. Study their letter patterns and begin a training round so the whole gang doesn't get away twice."
+		}
+
 		if activeMode == .grudgeMatch {
 			return "Have a grudge against these particular moles? Show them what's what in this training session! Choose the moles you want to whack:"
 		}
 
 		return "These moles remain at large. Study their dot patterns, prepare your fingers, and begin a training round so they don't get away twice."
+	}
+
+	private var isBlitzContext: Bool {
+		(context.reconItems + context.grudgeMatchItems)
+			.contains { item in item.modeTags.contains(where: BlitzWord.isBlitzMode) }
 	}
 
 	private var displayedItems: [BrailleItem] {

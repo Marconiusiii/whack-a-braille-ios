@@ -90,9 +90,9 @@ struct GameplayView: View {
 								viewModel.setSpeakBrailleDotsDuringRound(newValue)
 							}
 
-						Button("Repeat Current Mole", action: viewModel.repeatCurrentTarget)
+						Button(viewModel.isBlitzRound ? "Repeat Current Word" : "Repeat Current Mole", action: viewModel.repeatCurrentTarget)
 							.buttonStyle(SecondaryGameButton())
-							.accessibilityHint("Speaks the current mole again.")
+							.accessibilityHint(viewModel.isBlitzRound ? "Speaks the current word again." : "Speaks the current mole again.")
 							.accessibilityTouchRegion(verticalPadding: 6)
 					}
 
@@ -135,15 +135,33 @@ struct GameplayView: View {
 	}
 
 	private var gameBoard: some View {
-		HStack(alignment: .bottom, spacing: 12) {
-			ForEach(0..<5, id: \.self) { lane in
-				MoleLaneView(
-					label: viewModel.activeLane == lane ? viewModel.activeTargetLabel : nil,
-					isActive: viewModel.activeLane == lane,
-					feedbackKind: viewModel.feedbackLane == lane ? viewModel.feedbackKind : nil,
-					activeMoleFontSize: activeMoleFontSize,
-					compactMoleFontSize: compactMoleFontSize
-				)
+		Group {
+			if !viewModel.isBlitzRound {
+				HStack(alignment: .bottom, spacing: 12) {
+					ForEach(0..<5, id: \.self) { lane in
+						MoleLaneView(
+							label: viewModel.activeLane == lane ? viewModel.activeTargetLabel : nil,
+							isActive: viewModel.activeLane == lane,
+							feedbackKind: viewModel.feedbackLane == lane ? viewModel.feedbackKind : nil,
+							activeMoleFontSize: activeMoleFontSize,
+							compactMoleFontSize: compactMoleFontSize
+						)
+					}
+				}
+			} else {
+				HStack(alignment: .bottom, spacing: 12) {
+					ForEach(0..<blitzVisualSlotCount, id: \.self) { slot in
+						let letterIndex = blitzLetterIndex(forVisualSlot: slot)
+						let mole = viewModel.activeBlitzMoles.first { $0.index == letterIndex }
+						MoleLaneView(
+							label: mole?.isWhacked == false ? mole?.letter : nil,
+							isActive: mole?.isWhacked == false,
+							feedbackKind: viewModel.feedbackLane == letterIndex ? viewModel.feedbackKind : nil,
+							activeMoleFontSize: activeMoleFontSize,
+							compactMoleFontSize: compactMoleFontSize
+						)
+					}
+				}
 			}
 		}
 		.padding(16)
@@ -154,6 +172,14 @@ struct GameplayView: View {
 				.stroke(boardBorder, lineWidth: 1)
 		)
 		.shadow(color: Color.black.opacity(0.22), radius: 18, x: 0, y: 10)
+	}
+
+	private var blitzVisualSlotCount: Int {
+		viewModel.blitzWordLength == 3 ? 5 : viewModel.blitzWordLength
+	}
+
+	private func blitzLetterIndex(forVisualSlot slot: Int) -> Int {
+		viewModel.blitzWordLength == 3 ? slot - 1 : slot
 	}
 
 	private var boardBackground: some ShapeStyle {

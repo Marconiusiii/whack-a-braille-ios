@@ -29,6 +29,7 @@ struct GameSettingsSheet: View {
 
 	@State private var isShowingMailComposer = false
 	@State private var isShowingCustomMolePicker = false
+	@State private var isShowingAcknowledgments = false
 	@State private var shouldRestoreCustomMoleFocus = false
 	@State private var shouldSkipNextModeFocusRestore = false
 	@State private var cachedVoices: [AVSpeechSynthesisVoice] = []
@@ -50,6 +51,7 @@ struct GameSettingsSheet: View {
 		case supportConfirmation
 		case sendFeedbackButton
 		case customMolePickerButton
+		case acknowledgmentsButton
 	}
 
 	var body: some View {
@@ -205,6 +207,13 @@ struct GameSettingsSheet: View {
 					.accessibilityHint("Opens Mail so you can send feedback about the game.")
 					.accessibilityFocused($focusedElement, equals: .sendFeedbackButton)
 
+					Button("Acknowledgments") {
+						isShowingAcknowledgments = true
+					}
+					.accessibilityTouchRegion(minHeight: 54, alignment: .leading)
+					.accessibilityHint("Opens word list credits and license acknowledgments.")
+					.accessibilityFocused($focusedElement, equals: .acknowledgmentsButton)
+
 					externalLink(title: "Privacy Policy", url: "https://marconius.com/wabPrivacy/")
 
 					Text(appFooterText)
@@ -251,6 +260,14 @@ struct GameSettingsSheet: View {
 					shouldRestoreCustomMoleFocus = true
 				}
 			)
+		}
+		.sheet(
+			isPresented: $isShowingAcknowledgments,
+			onDismiss: {
+				restoreFocus(to: .acknowledgmentsButton)
+			}
+		) {
+			AcknowledgmentsView()
 		}
 		.sheet(
 			isPresented: $isShowingMailComposer,

@@ -4,6 +4,8 @@ struct RoundResult {
 	let durationSeconds: Int
 	let isTraining: Bool
 	let trainingMolesCompleted: Int
+	let isBlitzMode: Bool
+	let lettersWhacked: Int
 
 	let score: Int
 	let hits: Int

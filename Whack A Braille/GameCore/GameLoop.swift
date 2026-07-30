@@ -8,6 +8,15 @@ final class GameLoop {
 		case miss
 	}
 
+	struct ActiveBlitzMole: Identifiable, Equatable {
+		let index: Int
+		let letter: String
+		let pan: Float
+		let isWhacked: Bool
+
+		var id: Int { index }
+	}
+
 	enum TrainingIntroKind {
 		case standard
 		case moleRecon
@@ -26,11 +35,41 @@ final class GameLoop {
 		let customMolePlayMode: CustomMolePlayMode
 		let customMoleIDs: [String]
 		let trainingIntroKind: TrainingIntroKind
+		let customBlitzWords: [String]
+
+		init(
+			modeId: String,
+			durationSeconds: Int,
+			inputMode: InputMode,
+			difficulty: Difficulty,
+			speakBrailleDots: Bool,
+			characterEcho: Bool,
+			timerMusicEnabled: Bool,
+			spatialMoleMappingEnabled: Bool,
+			customMolePlayMode: CustomMolePlayMode,
+			customMoleIDs: [String],
+			trainingIntroKind: TrainingIntroKind,
+			customBlitzWords: [String] = []
+		) {
+			self.modeId = modeId
+			self.durationSeconds = durationSeconds
+			self.inputMode = inputMode
+			self.difficulty = difficulty
+			self.speakBrailleDots = speakBrailleDots
+			self.characterEcho = characterEcho
+			self.timerMusicEnabled = timerMusicEnabled
+			self.spatialMoleMappingEnabled = spatialMoleMappingEnabled
+			self.customMolePlayMode = customMolePlayMode
+			self.customMoleIDs = customMoleIDs
+			self.trainingIntroKind = trainingIntroKind
+			self.customBlitzWords = customBlitzWords
+		}
 	}
 
 	var onRoundEnded: ((RoundResult) -> Void)?
 	var onScoreUpdated: ((Int, Int) -> Void)?
 	var onActiveMoleChanged: ((Int?, BrailleItem?) -> Void)?
+	var onActiveBlitzMolesChanged: (([ActiveBlitzMole]) -> Void)?
 	var onInputResetRequested: (() -> Void)?
 	var onMoleFeedback: ((Int, FeedbackKind) -> Void)?
 
@@ -88,6 +127,9 @@ final class GameLoop {
 	private var roundItems: [BrailleItem] = []
 	private var roundLaneItems: [BrailleItem?] = []
 	private var invasionActiveItem: BrailleItem?
+	private var availableBlitzWords: [BlitzWord] = []
+	private var activeBlitzWord: BlitzWord?
+	private var activeBlitzLetterIndex = 0
 
 	private var activeLane: Int?
 	private var missRegisteredForMole = false
@@ -102,6 +144,7 @@ final class GameLoop {
 	private var speedHitCount = 0
 	private var speedBonusTickets = 0
 	private var trainingMolesCompleted = 0
+	private var lettersWhackedThisRound = 0
 	private var lastTrainingMissAtMs = 0
 	private var moleReconItems: [BrailleItem] = []
 	private var moleReconItemIDs = Set<String>()
@@ -116,6 +159,7 @@ final class GameLoop {
 	private var sameItemRunCount = 0
 	private var pendingTextTokens: [String] = []
 	private var pendingPerkinsMasks: [Int] = []
+	private var lastBlitzWord: String?
 
 	private var roundTimer: DispatchSourceTimer?
 	private var moleTimer: DispatchSourceTimer?
@@ -126,6 +170,10 @@ final class GameLoop {
 
 		currentOptions = options
 		availableItems = items(for: options)
+		availableBlitzWords = BlitzWordCatalog.words(
+			for: options.modeId,
+			customWords: options.customBlitzWords
+		)
 		roundItems = pickRoundItems(
 			modeId: options.modeId,
 			pool: availableItems,
@@ -147,6 +195,7 @@ final class GameLoop {
 		speedHitCount = 0
 		speedBonusTickets = 0
 		trainingMolesCompleted = 0
+		lettersWhackedThisRound = 0
 		lastTrainingMissAtMs = 0
 		moleReconItems = []
 		moleReconItemIDs = []
@@ -161,12 +210,15 @@ final class GameLoop {
 		sameItemRunCount = 0
 		activeLane = nil
 		invasionActiveItem = nil
+		activeBlitzWord = nil
+		activeBlitzLetterIndex = 0
 		currentMoleId = 0
 		missRegisteredForMole = false
 		activeMoleShownAtMs = 0
 		activeMoleUpTimeMs = 0
 		pendingTextTokens = []
 		pendingPerkinsMasks = []
+		lastBlitzWord = nil
 
 		isRunning = true
 		roundEnding = false
@@ -174,6 +226,7 @@ final class GameLoop {
 		cancelTimers()
 		onScoreUpdated?(score, hitStreak)
 		onActiveMoleChanged?(nil, nil)
+		onActiveBlitzMolesChanged?([])
 
 		GameAudioEngine.shared.startRoundAudio(
 			progressProvider: { [weak self] in
@@ -200,6 +253,10 @@ final class GameLoop {
 	}
 
 	func repeatCurrentTarget() {
+		if let activeBlitzWord {
+			SpeechEngine.shared.speak(buildBlitzAnnounceText(for: activeBlitzWord), interrupt: true)
+			return
+		}
 		guard let item = currentItem else { return }
 		SpeechEngine.shared.speak(buildAnnounceText(for: item), interrupt: true)
 	}
@@ -216,12 +273,17 @@ final class GameLoop {
 			spatialMoleMappingEnabled: currentOptions.spatialMoleMappingEnabled,
 			customMolePlayMode: currentOptions.customMolePlayMode,
 			customMoleIDs: currentOptions.customMoleIDs,
-			trainingIntroKind: currentOptions.trainingIntroKind
+			trainingIntroKind: currentOptions.trainingIntroKind,
+			customBlitzWords: currentOptions.customBlitzWords
 		)
 	}
 
 	func handleAttempt(_ attempt: Attempt) {
-		guard isRunning, !roundEnding else { return }
+		guard isRunning, !roundEnding || activeBlitzWord != nil else { return }
+		if activeBlitzWord != nil {
+			handleBlitzAttempt(attempt)
+			return
+		}
 		guard let activeLane, let currentItem = laneItem(for: activeLane) else { return }
 		guard attempt.moleId == currentMoleId else { return }
 		guard attempt.key != "`" else {
@@ -322,6 +384,8 @@ final class GameLoop {
 				durationSeconds: currentOptions.durationSeconds,
 				isTraining: isTraining,
 				trainingMolesCompleted: trainingMolesCompleted,
+				isBlitzMode: isBlitzMode,
+				lettersWhacked: lettersWhackedThisRound,
 				score: score,
 				hits: hitsThisRound,
 				misses: missesThisRound,
@@ -391,6 +455,11 @@ final class GameLoop {
 		clearActiveMole()
 		currentMoleId += 1
 		missRegisteredForMole = false
+
+		if isBlitzMode {
+			showBlitzWord(trainingMode: trainingMode)
+			return
+		}
 
 		let lane = pickNextLaneIndex()
 		let item: BrailleItem?
@@ -463,6 +532,273 @@ final class GameLoop {
 
 		moleUpTimer?.cancel()
 		moleUpTimer = timer
+	}
+
+	private func showBlitzWord(trainingMode: Bool) {
+		guard let word = pickNextBlitzWord() else {
+			scheduleFollowUp(afterTraining: trainingMode)
+			return
+		}
+
+		activeBlitzWord = word
+		activeBlitzLetterIndex = 0
+		activeLane = 0
+		let moleId = currentMoleId
+		let wordItem = word.asBrailleItem(modeId: currentOptions.modeId)
+
+		if !trainingMode, let wordItem {
+			recordShownMoleReconItem(wordItem)
+		}
+
+		let announceText = buildBlitzAnnounceText(for: word)
+		let speechDurationMs = SpeechEngine.shared.estimatedDurationMs(for: announceText)
+		let revealDelayMs = 140
+
+		DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(revealDelayMs)) { [weak self] in
+			guard let self else { return }
+			guard self.isRunning, !self.roundEnding else { return }
+			guard self.currentMoleId == moleId, self.activeBlitzWord == word else { return }
+
+			self.activeMoleShownAtMs = TimeUtils.nowMs()
+			self.publishActiveBlitzMoles()
+			for index in word.letters.indices {
+				let pan = BlitzWord.pan(forLetterAt: index, wordLength: word.length)
+				DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(index * 35)) {
+					GameAudioEngine.shared.playMolePop(pan: pan)
+				}
+			}
+			self.playGameplaySpeech(announceText)
+		}
+
+		if trainingMode {
+			activeMoleUpTimeMs = 0
+			return
+		}
+
+		activeMoleUpTimeMs = computeBlitzWindowMs(word: word, speechDurationMs: speechDurationMs)
+		let timer = DispatchSource.makeTimerSource(queue: .main)
+		timer.schedule(deadline: .now() + .milliseconds(activeMoleUpTimeMs))
+		timer.setEventHandler { [weak self] in
+			guard let self else { return }
+			guard self.isRunning, !self.roundEnding else { return }
+			guard self.currentMoleId == moleId, self.activeBlitzWord == word else { return }
+
+			self.escapesThisRound += 1
+			if let wordItem {
+				self.recordMoleReconItem(wordItem)
+			}
+			self.hitStreak = 0
+			self.onScoreUpdated?(self.score, self.hitStreak)
+			self.onInputResetRequested?()
+
+			for index in self.activeBlitzLetterIndex..<word.length {
+				GameAudioEngine.shared.playRetreat(
+					pan: BlitzWord.pan(forLetterAt: index, wordLength: word.length)
+				)
+			}
+
+			self.clearActiveMole()
+			self.scheduleNextMole(extraDelayMs: 0)
+		}
+		timer.resume()
+
+		moleUpTimer?.cancel()
+		moleUpTimer = timer
+	}
+
+	private func handleBlitzAttempt(_ attempt: Attempt) {
+		guard let word = activeBlitzWord else { return }
+		guard activeMoleShownAtMs > 0 else { return }
+		guard attempt.moleId == currentMoleId else { return }
+		guard attempt.key != "`" else {
+			repeatCurrentTarget()
+			return
+		}
+
+		switch attempt.type {
+		case .perkins:
+			guard let mask = attempt.dotMask,
+				let expectedItem = expectedBlitzLetterItem(in: word)
+			else { return }
+			resolveBlitzLetter(mask == expectedItem.dotMask)
+		case .qwerty:
+			handleBlitzSubmittedText(normalize(attempt.key))
+		case .brailleText, .brailleDisplayInput, .oneHandedBrailleInput:
+			handleBlitzSubmittedText(normalize(attempt.char))
+		}
+	}
+
+	private func handleBlitzSubmittedText(_ input: String) {
+		guard let word = activeBlitzWord, !input.isEmpty else { return }
+		guard input.allSatisfy(\.isLetter) else {
+			resolveBlitzLetter(false)
+			return
+		}
+		let submittedLetters = Array(input)
+
+		let remainingLetters = Array(word.letters.dropFirst(activeBlitzLetterIndex))
+		guard submittedLetters.count <= remainingLetters.count,
+			Array(remainingLetters.prefix(submittedLetters.count)) == submittedLetters
+		else {
+			resolveBlitzLetter(false)
+			return
+		}
+
+		for _ in submittedLetters {
+			guard activeBlitzWord != nil else { break }
+			handleBlitzLetterHit()
+		}
+	}
+
+	private func resolveBlitzLetter(_ hit: Bool) {
+		if hit {
+			handleBlitzLetterHit()
+			return
+		}
+
+		guard let word = activeBlitzWord else { return }
+		let pan = BlitzWord.pan(forLetterAt: activeBlitzLetterIndex, wordLength: word.length)
+		GameAudioEngine.shared.playMiss(pan: pan)
+		onMoleFeedback?(activeBlitzLetterIndex, .miss)
+
+		if currentOptions.difficulty != .training, !missRegisteredForMole {
+			missRegisteredForMole = true
+			missesThisRound += 1
+			if let item = word.asBrailleItem(modeId: currentOptions.modeId) {
+				recordMoleReconItem(item)
+			}
+			hitStreak = 0
+			score = max(0, score - 2)
+			onScoreUpdated?(score, hitStreak)
+		}
+
+		onInputResetRequested?()
+	}
+
+	private func handleBlitzLetterHit() {
+		guard let word = activeBlitzWord, activeBlitzLetterIndex < word.length else { return }
+		let hitIndex = activeBlitzLetterIndex
+		let pan = BlitzWord.pan(forLetterAt: hitIndex, wordLength: word.length)
+		let scoreBeforeHit = score
+
+		lettersWhackedThisRound += 1
+		activeBlitzLetterIndex += 1
+
+		if currentOptions.difficulty != .training {
+			score += 10
+		}
+
+		GameAudioEngine.shared.playHit(scoreBeforeHit: scoreBeforeHit, pan: pan)
+		onMoleFeedback?(hitIndex, .hit)
+		publishActiveBlitzMoles()
+
+		guard activeBlitzLetterIndex >= word.length else {
+			onScoreUpdated?(score, hitStreak)
+			return
+		}
+
+		finishBlitzWord(word)
+	}
+
+	private func finishBlitzWord(_ word: BlitzWord) {
+		moleUpTimer?.cancel()
+		moleUpTimer = nil
+		hitsThisRound += 1
+		onInputResetRequested?()
+
+		if currentOptions.difficulty == .training {
+			trainingMolesCompleted += 1
+			clearActiveMole()
+			scheduleNextTrainingMole(extraDelayMs: trainingPostHitDelayMs)
+			return
+		}
+
+		hitStreak += 1
+		bestStreakThisRound = max(bestStreakThisRound, hitStreak)
+		score += 10
+
+		if hitStreak % 5 == 0 {
+			score += 10
+			streakBonusCount += 1
+		}
+
+		let reactionMs = TimeUtils.nowMs() - activeMoleShownAtMs
+		let speedThresholdMs = Int(Double(activeMoleUpTimeMs) * 0.55)
+		if reactionMs <= speedThresholdMs {
+			speedHitCount += 1
+			if speedHitCount % 3 == 0 && speedBonusTickets < 5 {
+				speedBonusTickets += 1
+			}
+		}
+
+		clearActiveMole()
+		onScoreUpdated?(score, hitStreak)
+		scheduleNextMole(extraDelayMs: 0)
+	}
+
+	private func publishActiveBlitzMoles() {
+		guard let word = activeBlitzWord else {
+			onActiveBlitzMolesChanged?([])
+			return
+		}
+
+		let moles = word.letters.enumerated().map { index, letter in
+			ActiveBlitzMole(
+				index: index,
+				letter: String(letter),
+				pan: BlitzWord.pan(forLetterAt: index, wordLength: word.length),
+				isWhacked: index < activeBlitzLetterIndex
+			)
+		}
+		onActiveBlitzMolesChanged?(moles)
+	}
+
+	private func expectedBlitzLetterItem(in word: BlitzWord) -> BrailleItem? {
+		guard word.letters.indices.contains(activeBlitzLetterIndex) else { return nil }
+		let expectedLetter = String(word.letters[activeBlitzLetterIndex])
+		return BrailleRegistry.grade1Letters.first { $0.id == expectedLetter }
+	}
+
+	private func pickNextBlitzWord() -> BlitzWord? {
+		guard !availableBlitzWords.isEmpty else { return nil }
+		let candidates = availableBlitzWords.filter { $0.text != lastBlitzWord }
+		let word = candidates.randomElement() ?? availableBlitzWords.randomElement()
+		lastBlitzWord = word?.text
+		return word
+	}
+
+	private func computeBlitzWindowMs(word: BlitzWord, speechDurationMs: Int) -> Int {
+		let perLetterMs: Int
+		switch currentOptions.inputMode {
+		case .qwerty:
+			perLetterMs = 620
+		case .perkins:
+			perLetterMs = 780
+		case .brailleText, .brailleDisplayInput:
+			perLetterMs = 860
+		case .oneHandedBrailleInput:
+			perLetterMs = 1_150
+		}
+
+		let difficultyMultiplier = difficultyMultipliers[currentOptions.difficulty] ?? 1.0
+		let entryTimeMs = Int(Double(perLetterMs * word.length) * difficultyMultiplier)
+		let minimumMs = currentOptions.inputMode == .oneHandedBrailleInput ? 4_500 : 2_400
+		let maximumMs = currentOptions.inputMode == .oneHandedBrailleInput ? 12_000 : 8_000
+		return min(max(speechDurationMs + entryTimeMs + 450, minimumMs), maximumMs)
+	}
+
+	private func buildBlitzAnnounceText(for word: BlitzWord) -> String {
+		guard currentOptions.difficulty == .training, currentOptions.speakBrailleDots else {
+			return word.text
+		}
+
+		let letterByID = Dictionary(uniqueKeysWithValues: BrailleRegistry.grade1Letters.map { ($0.id, $0) })
+		let patterns = word.letters.compactMap { letter -> String? in
+			guard let item = letterByID[String(letter)], let phrase = dotsPhrase(for: item.dots) else { return nil }
+			return "\(letter), \(phrase)"
+		}
+		guard !patterns.isEmpty else { return word.text }
+		return word.text + ", " + patterns.joined(separator: ", then ")
 	}
 
 	private func handleHit() {
@@ -782,10 +1118,13 @@ final class GameLoop {
 	private func clearActiveMole() {
 		activeLane = nil
 		invasionActiveItem = nil
+		activeBlitzWord = nil
+		activeBlitzLetterIndex = 0
 		activeMoleShownAtMs = 0
 		pendingTextTokens.removeAll()
 		pendingPerkinsMasks.removeAll()
 		onActiveMoleChanged?(nil, nil)
+		onActiveBlitzMolesChanged?([])
 	}
 
 	private func recordMoleReconItem(_ item: BrailleItem) {
@@ -864,7 +1203,10 @@ final class GameLoop {
 	}
 
 	private func computeRoundEndGraceMs() -> Int {
-		min(max(350, 0), 750)
+		guard activeBlitzWord != nil, activeMoleShownAtMs > 0 else { return 350 }
+		let elapsedMs = TimeUtils.nowMs() - activeMoleShownAtMs
+		let remainingMs = max(0, activeMoleUpTimeMs - elapsedMs)
+		return min(max(remainingMs, 350), 1_500)
 	}
 
 	private func scoreToTickets(_ score: Int) -> Int {
@@ -877,6 +1219,10 @@ final class GameLoop {
 
 	private var isInvasionMode: Bool {
 		isInvasionMode(currentOptions.modeId)
+	}
+
+	private var isBlitzMode: Bool {
+		BlitzWord.isBlitzMode(currentOptions.modeId)
 	}
 
 	private func isInvasionMode(_ modeId: String) -> Bool {
@@ -937,6 +1283,17 @@ final class GameLoop {
 
 		if currentOptions.modeId == "grade1MoleInvasion" {
 			adjusted = Int(ceil(Double(adjusted) * 1.25))
+		}
+
+		switch currentOptions.modeId {
+		case "grade1ThreeLetterBlitz":
+			adjusted = Int(ceil(Double(adjusted) * 1.2))
+		case "grade1FourLetterBlitz":
+			adjusted = Int(ceil(Double(adjusted) * 1.3))
+		case "grade1MoleBlitz":
+			adjusted = Int(ceil(Double(adjusted) * 1.4))
+		default:
+			break
 		}
 
 		if currentOptions.inputMode == .oneHandedBrailleInput {

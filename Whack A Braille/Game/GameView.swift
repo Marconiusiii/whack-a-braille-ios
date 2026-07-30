@@ -276,8 +276,11 @@ struct GameView: View {
 		applySpeechSettings()
 		lastMoleReconContext = context
 
+		let blitzModeId = items
+			.flatMap(\.modeTags)
+			.first(where: BlitzWord.isBlitzMode)
 		let options = GameLoop.Options(
-			modeId: "moleRecon",
+			modeId: blitzModeId ?? "moleRecon",
 			durationSeconds: 30,
 			inputMode: effectiveInputMode,
 			difficulty: .training,
@@ -286,8 +289,9 @@ struct GameView: View {
 			timerMusicEnabled: false,
 			spatialMoleMappingEnabled: false,
 			customMolePlayMode: .individual,
-			customMoleIDs: items.map(\.id),
-			trainingIntroKind: context.selectedMode == .grudgeMatch ? .grudgeMatch : .moleRecon
+			customMoleIDs: blitzModeId == nil ? items.map(\.id) : [],
+			trainingIntroKind: context.selectedMode == .grudgeMatch ? .grudgeMatch : .moleRecon,
+			customBlitzWords: blitzModeId == nil ? [] : items.map(\.id)
 		)
 
 		startRound(with: options)
@@ -319,8 +323,9 @@ struct GameView: View {
 			timerMusicEnabled: options.timerMusicEnabled,
 			spatialMoleMappingEnabled: options.spatialMoleMappingEnabled,
 			customMolePlayMode: options.customMolePlayMode,
-			customMoleIDs: options.customMoleIDs,
-			trainingIntroKind: options.trainingIntroKind
+				customMoleIDs: options.customMoleIDs,
+				trainingIntroKind: options.trainingIntroKind,
+				customBlitzWords: options.customBlitzWords
 		)
 	}
 
@@ -403,12 +408,12 @@ struct GameView: View {
 	private func beginPreparedRound(startID: UUID, options: GameLoop.Options) {
 		guard pendingRoundStartID == startID else { return }
 
-		let isInvasionMode = options.modeId == "grade1MoleInvasion"
+			let isInvasionMode = options.modeId == "grade1MoleInvasion"
 			|| options.modeId == "grade2MoleInvasion"
 			|| (options.modeId == "customMoles" && options.customMolePlayMode == .invasion)
-		let introText = isInvasionMode
-			? (invasionIntroPhrases.randomElement() ?? "Incoming moles!")
-			: "Ready?"
+			let introText = isInvasionMode
+				? (invasionIntroPhrases.randomElement() ?? "Incoming moles!")
+				: BlitzWord.isBlitzMode(options.modeId) ? "Mole Blitz!" : "Ready?"
 		let trainingIntroText = trainingIntroPhrases(for: options.trainingIntroKind).randomElement() ?? "Ready for Training?"
 		let announcementText = options.difficulty == .training ? trainingIntroText : introText
 		let focusHandoffDelayMs = options.inputMode.usesBufferedTextEntry ? 600 : 300

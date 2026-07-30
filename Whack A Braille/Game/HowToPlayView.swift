@@ -13,6 +13,7 @@ struct HowToPlayView: View {
 	@AccessibilityFocusState private var focusedElement: FocusTarget?
 	@State private var isInputInstructionsExpanded = false
 	@State private var isGameSettingsInfoExpanded = false
+	@State private var isMoleBlitzExpanded = false
 	@State private var isBrailleReferenceExpanded = false
 
 	var body: some View {
@@ -98,6 +99,56 @@ struct HowToPlayView: View {
 								.accessibilityAddTraits(.isHeader)
 						}
 					)
+						.tint(AppTheme.heading)
+						.foregroundStyle(AppTheme.heading)
+						.appActionCard()
+
+						DisclosureGroup(
+							isExpanded: $isMoleBlitzExpanded,
+							content: {
+								VStack(alignment: .leading, spacing: 0) {
+									section(
+										title: "3 Letter Words",
+										rows: [
+											"Three letter moles pop up together with one letter apiece. Type the word from left to right and bonk each mole in spelling order.",
+											"Finish the word before time runs out or the whole word escapes as one slippery team."
+										]
+									)
+
+									section(
+										title: "4 Letter Words",
+										rows: [
+											"Four moles spread themselves across the board and dare you to spell their word in order.",
+											"Each correct letter earns its own bonk. One wrong key counts as a miss, but the word stays up until you finish it or time runs out."
+										]
+									)
+
+									section(
+										title: "Grade 1 Mole Blitz",
+										rows: [
+											"Three, four, and five letter words take turns storming the board. The layout changes with each word, so keep your ears ready and your spelling hammer warmer.",
+											"Longer words take more work and earn richer ticket rewards."
+										]
+									)
+
+									section(
+										title: "Blitz Training and Mole Recon",
+										rows: [
+											"Training removes the timer so you can practice whole words without pressure. Repeat Current Word speaks the target again whenever you need it.",
+											"Mole Recon remembers missed and escaped words, while Grudge Match lets you practice any word that appeared in the round."
+										]
+									)
+								}
+							},
+							label: {
+								Text("Mole Blitz")
+									.font(.headline)
+									.foregroundStyle(AppTheme.heading)
+									.fixedSize(horizontal: false, vertical: true)
+									.accessibilityTouchRegion(minHeight: 0, topPadding: 20, bottomPadding: 8, alignment: .leading)
+									.accessibilityAddTraits(.isHeader)
+							}
+						)
 						.tint(AppTheme.heading)
 						.foregroundStyle(AppTheme.heading)
 						.appActionCard()
