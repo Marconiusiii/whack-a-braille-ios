@@ -643,9 +643,15 @@ final class GameLoop {
 			return
 		}
 
+		let usesSingleSubmissionSound = currentOptions.inputMode.usesBufferedTextEntry
+		let scoreBeforeSubmission = score
 		for _ in submittedLetters {
 			guard activeBlitzWord != nil else { break }
-			handleBlitzLetterHit()
+			handleBlitzLetterHit(playsSound: !usesSingleSubmissionSound)
+		}
+
+		if usesSingleSubmissionSound {
+			GameAudioEngine.shared.playHit(scoreBeforeHit: scoreBeforeSubmission, pan: 0)
 		}
 	}
 
@@ -674,7 +680,7 @@ final class GameLoop {
 		onInputResetRequested?()
 	}
 
-	private func handleBlitzLetterHit() {
+	private func handleBlitzLetterHit(playsSound: Bool = true) {
 		guard let word = activeBlitzWord, activeBlitzLetterIndex < word.length else { return }
 		let hitIndex = activeBlitzLetterIndex
 		let pan = BlitzWord.pan(forLetterAt: hitIndex, wordLength: word.length)
@@ -687,7 +693,9 @@ final class GameLoop {
 			score += 10
 		}
 
-		GameAudioEngine.shared.playHit(scoreBeforeHit: scoreBeforeHit, pan: pan)
+		if playsSound {
+			GameAudioEngine.shared.playHit(scoreBeforeHit: scoreBeforeHit, pan: pan)
+		}
 		onMoleFeedback?(hitIndex, .hit)
 		publishActiveBlitzMoles()
 
