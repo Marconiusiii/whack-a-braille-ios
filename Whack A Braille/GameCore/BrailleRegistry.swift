@@ -20,6 +20,12 @@ enum BrailleRegistry {
 
 	typealias ModeOption = (id: String, label: String)
 
+	struct ModeSection: Identifiable {
+		let id: String
+		let title: String
+		let options: [ModeOption]
+	}
+
 	struct CustomMoleSection: Identifiable {
 		let id: String
 		let title: String
@@ -130,6 +136,7 @@ enum BrailleRegistry {
 			perkinsKeys: dotsToPerkinsKeys(dots),
 			perkinsSequenceDots: normalizedPerkinsSequence,
 			perkinsSequenceMasks: normalizedPerkinsSequence.map(dotsToMask),
+			acceptedPerkinsSequences: [normalizedPerkinsSequence.map(dotsToMask)],
 			expectedPerkinsCellCount: normalizedPerkinsSequence.count,
 			standardKey: standardKey,
 			acceptedTextInputs: normalizedAcceptedInputs,
@@ -153,6 +160,7 @@ enum BrailleRegistry {
 			perkinsKeys: [],
 			perkinsSequenceDots: [],
 			perkinsSequenceMasks: [],
+			acceptedPerkinsSequences: [],
 			expectedPerkinsCellCount: 1,
 			standardKey: key,
 			acceptedTextInputs: [key],
@@ -478,30 +486,63 @@ enum BrailleRegistry {
 		typingTopRowItems +
 		typingBottomRowItems
 
-	static let modeOptions: [ModeOption] = [
-		("typingSimpleHomeRow", "Simple Home Row"),
-		("typingHomeRow", "QWERTY Home Row"),
-		("typingHomeTopRow", "QWERTY Home Row + Top Row"),
-		("typingHomeBottomRow", "QWERTY Home Row + Bottom Row"),
-		("letters-aj", "Grade 1 Letters A-J"),
-		("letters-at", "Grade 1 Letters A-T"),
-		("grade1Letters", "Letters only (Grade 1)"),
-		("grade1Numbers", "Numbers only (Grade 1)"),
-		("grade1LettersNumbers", "Letters and numbers (Grade 1)"),
-		("grade1ThreeLetterBlitz", "3 Letter Words"),
-		("grade1FourLetterBlitz", "4 Letter Words"),
-		("grade1MoleBlitz", "Grade 1 Mole Blitz"),
-		("grade1MoleInvasion", "Grade 1 Mole Invasion!"),
-		("grade2Symbols", "Grade 2 contractions (symbols)"),
-		("grade2Words", "Grade 2 whole-word contractions"),
-		("grade2Shortforms", "Grade 2 shortform words"),
-		("grade2Dot5Initials", "Grade 2 dot 5 initials"),
-		("grade2Dot45Initials", "Grade 2 dot 45 initials"),
-		("grade2Suffixes", "Grade 2 Suffixes"),
-		("grade2Dot456Initials", "Grade 2 dot 456 initials"),
-		("grade2MoleInvasion", "Grade 2 Mole Invasion!"),
-		("customMoles", "Custom Moles")
+	static let modeSections: [ModeSection] = [
+		ModeSection(
+			id: "grade1",
+			title: "Grade 1",
+			options: [
+				("letters-aj", "Letters A-J"),
+				("letters-at", "Letters A-T"),
+				("grade1Letters", "Letters Only"),
+				("grade1Numbers", "Numbers Only"),
+				("grade1LettersNumbers", "Letters and Numbers"),
+				("grade1MoleInvasion", "Grade 1 Mole Invasion")
+			]
+		),
+		ModeSection(
+			id: "grade2",
+			title: "Grade 2",
+			options: [
+				("grade2Symbols", "Symbol Contractions"),
+				("grade2Words", "Whole Word Contractions"),
+				("grade2Shortforms", "Short-form Words"),
+				("grade2Suffixes", "Suffixes"),
+				("grade2Dot5Initials", "Dot 5 Initials"),
+				("grade2Dot45Initials", "Dots 4 5 Initials"),
+				("grade2Dot456Initials", "Dots 4 5 6 Initials"),
+				("grade2MoleInvasion", "Grade 2 Mole Invasion")
+			]
+		),
+		ModeSection(
+			id: "moleBattles",
+			title: "Mole Battles",
+			options: [
+				("grade1ThreeLetterBlitz", "3-Letter Words"),
+				("grade1FourLetterBlitz", "4-Letter Words"),
+				("grade1MoleBlitz", "Grade 1 Mole Battle"),
+				(WordWarCatalog.modeId, "Holy Moley Word War")
+			]
+		),
+		ModeSection(
+			id: "typing",
+			title: "Typing",
+			options: [
+				("typingSimpleHomeRow", "Simple Home Row"),
+				("typingHomeRow", "QWERTY Home Row"),
+				("typingHomeTopRow", "QWERTY Home Row + Top Row"),
+				("typingHomeBottomRow", "QWERTY Home Row + Bottom Row")
+			]
+		),
+		ModeSection(
+			id: "custom",
+			title: "Custom",
+			options: [
+				("customMoles", "Custom Moles")
+			]
+		)
 	]
+
+	static let modeOptions: [ModeOption] = modeSections.flatMap(\.options)
 
 	private static let qwertyModeIDs: Set<String> = [
 		"typingSimpleHomeRow",
@@ -536,6 +577,15 @@ enum BrailleRegistry {
 			case .brailleDisplayInput, .brailleText, .oneHandedBrailleInput:
 				return !bsiExcludedModeIDs.contains(option.id) && !bufferedTextUnsupportedModeIDs.contains(option.id)
 			}
+		}
+	}
+
+	static func filteredModeSections(for inputMode: InputMode) -> [ModeSection] {
+		let allowedIDs = Set(filteredModeOptions(for: inputMode).map(\.id))
+		return modeSections.compactMap { section in
+			let options = section.options.filter { allowedIDs.contains($0.id) }
+			guard !options.isEmpty else { return nil }
+			return ModeSection(id: section.id, title: section.title, options: options)
 		}
 	}
 

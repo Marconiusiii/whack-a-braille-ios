@@ -279,11 +279,11 @@ struct GameView: View {
 		applySpeechSettings()
 		lastMoleReconContext = context
 
-		let blitzModeId = items
+		let wordModeId = items
 			.flatMap(\.modeTags)
-			.first(where: BlitzWord.isBlitzMode)
+			.first(where: BlitzWord.isWordMode)
 		let options = GameLoop.Options(
-			modeId: blitzModeId ?? "moleRecon",
+			modeId: wordModeId ?? "moleRecon",
 			durationSeconds: 30,
 			inputMode: effectiveInputMode,
 			difficulty: .training,
@@ -292,10 +292,10 @@ struct GameView: View {
 			timerMusicEnabled: false,
 			spatialMoleMappingEnabled: false,
 			customMolePlayMode: .individual,
-			customMoleIDs: blitzModeId == nil ? items.map(\.id) : [],
+			customMoleIDs: wordModeId == nil ? items.map(\.id) : [],
 			trainingIntroKind: context.selectedMode == .grudgeMatch ? .grudgeMatch : .moleRecon,
 			spellBlitzWords: spellBlitzWords,
-			customBlitzWords: blitzModeId == nil ? [] : items.map(\.id)
+			customBlitzWords: wordModeId == nil ? [] : items.map(\.id)
 		)
 
 		startRound(with: options)
@@ -416,9 +416,16 @@ struct GameView: View {
 			let isInvasionMode = options.modeId == "grade1MoleInvasion"
 			|| options.modeId == "grade2MoleInvasion"
 			|| (options.modeId == "customMoles" && options.customMolePlayMode == .invasion)
-			let introText = isInvasionMode
-				? (invasionIntroPhrases.randomElement() ?? "Incoming moles!")
-				: BlitzWord.isBlitzMode(options.modeId) ? "Mole Blitz!" : "Ready?"
+			let introText: String
+			if isInvasionMode {
+				introText = invasionIntroPhrases.randomElement() ?? "Incoming moles!"
+			} else if BlitzWord.isWordWarMode(options.modeId) {
+				introText = "Holy Moley Word War!"
+			} else if BlitzWord.isGrade1BattleMode(options.modeId) {
+				introText = "Mole Battle!"
+			} else {
+				introText = "Ready?"
+			}
 		let trainingIntroText = trainingIntroPhrases(for: options.trainingIntroKind).randomElement() ?? "Ready for Training?"
 		let announcementText = options.difficulty == .training ? trainingIntroText : introText
 		let focusHandoffDelayMs = options.inputMode.usesBufferedTextEntry ? 600 : 300

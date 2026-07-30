@@ -68,13 +68,17 @@ struct GameSettingsSheet: View {
 					.accessibilityFocused($focusedElement, equals: .keyboardInputModePicker)
 
 					Picker("Mole chooser", selection: $modeId) {
-						ForEach(availableModeOptions, id: \.id) { option in
-							Text(option.label).tag(option.id)
+						ForEach(availableModeSections) { section in
+							Section(section.title) {
+								ForEach(section.options, id: \.id) { option in
+									Text(option.label).tag(option.id)
+								}
+							}
 						}
 					}
 					.accessibilityFocused($focusedElement, equals: .moleChooserPicker)
 
-					if BlitzWord.isBlitzMode(modeId) {
+					if BlitzWord.isGrade1BattleMode(modeId) {
 						Toggle("Spell Word", isOn: $spellBlitzWords)
 							.accessibilityHint("Speaks each letter immediately after speaking the word.")
 							.accessibilityFocused($focusedElement, equals: .spellWordToggle)
@@ -378,8 +382,8 @@ struct GameSettingsSheet: View {
 		)
 	}
 
-	private var availableModeOptions: [BrailleRegistry.ModeOption] {
-		BrailleRegistry.filteredModeOptions(for: inputMode)
+	private var availableModeSections: [BrailleRegistry.ModeSection] {
+		BrailleRegistry.filteredModeSections(for: inputMode)
 	}
 
 	private var availableVoices: [AVSpeechSynthesisVoice] {

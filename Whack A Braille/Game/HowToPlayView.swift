@@ -13,7 +13,7 @@ struct HowToPlayView: View {
 	@AccessibilityFocusState private var focusedElement: FocusTarget?
 	@State private var isInputInstructionsExpanded = false
 	@State private var isGameSettingsInfoExpanded = false
-	@State private var isMoleBlitzExpanded = false
+	@State private var isMoleBattlesExpanded = false
 	@State private var isBrailleReferenceExpanded = false
 
 	var body: some View {
@@ -104,27 +104,29 @@ struct HowToPlayView: View {
 						.appActionCard()
 
 						DisclosureGroup(
-							isExpanded: $isMoleBlitzExpanded,
+							isExpanded: $isMoleBattlesExpanded,
 							content: {
 								VStack(alignment: .leading, spacing: 0) {
 									section(
-										title: "3 Letter Words",
+										title: "3-Letter Words",
 										rows: [
 											"Three letter moles pop up together with one letter apiece. Type the word from left to right and bonk each mole in spelling order.",
+											"Keyboard and Perkins entry keep the individual letter bonks. Completed submissions from Braille Screen Input, Braille Display Input, and One-Handed Braille Input land as one group bonk.",
 											"Finish the word before time runs out or the whole word escapes as one slippery team."
 										]
 									)
 
 									section(
-										title: "4 Letter Words",
+										title: "4-Letter Words",
 										rows: [
 											"Four moles spread themselves across the board and dare you to spell their word in order.",
-											"Each correct letter earns its own bonk. One wrong key counts as a miss, but the word stays up until you finish it or time runs out."
+											"Keyboard and Perkins entry keep the individual letter bonks. Completed submissions from buffered braille input modes land as one group bonk.",
+											"One wrong entry counts as a miss, but the word stays up until you finish it or time runs out."
 										]
 									)
 
 									section(
-										title: "Grade 1 Mole Blitz",
+										title: "Grade 1 Mole Battle",
 										rows: [
 											"Three, four, and five letter words take turns storming the board. The layout changes with each word, so keep your ears ready and your spelling hammer warmer.",
 											"Longer words take more work and earn richer ticket rewards."
@@ -132,16 +134,27 @@ struct HowToPlayView: View {
 									)
 
 									section(
-										title: "Blitz Training and Mole Recon",
+										title: "Holy Moley Word War",
+										rows: [
+											"One mole appears with a complete word between four and ten letters long. Type the whole word accurately before it gets away.",
+											"Standard Keyboard or 8-Dot Braille works like a fast typing tutor. Braille Screen Input, Braille Display Input, and One-Handed Braille Input submit the translated word.",
+											"Perkins Home Row accepts either the complete uncontracted spelling or the word's contracted UEB form.",
+											"Each completed word earns one central bonk, and longer words earn richer rewards."
+										]
+									)
+
+									section(
+										title: "Battle Training and Mole Recon",
 										rows: [
 											"Training removes the timer so you can practice whole words without pressure. Repeat Current Word speaks the target again whenever you need it.",
+											"Spell Word is available for 3-Letter Words, 4-Letter Words, and Grade 1 Mole Battle. When enabled, speech says the word and then spells each letter.",
 											"Mole Recon remembers missed and escaped words, while Grudge Match lets you practice any word that appeared in the round."
 										]
 									)
 								}
 							},
 							label: {
-								Text("Mole Blitz")
+								Text("Mole Battles")
 									.font(.headline)
 									.foregroundStyle(AppTheme.heading)
 									.fixedSize(horizontal: false, vertical: true)

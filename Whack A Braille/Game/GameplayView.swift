@@ -90,9 +90,9 @@ struct GameplayView: View {
 								viewModel.setSpeakBrailleDotsDuringRound(newValue)
 							}
 
-						Button(viewModel.isBlitzRound ? "Repeat Current Word" : "Repeat Current Mole", action: viewModel.repeatCurrentTarget)
+						Button(viewModel.isWordRound ? "Repeat Current Word" : "Repeat Current Mole", action: viewModel.repeatCurrentTarget)
 							.buttonStyle(SecondaryGameButton())
-							.accessibilityHint(viewModel.isBlitzRound ? "Speaks the current word again." : "Speaks the current mole again.")
+							.accessibilityHint(viewModel.isWordRound ? "Speaks the current word again." : "Speaks the current mole again.")
 							.accessibilityTouchRegion(verticalPadding: 6)
 					}
 

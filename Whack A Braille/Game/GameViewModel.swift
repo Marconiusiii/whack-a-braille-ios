@@ -37,6 +37,7 @@ final class GameViewModel: ObservableObject {
 	@Published private(set) var activeTargetLabel = "Waiting to start"
 	@Published private(set) var activeBlitzMoles: [GameLoop.ActiveBlitzMole] = []
 	@Published private(set) var isBlitzRound = false
+	@Published private(set) var isWordRound = false
 	@Published private(set) var blitzWordLength = 3
 	@Published private(set) var lastRoundResult: RoundResult?
 	@Published private(set) var lastRoundWasTraining = false
@@ -108,6 +109,7 @@ final class GameViewModel: ObservableObject {
 			self.activeLane = nil
 			self.activeBlitzMoles = []
 			self.isBlitzRound = false
+			self.isWordRound = false
 			self.activeTargetLabel = result.canceled ? "Round stopped" : "Round finished"
 			self.feedbackResetTask?.cancel()
 			self.feedbackLane = nil
@@ -141,7 +143,8 @@ final class GameViewModel: ObservableObject {
 		hitStreak = 0
 		activeLane = nil
 		activeBlitzMoles = []
-		isBlitzRound = BlitzWord.isBlitzMode(options.modeId)
+		isBlitzRound = BlitzWord.isGrade1BattleMode(options.modeId)
+		isWordRound = BlitzWord.isWordMode(options.modeId)
 		switch options.modeId {
 		case "grade1FourLetterBlitz":
 			blitzWordLength = 4
@@ -214,6 +217,7 @@ final class GameViewModel: ObservableObject {
 		activeLane = nil
 		activeBlitzMoles = []
 		isBlitzRound = false
+		isWordRound = false
 		feedbackResetTask?.cancel()
 		feedbackLane = nil
 		feedbackKind = nil

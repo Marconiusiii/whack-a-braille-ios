@@ -21,6 +21,7 @@ struct BlitzWord: Identifiable, Hashable {
 			perkinsKeys: finalItem.perkinsKeys,
 			perkinsSequenceDots: items.map(\.dots),
 			perkinsSequenceMasks: items.map(\.dotMask),
+			acceptedPerkinsSequences: [items.map(\.dotMask)],
 			expectedPerkinsCellCount: items.count,
 			standardKey: nil,
 			acceptedTextInputs: [text],
@@ -30,13 +31,25 @@ struct BlitzWord: Identifiable, Hashable {
 		)
 	}
 
-	nonisolated static func isBlitzMode(_ modeId: String) -> Bool {
+	nonisolated static func isGrade1BattleMode(_ modeId: String) -> Bool {
 		switch modeId {
 		case "grade1ThreeLetterBlitz", "grade1FourLetterBlitz", "grade1MoleBlitz":
 			return true
 		default:
 			return false
 		}
+	}
+
+	nonisolated static func isWordWarMode(_ modeId: String) -> Bool {
+		modeId == WordWarCatalog.modeId
+	}
+
+	nonisolated static func isWordMode(_ modeId: String) -> Bool {
+		isGrade1BattleMode(modeId) || isWordWarMode(modeId)
+	}
+
+	nonisolated static func isBlitzMode(_ modeId: String) -> Bool {
+		isWordMode(modeId)
 	}
 
 	nonisolated static func allowedLengths(for modeId: String) -> Set<Int> {

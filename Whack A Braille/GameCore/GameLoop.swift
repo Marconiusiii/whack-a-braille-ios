@@ -133,6 +133,8 @@ final class GameLoop {
 	private var availableBlitzWords: [BlitzWord] = []
 	private var activeBlitzWord: BlitzWord?
 	private var activeBlitzLetterIndex = 0
+	private var availableWordWarWords: [WordWarEntry] = []
+	private var activeWordWarWord: WordWarEntry?
 
 	private var activeLane: Int?
 	private var missRegisteredForMole = false
@@ -177,6 +179,10 @@ final class GameLoop {
 			for: options.modeId,
 			customWords: options.customBlitzWords
 		)
+		availableWordWarWords = WordWarCatalog.words(
+			for: options.modeId,
+			customWords: options.customBlitzWords
+		)
 		roundItems = pickRoundItems(
 			modeId: options.modeId,
 			pool: availableItems,
@@ -215,6 +221,7 @@ final class GameLoop {
 		invasionActiveItem = nil
 		activeBlitzWord = nil
 		activeBlitzLetterIndex = 0
+		activeWordWarWord = nil
 		currentMoleId = 0
 		missRegisteredForMole = false
 		activeMoleShownAtMs = 0
@@ -260,6 +267,10 @@ final class GameLoop {
 			SpeechEngine.shared.speak(buildBlitzAnnounceText(for: activeBlitzWord), interrupt: true)
 			return
 		}
+		if let activeWordWarWord {
+			SpeechEngine.shared.speak(buildWordWarAnnounceText(for: activeWordWarWord), interrupt: true)
+			return
+		}
 		guard let item = currentItem else { return }
 		SpeechEngine.shared.speak(buildAnnounceText(for: item), interrupt: true)
 	}
@@ -283,9 +294,13 @@ final class GameLoop {
 	}
 
 	func handleAttempt(_ attempt: Attempt) {
-		guard isRunning, !roundEnding || activeBlitzWord != nil else { return }
+		guard isRunning, !roundEnding || activeBlitzWord != nil || activeWordWarWord != nil else { return }
 		if activeBlitzWord != nil {
 			handleBlitzAttempt(attempt)
+			return
+		}
+		if activeWordWarWord != nil {
+			handleWordWarAttempt(attempt)
 			return
 		}
 		guard let activeLane, let currentItem = laneItem(for: activeLane) else { return }
@@ -388,7 +403,7 @@ final class GameLoop {
 				durationSeconds: currentOptions.durationSeconds,
 				isTraining: isTraining,
 				trainingMolesCompleted: trainingMolesCompleted,
-				isBlitzMode: isBlitzMode,
+				isBlitzMode: isWordMode,
 				lettersWhacked: lettersWhackedThisRound,
 				score: score,
 				hits: hitsThisRound,
@@ -460,7 +475,12 @@ final class GameLoop {
 		currentMoleId += 1
 		missRegisteredForMole = false
 
-		if isBlitzMode {
+		if isWordWarMode {
+			showWordWarWord(trainingMode: trainingMode)
+			return
+		}
+
+		if isGrade1BattleMode {
 			showBlitzWord(trainingMode: trainingMode)
 			return
 		}
@@ -819,6 +839,249 @@ final class GameLoop {
 		return announcementParts.joined(separator: ", ")
 	}
 
+	private func showWordWarWord(trainingMode: Bool) {
+		guard let word = pickNextWordWarWord(), let wordItem = word.asBrailleItem() else {
+			scheduleFollowUp(afterTraining: trainingMode)
+			return
+		}
+
+		let lane = laneCount / 2
+		activeWordWarWord = word
+		activeLane = lane
+		let moleId = currentMoleId
+
+		if !trainingMode {
+			recordShownMoleReconItem(wordItem)
+		}
+
+		let announceText = buildWordWarAnnounceText(for: word)
+		let speechDurationMs = SpeechEngine.shared.estimatedDurationMs(for: announceText)
+		let revealDelayMs = 140
+
+		DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(revealDelayMs)) { [weak self] in
+			guard let self else { return }
+			guard self.isRunning, !self.roundEnding else { return }
+			guard self.currentMoleId == moleId, self.activeWordWarWord == word else { return }
+
+			self.activeMoleShownAtMs = TimeUtils.nowMs()
+			self.onActiveMoleChanged?(lane, wordItem)
+			GameAudioEngine.shared.playMolePop(lane: lane)
+			self.playGameplaySpeech(announceText)
+		}
+
+		if trainingMode {
+			activeMoleUpTimeMs = 0
+			return
+		}
+
+		activeMoleUpTimeMs = computeWordWarWindowMs(word: word, speechDurationMs: speechDurationMs)
+		let timer = DispatchSource.makeTimerSource(queue: .main)
+		timer.schedule(deadline: .now() + .milliseconds(activeMoleUpTimeMs))
+		timer.setEventHandler { [weak self] in
+			guard let self else { return }
+			guard self.isRunning, !self.roundEnding else { return }
+			guard self.currentMoleId == moleId, self.activeWordWarWord == word else { return }
+
+			self.escapesThisRound += 1
+			self.recordMoleReconItem(wordItem)
+			self.hitStreak = 0
+			self.onScoreUpdated?(self.score, self.hitStreak)
+			self.onInputResetRequested?()
+			GameAudioEngine.shared.playRetreat(lane: lane)
+
+			self.clearActiveMole()
+			self.scheduleNextMole(extraDelayMs: 0)
+		}
+		timer.resume()
+
+		moleUpTimer?.cancel()
+		moleUpTimer = timer
+	}
+
+	private func handleWordWarAttempt(_ attempt: Attempt) {
+		guard let word = activeWordWarWord else { return }
+		guard activeMoleShownAtMs > 0 else { return }
+		guard attempt.moleId == currentMoleId else { return }
+		guard attempt.key != "`" else {
+			repeatCurrentTarget()
+			return
+		}
+		if currentOptions.inputMode == .perkins, attempt.type != .perkins {
+			return
+		}
+
+		switch attempt.type {
+		case .perkins:
+			guard let mask = attempt.dotMask else { return }
+			handleWordWarPerkinsCell(mask, word: word)
+		case .qwerty:
+			handleWordWarTextToken(normalize(attempt.key), word: word)
+		case .brailleText, .brailleDisplayInput, .oneHandedBrailleInput:
+			resolveWordWarAttempt(normalize(attempt.char) == word.text, word: word)
+		}
+	}
+
+	private func handleWordWarPerkinsCell(_ mask: Int, word: WordWarEntry) {
+		let updatedSequence = pendingPerkinsMasks + [mask]
+		let sequences = word.acceptedPerkinsSequences
+
+		if sequences.contains(updatedSequence) {
+			pendingPerkinsMasks.removeAll()
+			resolveWordWarAttempt(true, word: word)
+			return
+		}
+
+		if sequences.contains(where: { $0.starts(with: updatedSequence) }) {
+			pendingPerkinsMasks = updatedSequence
+			return
+		}
+
+		pendingPerkinsMasks.removeAll()
+		resolveWordWarAttempt(false, word: word)
+	}
+
+	private func handleWordWarTextToken(_ token: String, word: WordWarEntry) {
+		guard token.count == 1, token.first?.isLetter == true else {
+			pendingTextTokens.removeAll()
+			resolveWordWarAttempt(false, word: word)
+			return
+		}
+
+		let updatedTokens = pendingTextTokens + [token]
+		let expectedTokens = word.text.map(String.init)
+
+		if updatedTokens == expectedTokens {
+			pendingTextTokens.removeAll()
+			resolveWordWarAttempt(true, word: word)
+			return
+		}
+
+		if expectedTokens.starts(with: updatedTokens) {
+			pendingTextTokens = updatedTokens
+			return
+		}
+
+		pendingTextTokens.removeAll()
+		resolveWordWarAttempt(false, word: word)
+	}
+
+	private func resolveWordWarAttempt(_ hit: Bool, word: WordWarEntry) {
+		if hit {
+			handleWordWarHit(word)
+			return
+		}
+
+		let lane = laneCount / 2
+		GameAudioEngine.shared.playMiss(lane: lane)
+		onMoleFeedback?(lane, .miss)
+		onInputResetRequested?()
+
+		if currentOptions.difficulty == .training || missRegisteredForMole {
+			return
+		}
+
+		missRegisteredForMole = true
+		missesThisRound += 1
+		if let item = word.asBrailleItem() {
+			recordMoleReconItem(item)
+		}
+		hitStreak = 0
+		score = max(0, score - 2)
+		onScoreUpdated?(score, hitStreak)
+	}
+
+	private func handleWordWarHit(_ word: WordWarEntry) {
+		guard activeWordWarWord == word else { return }
+
+		let lane = laneCount / 2
+		let previousScore = score
+		moleUpTimer?.cancel()
+		moleUpTimer = nil
+		hitsThisRound += 1
+		lettersWhackedThisRound += word.length
+		onInputResetRequested?()
+		GameAudioEngine.shared.playHit(scoreBeforeHit: previousScore, lane: lane)
+		onMoleFeedback?(lane, .hit)
+
+		if currentOptions.difficulty == .training {
+			trainingMolesCompleted += 1
+			clearActiveMole()
+			scheduleNextTrainingMole(extraDelayMs: trainingPostHitDelayMs)
+			return
+		}
+
+		hitStreak += 1
+		bestStreakThisRound = max(bestStreakThisRound, hitStreak)
+		score += 10 + (word.length * 2)
+
+		if hitStreak % 5 == 0 {
+			score += 10
+			streakBonusCount += 1
+		}
+
+		let reactionMs = TimeUtils.nowMs() - activeMoleShownAtMs
+		let speedThresholdMs = Int(Double(activeMoleUpTimeMs) * 0.55)
+		if reactionMs <= speedThresholdMs {
+			speedHitCount += 1
+			if speedHitCount % 3 == 0 && speedBonusTickets < 5 {
+				speedBonusTickets += 1
+			}
+		}
+
+		clearActiveMole()
+		onScoreUpdated?(score, hitStreak)
+		scheduleNextMole(extraDelayMs: 0)
+	}
+
+	private func pickNextWordWarWord() -> WordWarEntry? {
+		guard !availableWordWarWords.isEmpty else { return nil }
+		guard availableWordWarWords.count > 1 else {
+			let word = availableWordWarWords[0]
+			lastBlitzWord = word.text
+			return word
+		}
+
+		var word = availableWordWarWords.randomElement()
+		if word?.text == lastBlitzWord {
+			word = availableWordWarWords.randomElement()
+		}
+		lastBlitzWord = word?.text
+		return word
+	}
+
+	private func computeWordWarWindowMs(word: WordWarEntry, speechDurationMs: Int) -> Int {
+		let perLetterMs: Int
+		switch currentOptions.inputMode {
+		case .qwerty:
+			perLetterMs = 520
+		case .perkins:
+			perLetterMs = 720
+		case .brailleText, .brailleDisplayInput:
+			perLetterMs = 780
+		case .oneHandedBrailleInput:
+			perLetterMs = 1_000
+		}
+
+		let difficultyMultiplier = difficultyMultipliers[currentOptions.difficulty] ?? 1.0
+		let entryTimeMs = Int(Double(perLetterMs * word.length) * difficultyMultiplier)
+		let minimumMs = currentOptions.inputMode == .oneHandedBrailleInput ? 6_000 : 4_000
+		let maximumMs = currentOptions.inputMode == .oneHandedBrailleInput ? 20_000 : 14_000
+		return min(max(speechDurationMs + entryTimeMs + 600, minimumMs), maximumMs)
+	}
+
+	private func buildWordWarAnnounceText(for word: WordWarEntry) -> String {
+		var parts = [word.text]
+		if currentOptions.difficulty == .training, currentOptions.speakBrailleDots {
+			let patterns = word.contractedMasks
+				.map(WordWarEntry.dotsForSpeech(for:))
+				.compactMap(dotsPhrase)
+			if !patterns.isEmpty {
+				parts.append(patterns.joined(separator: ", then "))
+			}
+		}
+		return parts.joined(separator: ", ")
+	}
+
 	private func handleHit() {
 		guard let lane = activeLane else { return }
 
@@ -899,17 +1162,20 @@ final class GameLoop {
 		guard let dotMask else { return }
 
 		let updatedSequence = pendingPerkinsMasks + [dotMask]
+		let acceptedSequences = currentItem.acceptedPerkinsSequences.isEmpty
+			? [currentItem.perkinsSequenceMasks]
+			: currentItem.acceptedPerkinsSequences
 
 		if currentItem.expectedPerkinsCellCount <= 1 {
 			pendingPerkinsMasks.removeAll()
-			resolveAttemptOutcome(updatedSequence == [currentItem.dotMask])
+			resolveAttemptOutcome(acceptedSequences.contains(updatedSequence))
 			return
 		}
 
-		if currentItem.perkinsSequenceMasks.starts(with: updatedSequence) {
+		if acceptedSequences.contains(where: { $0.starts(with: updatedSequence) }) {
 			pendingPerkinsMasks = updatedSequence
 
-			if updatedSequence.count == currentItem.perkinsSequenceMasks.count {
+			if acceptedSequences.contains(updatedSequence) {
 				pendingPerkinsMasks.removeAll()
 				resolveAttemptOutcome(true)
 			}
@@ -1138,6 +1404,7 @@ final class GameLoop {
 		invasionActiveItem = nil
 		activeBlitzWord = nil
 		activeBlitzLetterIndex = 0
+		activeWordWarWord = nil
 		activeMoleShownAtMs = 0
 		pendingTextTokens.removeAll()
 		pendingPerkinsMasks.removeAll()
@@ -1221,10 +1488,13 @@ final class GameLoop {
 	}
 
 	private func computeRoundEndGraceMs() -> Int {
-		guard activeBlitzWord != nil, activeMoleShownAtMs > 0 else { return 350 }
+		guard activeBlitzWord != nil || activeWordWarWord != nil,
+			activeMoleShownAtMs > 0
+		else { return 350 }
 		let elapsedMs = TimeUtils.nowMs() - activeMoleShownAtMs
 		let remainingMs = max(0, activeMoleUpTimeMs - elapsedMs)
-		return min(max(remainingMs, 350), 1_500)
+		let maximumGraceMs = activeWordWarWord == nil ? 1_500 : 3_000
+		return min(max(remainingMs, 350), maximumGraceMs)
 	}
 
 	private func scoreToTickets(_ score: Int) -> Int {
@@ -1239,8 +1509,16 @@ final class GameLoop {
 		isInvasionMode(currentOptions.modeId)
 	}
 
-	private var isBlitzMode: Bool {
-		BlitzWord.isBlitzMode(currentOptions.modeId)
+	private var isGrade1BattleMode: Bool {
+		BlitzWord.isGrade1BattleMode(currentOptions.modeId)
+	}
+
+	private var isWordWarMode: Bool {
+		BlitzWord.isWordWarMode(currentOptions.modeId)
+	}
+
+	private var isWordMode: Bool {
+		BlitzWord.isWordMode(currentOptions.modeId)
 	}
 
 	private func isInvasionMode(_ modeId: String) -> Bool {
@@ -1310,6 +1588,8 @@ final class GameLoop {
 			adjusted = Int(ceil(Double(adjusted) * 1.3))
 		case "grade1MoleBlitz":
 			adjusted = Int(ceil(Double(adjusted) * 1.4))
+		case WordWarCatalog.modeId:
+			adjusted = Int(ceil(Double(adjusted) * 1.8))
 		default:
 			break
 		}

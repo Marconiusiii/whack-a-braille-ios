@@ -9,6 +9,7 @@ struct BrailleItem {
 	let perkinsKeys: [String]
 	let perkinsSequenceDots: [[Int]]
 	let perkinsSequenceMasks: [Int]
+	let acceptedPerkinsSequences: [[Int]]
 	let expectedPerkinsCellCount: Int
 	let standardKey: String?
 	let acceptedTextInputs: [String]
