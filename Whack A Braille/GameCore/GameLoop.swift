@@ -561,12 +561,7 @@ final class GameLoop {
 
 			self.activeMoleShownAtMs = TimeUtils.nowMs()
 			self.publishActiveBlitzMoles()
-			for index in word.letters.indices {
-				let pan = BlitzWord.pan(forLetterAt: index, wordLength: word.length)
-				DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(index * 35)) {
-					GameAudioEngine.shared.playMolePop(pan: pan)
-				}
-			}
+			GameAudioEngine.shared.playBlitzWordPop(wordLength: word.length)
 			self.playGameplaySpeech(announceText)
 		}
 

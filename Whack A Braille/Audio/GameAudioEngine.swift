@@ -29,6 +29,7 @@ final class GameAudioEngine {
 
 	private enum PreparedSoundID: Hashable {
 		case pop
+		case blitzWordPop(GameAudioMode, Int)
 		case hit
 		case alternateHit
 		case miss
@@ -71,6 +72,16 @@ final class GameAudioEngine {
 	private var beatRootMidi = 48
 
 	private lazy var popSoundData: Data? = makePopSoundData()
+	private lazy var blitzWordPopSoundData: [PreparedSoundID: Data] = {
+		var sounds: [PreparedSoundID: Data] = [:]
+		for mode in GameAudioMode.allCases {
+			for wordLength in 3...5 {
+				let id = PreparedSoundID.blitzWordPop(mode, wordLength)
+				sounds[id] = makeBlitzWordPopSoundData(mode: mode, wordLength: wordLength)
+			}
+		}
+		return sounds
+	}()
 	private lazy var hitSoundData: Data? = makeHitSoundData()
 	private lazy var alternateHitSoundData: Data? = makeAlternateHitSoundData()
 	private lazy var missSoundData: Data? = makeMissSoundData()
@@ -132,6 +143,7 @@ final class GameAudioEngine {
 		DispatchQueue.global(qos: .userInitiated).async { [weak self] in
 			guard let self else { return }
 			_ = self.popSoundData
+			_ = self.blitzWordPopSoundData
 			_ = self.hitSoundData
 			_ = self.alternateHitSoundData
 			_ = self.missSoundData
@@ -289,6 +301,12 @@ final class GameAudioEngine {
 		playPreparedSound(.pop, data: popSoundData, volume: 0.45, pan: min(max(pan, -1), 1))
 	}
 
+	func playBlitzWordPop(wordLength: Int) {
+		let wordLength = min(max(wordLength, 3), 5)
+		let id = PreparedSoundID.blitzWordPop(gameAudioMode, wordLength)
+		playPreparedSound(id, data: blitzWordPopSoundData[id], volume: 0.82, pan: 0)
+	}
+
 	func playRetreat(lane: Int) {
 		playRetreat(pan: pan(for: lane))
 	}
@@ -327,6 +345,9 @@ final class GameAudioEngine {
 	private func prewarmPreparedPlayerPools() {
 		configureLowLatencyEngineIfNeeded()
 		prewarmPreparedSound(.pop, data: popSoundData, count: 5)
+		for (id, data) in blitzWordPopSoundData {
+			prewarmPreparedSound(id, data: data)
+		}
 		prewarmPreparedSound(.hit, data: hitSoundData)
 		prewarmPreparedSound(.alternateHit, data: alternateHitSoundData)
 		prewarmPreparedSound(.miss, data: missSoundData)
@@ -889,6 +910,65 @@ final class GameAudioEngine {
 			let support = triangle(max(freq * 0.5, 1), time) * 0.18
 			let env = linearEnvelope(time, attack: 0.022, release: 0.27, peak: 0.48)
 			return clampSample((body * 0.26 + support) * env)
+		}
+	}
+
+	private func makeBlitzWordPopSoundData(mode: GameAudioMode, wordLength: Int) -> Data? {
+		let duration = 0.42
+		let reach = [3: 0.5, 4: 0.75, 5: 1.0][wordLength] ?? 1.0
+
+		return makeStereoWaveFile(duration: duration) { time in
+			let spreadStart = 0.035
+			let spreadProgress = min(max((time - spreadStart) / 0.24, 0), 1)
+			let easedSpread = spreadProgress * spreadProgress * (3 - (2 * spreadProgress))
+			let leftPan = -reach * easedSpread
+			let rightPan = reach * easedSpread
+			let leftGains = stereoGains(pan: leftPan)
+			let rightGains = stereoGains(pan: rightPan)
+
+			let centerEnvelope = linearEnvelope(time, attack: 0.012, release: 0.15, peak: 0.52)
+			let branchTime = max(0, time - spreadStart)
+			let branchEnvelope = linearEnvelope(branchTime, attack: 0.025, release: duration - spreadStart, peak: 0.42)
+
+			let center: Double
+			let leftBranch: Double
+			let rightBranch: Double
+
+			switch mode {
+			case .original:
+				let centerPitch = lerpExp(start: 150, end: 430, progress: min(time / 0.18, 1))
+				let branchPitch = lerpExp(start: 210, end: 620, progress: spreadProgress)
+				center = (sine(centerPitch, time) + (triangle(centerPitch * 0.5, time) * 0.18)) * centerEnvelope
+				leftBranch = triangle(branchPitch * 0.97, branchTime) * branchEnvelope
+				rightBranch = triangle(branchPitch * 1.03, branchTime) * branchEnvelope
+			case .silly:
+				let wobble = sin(2 * .pi * 11 * time) * 42
+				let centerPitch = lerpExp(start: 230, end: 690, progress: min(time / 0.16, 1)) + wobble
+				let branchPitch = lerpExp(start: 340, end: 760, progress: spreadProgress)
+				center = sine(centerPitch, time) * centerEnvelope
+				leftBranch = sine(branchPitch + (sin(2 * .pi * 7 * branchTime) * 55), branchTime) * branchEnvelope
+				rightBranch = triangle((branchPitch * 1.08) - (sin(2 * .pi * 6 * branchTime) * 48), branchTime) * branchEnvelope
+			case .goofy:
+				let centerPitch = lerpExp(start: 310, end: 120, progress: min(time / 0.14, 1))
+				let rubberPitch = lerpExp(start: 180, end: 520, progress: spreadProgress)
+				let rubberWobble = sin(2 * .pi * 15 * branchTime) * (1 - spreadProgress) * 85
+				center = triangle(centerPitch, time) * centerEnvelope
+				leftBranch = sine(rubberPitch + rubberWobble, branchTime) * branchEnvelope
+				rightBranch = triangle((rubberPitch * 1.12) - rubberWobble, branchTime) * branchEnvelope
+			case .retro:
+				let pulseGate = sin(2 * .pi * 24 * time) >= 0 ? 1.0 : 0.35
+				let centerPitch = lerpExp(start: 165, end: 330, progress: min(time / 0.12, 1))
+				let branchPitch = wordLength == 5 ? 523.25 : (wordLength == 4 ? 440.0 : 392.0)
+				center = square(centerPitch, time) * centerEnvelope * pulseGate
+				leftBranch = square(branchPitch, branchTime) * branchEnvelope * 0.72
+				rightBranch = square(branchPitch * 1.25, branchTime) * branchEnvelope * 0.72
+			}
+
+			let centeredLeft = center * 0.58
+			let centeredRight = center * 0.58
+			let left = centeredLeft + (leftBranch * leftGains.left) + (rightBranch * rightGains.left)
+			let right = centeredRight + (leftBranch * leftGains.right) + (rightBranch * rightGains.right)
+			return (clampSample(left * 0.7), clampSample(right * 0.7))
 		}
 	}
 
@@ -1621,6 +1701,29 @@ final class GameAudioEngine {
 		return makeWaveFile(fromPCM: pcm, sampleRate: Int(sampleRate), channelCount: 1, bitsPerSample: 16)
 	}
 
+	private func makeStereoWaveFile(
+		duration: Double,
+		sample: (Double) -> (left: Double, right: Double)
+	) -> Data? {
+		let frameCount = max(1, Int(duration * sampleRate))
+		let bytesPerFrame = 2 * MemoryLayout<Int16>.size
+		var pcm = Data(capacity: frameCount * bytesPerFrame)
+
+		for frame in 0..<frameCount {
+			let time = Double(frame) / sampleRate
+			let stereoSample = sample(time)
+			for channelSample in [stereoSample.left, stereoSample.right] {
+				let value = Int16(clampSample(channelSample) * Double(Int16.max))
+				var littleEndianSample = value.littleEndian
+				withUnsafeBytes(of: &littleEndianSample) { bytes in
+					pcm.append(contentsOf: bytes)
+				}
+			}
+		}
+
+		return makeWaveFile(fromPCM: pcm, sampleRate: Int(sampleRate), channelCount: 2, bitsPerSample: 16)
+	}
+
 	private func makeWaveFile(fromPCM pcm: Data, sampleRate: Int, channelCount: Int, bitsPerSample: Int) -> Data? {
 		guard !pcm.isEmpty else { return nil }
 		let byteRate = sampleRate * channelCount * bitsPerSample / 8
@@ -1727,6 +1830,12 @@ final class GameAudioEngine {
 
 		let remaining = max(release - time, 0)
 		return peak * (remaining / max(release - attack, 0.0001))
+	}
+
+	private func stereoGains(pan: Double) -> (left: Double, right: Double) {
+		let clampedPan = min(max(pan, -1), 1)
+		let angle = (clampedPan + 1) * .pi / 4
+		return (cos(angle), sin(angle))
 	}
 
 	private func triangle(_ frequency: Double, _ time: Double) -> Double {
