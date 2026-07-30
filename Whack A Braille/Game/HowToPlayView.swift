@@ -134,7 +134,7 @@ struct HowToPlayView: View {
 									)
 
 									section(
-										title: "Holy Moley Word War",
+										title: "Wordy Mole Mayhem",
 										rows: [
 											"One mole appears with a complete word between four and ten letters long. Type the whole word accurately before it gets away.",
 											"Standard Keyboard or 8-Dot Braille works like a fast typing tutor. Braille Screen Input, Braille Display Input, and One-Handed Braille Input submit the translated word.",

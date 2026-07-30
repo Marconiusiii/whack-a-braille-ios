@@ -17,7 +17,7 @@ struct AcknowledgmentsView: View {
 							.accessibilityAddTraits(.isHeader)
 							.accessibilityFocused($isHeadingFocused)
 
-						Text("Massive thanks to the developers and resources behind the English words used in Mole Blitz.")
+						Text("Massive thanks to the developers and resources behind the English words used in Mole Battles and Wordy Mole Mayhem.")
 							.foregroundStyle(secondaryTextColor)
 							.fixedSize(horizontal: false, vertical: true)
 					}

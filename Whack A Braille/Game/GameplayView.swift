@@ -50,10 +50,19 @@ struct GameplayView: View {
 						.accessibilityTouchRegion(minHeight: 0, verticalPadding: 8)
 
 					VStack(alignment: .leading, spacing: 8) {
+						if let currentWordText = viewModel.currentWordText {
+							Text(currentWordText)
+								.font(.title2.weight(.semibold))
+								.foregroundStyle(primaryTextColor)
+								.fixedSize(horizontal: false, vertical: true)
+								.accessibilityTouchRegion(minHeight: 44, alignment: .leading)
+						}
+
 						if inputMode.usesBufferedTextEntry {
 							Text("Braille Entry")
 								.font(.headline)
 								.foregroundStyle(AppTheme.heading)
+								.accessibilityAddTraits(.isHeader)
 
 							inputSink
 								.frame(height: 48)

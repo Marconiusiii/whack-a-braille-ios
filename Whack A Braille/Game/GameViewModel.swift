@@ -35,6 +35,7 @@ final class GameViewModel: ObservableObject {
 	@Published private(set) var hitStreak = 0
 	@Published private(set) var activeLane: Int?
 	@Published private(set) var activeTargetLabel = "Waiting to start"
+	@Published private(set) var currentWordText: String?
 	@Published private(set) var activeBlitzMoles: [GameLoop.ActiveBlitzMole] = []
 	@Published private(set) var isBlitzRound = false
 	@Published private(set) var isWordRound = false
@@ -75,6 +76,11 @@ final class GameViewModel: ObservableObject {
 			guard let self else { return }
 			self.activeLane = lane
 			self.activeTargetLabel = item?.announceText ?? "Listen for the next mole"
+			if let item, self.isWordRound {
+				self.currentWordText = item.displayLabel
+			} else if !self.isBlitzRound {
+				self.currentWordText = nil
+			}
 		}
 
 		self.gameLoop.onActiveBlitzMolesChanged = { [weak self] moles in
@@ -82,6 +88,12 @@ final class GameViewModel: ObservableObject {
 			self.activeBlitzMoles = moles
 			if !moles.isEmpty {
 				self.blitzWordLength = moles.count
+				self.currentWordText = moles
+					.sorted { $0.index < $1.index }
+					.map(\.letter)
+					.joined()
+			} else if self.isBlitzRound {
+				self.currentWordText = nil
 			}
 		}
 
@@ -107,6 +119,7 @@ final class GameViewModel: ObservableObject {
 			guard let self else { return }
 			self.isRunning = false
 			self.activeLane = nil
+			self.currentWordText = nil
 			self.activeBlitzMoles = []
 			self.isBlitzRound = false
 			self.isWordRound = false
@@ -142,6 +155,7 @@ final class GameViewModel: ObservableObject {
 		score = 0
 		hitStreak = 0
 		activeLane = nil
+		currentWordText = nil
 		activeBlitzMoles = []
 		isBlitzRound = BlitzWord.isGrade1BattleMode(options.modeId)
 		isWordRound = BlitzWord.isWordMode(options.modeId)
@@ -215,6 +229,7 @@ final class GameViewModel: ObservableObject {
 		cashOutPrizes = []
 		isRunning = false
 		activeLane = nil
+		currentWordText = nil
 		activeBlitzMoles = []
 		isBlitzRound = false
 		isWordRound = false

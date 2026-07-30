@@ -22,6 +22,30 @@ struct GameView: View {
 		"Moles incoming from all sides!"
 	]
 
+	private let grade1MoleBattleIntroPhrases = [
+		"Mole Battle!",
+		"Letters up, mallets ready!",
+		"Spell fast, bonk faster!",
+		"Tiny words, big trouble!",
+		"Word moles on the loose!",
+		"Ready for a word bonk?",
+		"Alphabet moles incoming!",
+		"Let the spelling begin!"
+	]
+
+	private let wordyMoleMayhemIntroPhrases = [
+		"Wordy Mole Mayhem!",
+		"Maximum wordiness!",
+		"Big words, small moles!",
+		"The moles brought words!",
+		"Wordy moles incoming!",
+		"Vocabulary stampede!",
+		"Things are getting wordy!",
+		"Dictionary moles!",
+		"Words up, mallets ready!",
+		"Let the mayhem begin!"
+	]
+
 	@StateObject private var viewModel = GameViewModel()
 
 	@AppStorage("whackABraille.modeId") private var modeId = "grade1Letters"
@@ -419,10 +443,10 @@ struct GameView: View {
 			let introText: String
 			if isInvasionMode {
 				introText = invasionIntroPhrases.randomElement() ?? "Incoming moles!"
-			} else if BlitzWord.isWordWarMode(options.modeId) {
-				introText = "Holy Moley Word War!"
+			} else if BlitzWord.isWordyMoleMayhemMode(options.modeId) {
+				introText = wordyMoleMayhemIntroPhrases.randomElement() ?? "Wordy Mole Mayhem!"
 			} else if BlitzWord.isGrade1BattleMode(options.modeId) {
-				introText = "Mole Battle!"
+				introText = grade1MoleBattleIntroPhrases.randomElement() ?? "Mole Battle!"
 			} else {
 				introText = "Ready?"
 			}

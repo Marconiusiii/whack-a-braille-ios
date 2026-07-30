@@ -40,12 +40,12 @@ struct BlitzWord: Identifiable, Hashable {
 		}
 	}
 
-	nonisolated static func isWordWarMode(_ modeId: String) -> Bool {
-		modeId == WordWarCatalog.modeId
+	nonisolated static func isWordyMoleMayhemMode(_ modeId: String) -> Bool {
+		modeId == WordyMoleMayhemCatalog.modeId
 	}
 
 	nonisolated static func isWordMode(_ modeId: String) -> Bool {
-		isGrade1BattleMode(modeId) || isWordWarMode(modeId)
+		isGrade1BattleMode(modeId) || isWordyMoleMayhemMode(modeId)
 	}
 
 	nonisolated static func isBlitzMode(_ modeId: String) -> Bool {

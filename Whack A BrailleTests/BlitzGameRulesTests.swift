@@ -5,30 +5,30 @@ enum BlitzGameRulesTests {
 	static func main() throws {
 		let catalogURL = URL(fileURLWithPath: CommandLine.arguments[1])
 		let sourceURL = URL(fileURLWithPath: CommandLine.arguments[2])
-		let wordWarCatalogURL = URL(fileURLWithPath: CommandLine.arguments[3])
-		let wordWarExclusionsURL = URL(fileURLWithPath: CommandLine.arguments[4])
+		let wordyMoleMayhemCatalogURL = URL(fileURLWithPath: CommandLine.arguments[3])
+		let wordyMoleMayhemExclusionsURL = URL(fileURLWithPath: CommandLine.arguments[4])
 		let catalogContents = try String(contentsOf: catalogURL, encoding: .utf8)
 		let sourceWords = Set(
 			try String(contentsOf: sourceURL, encoding: .utf8)
 				.components(separatedBy: .newlines)
 		)
-		let wordWarCatalogContents = try String(contentsOf: wordWarCatalogURL, encoding: .utf8)
-		let excludedWordWarWords = Set(
-			try String(contentsOf: wordWarExclusionsURL, encoding: .utf8)
+		let wordyMoleMayhemCatalogContents = try String(contentsOf: wordyMoleMayhemCatalogURL, encoding: .utf8)
+		let excludedWordyMoleMayhemWords = Set(
+			try String(contentsOf: wordyMoleMayhemExclusionsURL, encoding: .utf8)
 				.components(separatedBy: .newlines)
 				.filter { !$0.isEmpty && !$0.hasPrefix("#") }
 		)
 		let words = BlitzWordCatalog.words(from: catalogContents)
 		let issues = BlitzWordCatalog.validationIssues(in: words)
-		let wordWarEntries = WordWarCatalog.entries(from: wordWarCatalogContents)
-		let wordWarIssues = WordWarCatalog.validationIssues(in: wordWarEntries)
+		let wordyMoleMayhemEntries = WordyMoleMayhemCatalog.entries(from: wordyMoleMayhemCatalogContents)
+		let wordyMoleMayhemIssues = WordyMoleMayhemCatalog.validationIssues(in: wordyMoleMayhemEntries)
 
 		precondition(issues.isEmpty, issues.joined(separator: "\n"))
-		precondition(wordWarIssues.isEmpty, wordWarIssues.joined(separator: "\n"))
+		precondition(wordyMoleMayhemIssues.isEmpty, wordyMoleMayhemIssues.joined(separator: "\n"))
 		precondition(words.allSatisfy { sourceWords.contains($0.text) })
-		precondition(wordWarEntries.count > 100_000)
-		precondition(wordWarEntries.allSatisfy { sourceWords.contains($0.text) })
-		precondition(wordWarEntries.allSatisfy { !excludedWordWarWords.contains($0.text) })
+		precondition(wordyMoleMayhemEntries.count > 100_000)
+		precondition(wordyMoleMayhemEntries.allSatisfy { sourceWords.contains($0.text) })
+		precondition(wordyMoleMayhemEntries.allSatisfy { !excludedWordyMoleMayhemWords.contains($0.text) })
 		let customWords = words.map(\.text)
 		precondition(BlitzWordCatalog.words(for: "grade1ThreeLetterBlitz", customWords: customWords).allSatisfy { $0.length == 3 })
 		precondition(BlitzWordCatalog.words(for: "grade1FourLetterBlitz", customWords: customWords).allSatisfy { $0.length == 4 })
@@ -41,7 +41,7 @@ enum BlitzGameRulesTests {
 		precondition(repeatedLetterItem?.perkinsSequenceDots[1] == repeatedLetterItem?.perkinsSequenceDots[2])
 		precondition(repeatedLetterItem?.modeTags == ["grade1FourLetterBlitz"])
 
-		let knowledge = wordWarEntries.first { $0.text == "knowledge" }
+		let knowledge = wordyMoleMayhemEntries.first { $0.text == "knowledge" }
 		precondition(knowledge?.contractedMasks.count == 1)
 		precondition(knowledge?.acceptedPerkinsSequences.contains(knowledge?.contractedMasks ?? []) == true)
 		precondition(knowledge?.acceptedPerkinsSequences.contains(knowledge?.uncontractedMasks ?? []) == true)
@@ -59,8 +59,9 @@ enum BlitzGameRulesTests {
 			"3-Letter Words",
 			"4-Letter Words",
 			"Grade 1 Mole Battle",
-			"Holy Moley Word War"
+			"Wordy Mole Mayhem"
 		])
+		precondition(BrailleRegistry.sanitizedModeId("holyMoleyWordWar", for: .qwerty) == WordyMoleMayhemCatalog.modeId)
 		precondition(qwertySections.first(where: { $0.id == "grade2" })?.options.contains(where: { $0.id == "grade2Suffixes" }) == true)
 		precondition(qwertySections.first(where: { $0.id == "grade2" })?.options.contains(where: { $0.id == "grade2Dot456Initials" }) == false)
 
@@ -74,8 +75,8 @@ enum BlitzGameRulesTests {
 		precondition(brailleScreenSections.first(where: { $0.id == "grade2" })?.options.contains(where: { $0.id == "grade2Suffixes" }) == false)
 
 		let counts = Dictionary(grouping: words, by: \.length).mapValues(\.count)
-		let wordWarCounts = Dictionary(grouping: wordWarEntries, by: \.length).mapValues(\.count)
+		let wordyMoleMayhemCounts = Dictionary(grouping: wordyMoleMayhemEntries, by: \.length).mapValues(\.count)
 		print("Mole Battle catalog validated: \(words.count) words; 3-letter \(counts[3, default: 0]), 4-letter \(counts[4, default: 0]), 5-letter \(counts[5, default: 0]).")
-		print("Holy Moley Word War catalog validated: \(wordWarEntries.count) words; lengths \(wordWarCounts.sorted { $0.key < $1.key }).")
+		print("Wordy Mole Mayhem catalog validated: \(wordyMoleMayhemEntries.count) words; lengths \(wordyMoleMayhemCounts.sorted { $0.key < $1.key }).")
 	}
 }

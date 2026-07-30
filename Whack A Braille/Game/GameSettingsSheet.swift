@@ -91,6 +91,7 @@ struct GameSettingsSheet: View {
 					.accessibilityLabel("Mole chooser")
 					.accessibilityValue(BrailleRegistry.label(for: modeId))
 					.accessibilityHint("Opens the Mole Chooser.")
+					.accessibilityAddTraits(.isButton)
 					.accessibilityTouchRegion(minHeight: 54, alignment: .leading)
 					.accessibilityFocused($focusedElement, equals: .moleChooserButton)
 

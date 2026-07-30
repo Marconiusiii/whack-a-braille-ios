@@ -520,7 +520,7 @@ enum BrailleRegistry {
 				("grade1ThreeLetterBlitz", "3-Letter Words"),
 				("grade1FourLetterBlitz", "4-Letter Words"),
 				("grade1MoleBlitz", "Grade 1 Mole Battle"),
-				(WordWarCatalog.modeId, "Holy Moley Word War")
+				(WordyMoleMayhemCatalog.modeId, "Wordy Mole Mayhem")
 			]
 		),
 		ModeSection(
@@ -622,14 +622,17 @@ enum BrailleRegistry {
 	}
 
 	static func sanitizedModeId(_ modeId: String, for inputMode: InputMode) -> String {
+		let candidateModeId = modeId == "holyMoleyWordWar"
+			? WordyMoleMayhemCatalog.modeId
+			: modeId
 		let allowed = filteredModeOptions(for: inputMode)
-		if allowed.contains(where: { $0.id == modeId }) {
-			return modeId
+		if allowed.contains(where: { $0.id == candidateModeId }) {
+			return candidateModeId
 		}
 
 		switch inputMode {
 		case .qwerty:
-			return qwertyUnsupportedBrailleModeIDs.contains(modeId) ? "grade2Symbols" : modeId
+			return qwertyUnsupportedBrailleModeIDs.contains(candidateModeId) ? "grade2Symbols" : candidateModeId
 		case .perkins, .brailleText, .brailleDisplayInput, .oneHandedBrailleInput:
 			return "grade1Letters"
 		}

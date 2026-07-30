@@ -1,4 +1,4 @@
-# Exact entries excluded from Holy Moley Word War.
+# Exact entries excluded from Wordy Mole Mayhem.
 # Keep this list exact so harmless words containing shorter letter strings remain available.
 arse
 arsed

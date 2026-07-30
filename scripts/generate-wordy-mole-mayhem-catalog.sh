@@ -5,8 +5,8 @@ set -euo pipefail
 script_directory=${0:A:h}
 repository_root=${script_directory:h}
 source_path=${1:-"${repository_root}/../wordBop-iOS/WordBop/WordBop/words-en.txt"}
-output_path=${2:-"${repository_root}/Whack A Braille/Resources/word-war-words-en.tsv"}
-exclusion_path="${script_directory}/word-war-excluded-en.txt"
+output_path=${2:-"${repository_root}/Whack A Braille/Resources/wordy-mole-mayhem-words-en.tsv"}
+exclusion_path="${script_directory}/wordy-mole-mayhem-excluded-en.txt"
 translator_path=${LOU_TRANSLATE_PATH:-/opt/homebrew/bin/lou_translate}
 
 if [[ ! -f "${source_path}" ]]; then
@@ -15,7 +15,7 @@ if [[ ! -f "${source_path}" ]]; then
 fi
 
 if [[ ! -f "${exclusion_path}" ]]; then
-	print -u2 "Word War exclusion list not found: ${exclusion_path}"
+	print -u2 "Wordy Mole Mayhem exclusion list not found: ${exclusion_path}"
 	exit 1
 fi
 
@@ -66,4 +66,4 @@ mkdir -p "${output_path:h}"
 	end
 ' "${candidate_path}" "${translated_path}" "${output_path}"
 
-print "Generated $(wc -l < "${output_path}" | tr -d " ") Holy Moley Word War entries at ${output_path}."
+print "Generated $(wc -l < "${output_path}" | tr -d " ") Wordy Mole Mayhem entries at ${output_path}."
