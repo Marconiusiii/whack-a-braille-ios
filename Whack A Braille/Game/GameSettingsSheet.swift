@@ -29,6 +29,7 @@ struct GameSettingsSheet: View {
 	@StateObject private var supportStore = SupportStore.shared
 
 	@State private var isShowingMailComposer = false
+	@State private var isShowingMoleChooser = false
 	@State private var isShowingCustomMolePicker = false
 	@State private var isShowingAcknowledgments = false
 	@State private var shouldRestoreCustomMoleFocus = false
@@ -37,7 +38,7 @@ struct GameSettingsSheet: View {
 
 	private enum FocusTarget: Hashable {
 		case keyboardInputModePicker
-		case moleChooserPicker
+		case moleChooserButton
 		case difficultyPicker
 		case speakBrailleDotsToggle
 		case spellWordToggle
@@ -67,19 +68,31 @@ struct GameSettingsSheet: View {
 					}
 					.accessibilityFocused($focusedElement, equals: .keyboardInputModePicker)
 
-					Picker("Mole chooser", selection: $modeId) {
-						ForEach(availableModeSections) { section in
-							Section {
-								ForEach(section.options, id: \.id) { option in
-									Text(option.label).tag(option.id)
-								}
-							} header: {
-								Text(section.title)
-									.accessibilityAddTraits(.isHeader)
-							}
+					Button {
+						isShowingMoleChooser = true
+					} label: {
+						HStack(spacing: 12) {
+							Text("Mole chooser")
+								.foregroundStyle(primaryTextColor)
+
+							Spacer(minLength: 12)
+
+							Text(BrailleRegistry.label(for: modeId))
+								.foregroundStyle(secondaryTextColor)
+								.multilineTextAlignment(.trailing)
+
+							Image(systemName: "chevron.right")
+								.font(.footnote.weight(.semibold))
+								.foregroundStyle(secondaryTextColor)
+								.accessibilityHidden(true)
 						}
 					}
-					.accessibilityFocused($focusedElement, equals: .moleChooserPicker)
+					.accessibilityElement(children: .ignore)
+					.accessibilityLabel("Mole chooser")
+					.accessibilityValue(BrailleRegistry.label(for: modeId))
+					.accessibilityHint("Opens the Mole Chooser.")
+					.accessibilityTouchRegion(minHeight: 54, alignment: .leading)
+					.accessibilityFocused($focusedElement, equals: .moleChooserButton)
 
 					if BlitzWord.isGrade1BattleMode(modeId) {
 						Toggle("Spell Word", isOn: $spellBlitzWords)
@@ -263,6 +276,17 @@ struct GameSettingsSheet: View {
 			}
 		}
 		.sheet(
+			isPresented: $isShowingMoleChooser,
+			onDismiss: {
+				restoreFocus(to: .moleChooserButton)
+			}
+		) {
+			MoleChooserSheet(
+				modeId: $modeId,
+				sections: availableModeSections
+			)
+		}
+		.sheet(
 			isPresented: $isShowingCustomMolePicker,
 			onDismiss: restoreCustomMolePickerFocusIfNeeded
 		) {
@@ -310,12 +334,14 @@ struct GameSettingsSheet: View {
 			restoreFocus(to: .keyboardInputModePicker)
 		}
 		.onChange(of: modeId) { _, _ in
+			guard !isShowingMoleChooser else { return }
+
 			if shouldSkipNextModeFocusRestore {
 				shouldSkipNextModeFocusRestore = false
 				return
 			}
 
-			restoreFocus(to: .moleChooserPicker)
+			restoreFocus(to: .moleChooserButton)
 		}
 		.onChange(of: difficulty) { _, _ in
 			restoreFocus(to: .difficultyPicker)
@@ -567,6 +593,59 @@ struct GameSettingsSheet: View {
 
 		DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) {
 			focusedElement = target
+		}
+	}
+}
+
+private struct MoleChooserSheet: View {
+
+	@Environment(\.dismiss) private var dismiss
+	@Binding var modeId: String
+	let sections: [BrailleRegistry.ModeSection]
+
+	var body: some View {
+		NavigationStack {
+			List {
+				ForEach(sections) { section in
+					Section {
+						ForEach(section.options, id: \.id) { option in
+							Button {
+								modeId = option.id
+							} label: {
+								HStack(spacing: 12) {
+									Text(option.label)
+										.foregroundStyle(.primary)
+										.fixedSize(horizontal: false, vertical: true)
+
+									Spacer(minLength: 12)
+
+									if modeId == option.id {
+										Image(systemName: "checkmark")
+											.fontWeight(.semibold)
+											.accessibilityHidden(true)
+									}
+								}
+							}
+							.accessibilityLabel(option.label)
+							.accessibilityAddTraits(modeId == option.id ? .isSelected : [])
+							.accessibilityTouchRegion(minHeight: 54, alignment: .leading)
+						}
+					} header: {
+						Text(section.title)
+							.textCase(nil)
+							.accessibilityAddTraits(.isHeader)
+					}
+				}
+			}
+			.navigationTitle("Mole Chooser")
+			.navigationBarTitleDisplayMode(.inline)
+			.toolbar {
+				ToolbarItem(placement: .confirmationAction) {
+					Button("Done") {
+						dismiss()
+					}
+				}
+			}
 		}
 	}
 }
