@@ -7,6 +7,7 @@ enum BlitzGameRulesTests {
 		let sourceURL = URL(fileURLWithPath: CommandLine.arguments[2])
 		let wordyMoleMayhemCatalogURL = URL(fileURLWithPath: CommandLine.arguments[3])
 		let wordyMoleMayhemExclusionsURL = URL(fileURLWithPath: CommandLine.arguments[4])
+		let wordyMoleMayhemCommonWordsURL = URL(fileURLWithPath: CommandLine.arguments[5])
 		let catalogContents = try String(contentsOf: catalogURL, encoding: .utf8)
 		let sourceWords = Set(
 			try String(contentsOf: sourceURL, encoding: .utf8)
@@ -18,6 +19,11 @@ enum BlitzGameRulesTests {
 				.components(separatedBy: .newlines)
 				.filter { !$0.isEmpty && !$0.hasPrefix("#") }
 		)
+		let commonWordyMoleMayhemWords = Set(
+			try String(contentsOf: wordyMoleMayhemCommonWordsURL, encoding: .utf8)
+				.components(separatedBy: .newlines)
+				.filter { !$0.isEmpty && !$0.hasPrefix("#") }
+		)
 		let words = BlitzWordCatalog.words(from: catalogContents)
 		let issues = BlitzWordCatalog.validationIssues(in: words)
 		let wordyMoleMayhemEntries = WordyMoleMayhemCatalog.entries(from: wordyMoleMayhemCatalogContents)
@@ -26,8 +32,9 @@ enum BlitzGameRulesTests {
 		precondition(issues.isEmpty, issues.joined(separator: "\n"))
 		precondition(wordyMoleMayhemIssues.isEmpty, wordyMoleMayhemIssues.joined(separator: "\n"))
 		precondition(words.allSatisfy { sourceWords.contains($0.text) })
-		precondition(wordyMoleMayhemEntries.count > 100_000)
+		precondition(wordyMoleMayhemEntries.count > 20_000)
 		precondition(wordyMoleMayhemEntries.allSatisfy { sourceWords.contains($0.text) })
+		precondition(wordyMoleMayhemEntries.allSatisfy { commonWordyMoleMayhemWords.contains($0.text) })
 		precondition(wordyMoleMayhemEntries.allSatisfy { !excludedWordyMoleMayhemWords.contains($0.text) })
 		let customWords = words.map(\.text)
 		precondition(BlitzWordCatalog.words(for: "grade1ThreeLetterBlitz", customWords: customWords).allSatisfy { $0.length == 3 })
@@ -76,6 +83,7 @@ enum BlitzGameRulesTests {
 
 		let counts = Dictionary(grouping: words, by: \.length).mapValues(\.count)
 		let wordyMoleMayhemCounts = Dictionary(grouping: wordyMoleMayhemEntries, by: \.length).mapValues(\.count)
+		precondition((4...10).allSatisfy { wordyMoleMayhemCounts[$0, default: 0] > 1_000 })
 		print("Mole Battle catalog validated: \(words.count) words; 3-letter \(counts[3, default: 0]), 4-letter \(counts[4, default: 0]), 5-letter \(counts[5, default: 0]).")
 		print("Wordy Mole Mayhem catalog validated: \(wordyMoleMayhemEntries.count) words; lengths \(wordyMoleMayhemCounts.sorted { $0.key < $1.key }).")
 	}

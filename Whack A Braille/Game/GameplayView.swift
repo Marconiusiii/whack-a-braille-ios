@@ -59,11 +59,6 @@ struct GameplayView: View {
 						}
 
 						if inputMode.usesBufferedTextEntry {
-							Text("Braille Entry")
-								.font(.headline)
-								.foregroundStyle(AppTheme.heading)
-								.accessibilityAddTraits(.isHeader)
-
 							inputSink
 								.frame(height: 48)
 						} else {

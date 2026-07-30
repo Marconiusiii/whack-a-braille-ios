@@ -72,13 +72,14 @@ final class GameViewModel: ObservableObject {
 			self.hitStreak = streak
 		}
 
+		// Word rounds keep this element mounted between targets so VoiceOver does not lose its place.
 		self.gameLoop.onActiveMoleChanged = { [weak self] lane, item in
 			guard let self else { return }
 			self.activeLane = lane
 			self.activeTargetLabel = item?.announceText ?? "Listen for the next mole"
 			if let item, self.isWordRound {
 				self.currentWordText = item.displayLabel
-			} else if !self.isBlitzRound {
+			} else if !self.isWordRound {
 				self.currentWordText = nil
 			}
 		}
@@ -92,7 +93,7 @@ final class GameViewModel: ObservableObject {
 					.sorted { $0.index < $1.index }
 					.map(\.letter)
 					.joined()
-			} else if self.isBlitzRound {
+			} else if !self.isWordRound {
 				self.currentWordText = nil
 			}
 		}

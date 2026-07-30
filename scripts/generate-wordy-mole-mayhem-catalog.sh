@@ -7,6 +7,7 @@ repository_root=${script_directory:h}
 source_path=${1:-"${repository_root}/../wordBop-iOS/WordBop/WordBop/words-en.txt"}
 output_path=${2:-"${repository_root}/Whack A Braille/Resources/wordy-mole-mayhem-words-en.tsv"}
 exclusion_path="${script_directory}/wordy-mole-mayhem-excluded-en.txt"
+common_word_path="${script_directory}/wordy-mole-mayhem-common-en.txt"
 translator_path=${LOU_TRANSLATE_PATH:-/opt/homebrew/bin/lou_translate}
 
 if [[ ! -f "${source_path}" ]]; then
@@ -16,6 +17,11 @@ fi
 
 if [[ ! -f "${exclusion_path}" ]]; then
 	print -u2 "Wordy Mole Mayhem exclusion list not found: ${exclusion_path}"
+	exit 1
+fi
+
+if [[ ! -f "${common_word_path}" ]]; then
+	print -u2 "Wordy Mole Mayhem common-word list not found: ${common_word_path}"
 	exit 1
 fi
 
@@ -31,7 +37,13 @@ candidate_path="${temporary_directory}/words.txt"
 translated_path="${temporary_directory}/braille.txt"
 
 LC_ALL=C awk '
-	NR == FNR {
+	FILENAME == ARGV[1] {
+		if ($0 !~ /^#/ && $0 != "") {
+			common[tolower($0)] = 1
+		}
+		next
+	}
+	FILENAME == ARGV[2] {
 		if ($0 !~ /^#/ && $0 != "") {
 			excluded[tolower($0)] = 1
 		}
@@ -39,11 +51,11 @@ LC_ALL=C awk '
 	}
 	{
 		word = tolower($0)
-		if (word ~ /^[a-z]+$/ && length(word) >= 4 && length(word) <= 10 && !excluded[word]) {
+		if (word ~ /^[a-z]+$/ && length(word) >= 4 && length(word) <= 10 && common[word] && !excluded[word]) {
 			print word
 		}
 	}
-' "${exclusion_path}" "${source_path}" | LC_ALL=C sort -u > "${candidate_path}"
+' "${common_word_path}" "${exclusion_path}" "${source_path}" | LC_ALL=C sort -u > "${candidate_path}"
 
 "${translator_path}" -f -d unicode.dis en-ueb-g2.ctb < "${candidate_path}" > "${translated_path}"
 
