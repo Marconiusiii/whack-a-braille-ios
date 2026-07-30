@@ -288,13 +288,13 @@ final class GameAudioEngine {
 		let volume: Float
 		switch gameAudioMode {
 		case .original:
-			volume = 0.48
+			volume = 0.52
 		case .silly:
 			volume = 0.44
 		case .goofy:
-			volume = 0.48
+			volume = 0.52
 		case .retro:
-			volume = 0.42
+			volume = 0.62
 		}
 
 		playGeneratedSound(
@@ -940,8 +940,22 @@ final class GameAudioEngine {
 			return nil
 		}
 
-		let impactDuration = mode == .retro ? 0.2 : 0.28
-		let offsetStep = mode == .silly ? 0.024 : 0.02
+		let impactDuration: Double
+		let offsetStep: Double
+		switch mode {
+		case .original:
+			impactDuration = 0.3
+			offsetStep = 0.021
+		case .silly:
+			impactDuration = 0.28
+			offsetStep = 0.024
+		case .goofy:
+			impactDuration = 0.38
+			offsetStep = 0.026
+		case .retro:
+			impactDuration = 0.26
+			offsetStep = 0.018
+		}
 		let duration = impactDuration + (Double(wordLength - 1) * offsetStep) + 0.05
 		let normalization = 0.38 / sqrt(Double(wordLength))
 
@@ -968,14 +982,32 @@ final class GameAudioEngine {
 				let sample: Double
 				switch mode {
 				case .original:
-					let bodyPitch = lerpExp(
-						start: (190 + Double(letterIndex * 9)) * pitchJitter,
-						end: (88 + Double(letterIndex * 4)) * pitchJitter,
-						progress: min(local / 0.16, 1)
+					let bodyPitch = (138 + Double(letterIndex * 5)) * pitchJitter
+					let hollowBody = sine(bodyPitch, local) *
+						envelope(local, attack: 0.004, release: 0.24, peak: 0.72)
+					let woodResonance = triangle(bodyPitch * 2.18, local) *
+						envelope(local, attack: 0.003, release: 0.17, peak: 0.34)
+					let knockPitch = lerpExp(
+						start: (860 + Double(letterIndex * 28)) * pitchJitter,
+						end: 310 * pitchJitter,
+						progress: min(local / 0.045, 1)
 					)
-					let body = sine(bodyPitch, local) * 0.72
-					let wood = triangle(bodyPitch * 1.82, local) * 0.2
-					sample = (body + wood) * env
+					let hardKnock = triangle(knockPitch, local) *
+						envelope(local, attack: 0.0015, release: 0.055, peak: 0.7)
+					let woodGrainSeed = UInt64(41_003 + (variant * 101) + (letterIndex * 17))
+					let woodGrainNoise = filteredNoise(
+						seed: woodGrainSeed,
+						time: local,
+						carrier: 720
+					)
+					let woodGrainEnvelope = envelope(
+						local,
+						attack: 0.001,
+						release: 0.035,
+						peak: 0.2
+					)
+					let woodGrain = woodGrainNoise * woodGrainEnvelope
+					sample = (hollowBody + woodResonance + hardKnock + woodGrain) * env
 				case .silly:
 					let bounceProgress = min(local / impactDuration, 1)
 					let wobble = sin(2 * .pi * (12 + Double(variant)) * local) * 48
@@ -990,20 +1022,47 @@ final class GameAudioEngine {
 				case .goofy:
 					let rubberProgress = min(local / impactDuration, 1)
 					let rubberPitch = lerpExp(
-						start: (155 + Double(letterIndex * 7)) * pitchJitter,
-						end: (74 + Double(letterIndex * 3)) * pitchJitter,
+						start: (128 + Double(letterIndex * 6)) * pitchJitter,
+						end: (58 + Double(letterIndex * 2)) * pitchJitter,
 						progress: rubberProgress
 					)
-					let wobble = sin(2 * .pi * 17 * local) * (1 - rubberProgress) * 38
-					let rubber = triangle(rubberPitch + wobble, local) * 0.65
-					let boing = sine((rubberPitch * 2.3) - wobble, local) * 0.22
-					sample = (rubber + boing) * env
+					let wobble = sin(2 * .pi * (14 + Double(variant)) * local) *
+						(1 - rubberProgress) * 52
+					let rubber = triangle(max(rubberPitch + wobble, 24), local) * 0.72
+
+					let reboundTime = max(0, local - 0.065)
+					let reboundProgress = min(reboundTime / 0.24, 1)
+					let reboundPitch = lerpExp(
+						start: (310 + Double(letterIndex * 22)) * pitchJitter,
+						end: (760 + Double(variant * 35)) * pitchJitter,
+						progress: reboundProgress
+					)
+					let boing = sine(reboundPitch, reboundTime) *
+						envelope(reboundTime, attack: 0.006, release: 0.25, peak: 0.46)
+
+					let squeakTime = max(0, local - 0.13)
+					let squeakPitch = lerpExp(
+						start: (1_080 + Double(variant * 45)) * pitchJitter,
+						end: 530 * pitchJitter,
+						progress: min(squeakTime / 0.16, 1)
+					)
+					let squeak = triangle(squeakPitch, squeakTime) *
+						envelope(squeakTime, attack: 0.003, release: 0.17, peak: 0.22)
+					sample = ((rubber * env) + boing + squeak)
 				case .retro:
 					let notes = [130.81, 164.81, 196.0, 261.63, 329.63]
 					let note = notes[(letterIndex + variant - 1) % notes.count] * pitchJitter
-					let arcadeBody = triangle(note, local) * 0.72
-					let arcadeSpark = triangle(note * 2, local) * 0.18
-					sample = (arcadeBody + arcadeSpark) * env
+					let arcadeBody = square(note, local) * 0.64
+					let bassImpact = square(note * 0.5, local) *
+						envelope(local, attack: 0.002, release: 0.12, peak: 0.5)
+
+					let sparkleTime = max(0, local - 0.075)
+					let sparkleStep = min(2, max(0, Int(sparkleTime / 0.045)))
+					let sparkleNotes = [note * 2, note * 2.5, note * 3]
+					let stepLocal = sparkleTime - (Double(sparkleStep) * 0.045)
+					let arcadeSpark = square(sparkleNotes[sparkleStep], stepLocal) *
+						linearEnvelope(stepLocal, attack: 0.002, release: 0.045, peak: 0.34)
+					sample = ((arcadeBody + bassImpact) * env) + arcadeSpark
 				}
 
 				let gains = stereoGains(pan: pans[letterIndex])
