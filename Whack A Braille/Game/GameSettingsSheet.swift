@@ -69,10 +69,13 @@ struct GameSettingsSheet: View {
 
 					Picker("Mole chooser", selection: $modeId) {
 						ForEach(availableModeSections) { section in
-							Section(section.title) {
+							Section {
 								ForEach(section.options, id: \.id) { option in
 									Text(option.label).tag(option.id)
 								}
+							} header: {
+								Text(section.title)
+									.accessibilityAddTraits(.isHeader)
 							}
 						}
 					}
