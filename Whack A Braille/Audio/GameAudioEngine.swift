@@ -318,7 +318,7 @@ final class GameAudioEngine {
 		case .goofy:
 			volume = 0.52
 		case .retro:
-			volume = 0.72
+			volume = 0.64
 		}
 
 		playGeneratedSound(
@@ -1090,52 +1090,70 @@ final class GameAudioEngine {
 	}
 
 	private func makeRetroBlitzWordHitSoundData(root: Int, wordLength: Int) -> Data? {
-		let pansByLength: [Int: [Double]] = [
-			3: [-0.5, 0, 0.5],
-			4: [-0.75, -0.25, 0.25, 0.75],
-			5: [-1, -0.5, 0, 0.5, 1]
-		]
-		let revealOrderByLength: [Int: [Int]] = [
-			3: [1, 0, 2],
-			4: [1, 2, 0, 3],
-			5: [2, 1, 3, 0, 4]
-		]
-		guard
-			let pans = pansByLength[wordLength],
-			let revealOrder = revealOrderByLength[wordLength]
-		else {
+		typealias ArpeggioEvent = (noteOffset: Int, pan: Double, step: Int)
+		let events: [ArpeggioEvent]
+		switch wordLength {
+		case 3:
+			events = [
+				(noteOffset: 0, pan: 0, step: 0),
+				(noteOffset: 4, pan: -0.5, step: 1),
+				(noteOffset: 7, pan: 0.5, step: 2)
+			]
+		case 4:
+			events = [
+				(noteOffset: 0, pan: 0, step: 0),
+				(noteOffset: 4, pan: -0.5, step: 1),
+				(noteOffset: 7, pan: 0.5, step: 2),
+				(noteOffset: 12, pan: -1, step: 3),
+				(noteOffset: 12, pan: 1, step: 3)
+			]
+		case 5:
+			events = [
+				(noteOffset: 0, pan: 0, step: 0),
+				(noteOffset: 4, pan: -0.5, step: 1),
+				(noteOffset: 7, pan: 0.5, step: 2),
+				(noteOffset: 12, pan: -1, step: 3),
+				(noteOffset: 16, pan: 1, step: 4)
+			]
+		default:
 			return nil
 		}
 
-		let progression = [0, 4, 7, 12, 16]
-		let offsetStep = 0.032
-		let noteDuration = 0.075
-		let duration = noteDuration + (Double(wordLength - 1) * offsetStep) + 0.025
-		let outputGain = 0.62
+		let voicedRoot = root + 12
+		let stepSpacing = 0.044
+		let noteDuration = 0.064
+		let finalStep = events.map { $0.step }.max() ?? 0
+		let duration = noteDuration + (Double(finalStep) * stepSpacing) + 0.02
+		let outputGain = 0.46
 
 		return makeStereoWaveFile(duration: duration) { time in
 			var left = 0.0
 			var right = 0.0
 
-			for letterIndex in 0..<wordLength {
-				guard let revealIndex = revealOrder.firstIndex(of: letterIndex) else { continue }
-				let start = Double(revealIndex) * offsetStep
+			for event in events {
+				let start = Double(event.step) * stepSpacing
 				let local = time - start
 				guard local >= 0, local <= noteDuration else { continue }
 
-				let note = root + progression[revealIndex]
+				let note = voicedRoot + event.noteOffset
 				let frequency = midiFrequency(note)
 				let noteEnvelope = linearEnvelope(
 					local,
 					attack: 0.002,
 					release: noteDuration,
-					peak: 0.9
+					peak: 0.82
 				)
-				let body = sine(frequency, local) * noteEnvelope
-				let sparkle = triangle(frequency * 2, local) * noteEnvelope * 0.18
+				let sparkleEnvelope = linearEnvelope(
+					local,
+					attack: 0.001,
+					release: noteDuration * 0.72,
+					peak: 0.5
+				)
+				let body = square(frequency, local) * noteEnvelope * 0.52
+				let sparkle = triangle(frequency * 2, local) * sparkleEnvelope * 0.2
 				let sample = body + sparkle
 
-				let gains = stereoGains(pan: pans[letterIndex])
+				let gains = stereoGains(pan: event.pan)
 				left += sample * gains.left
 				right += sample * gains.right
 			}

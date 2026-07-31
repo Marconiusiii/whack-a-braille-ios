@@ -2,119 +2,180 @@
 
 ## Overview
 
-Whack A Braille is an accessible arcade-style braille typing game for iPhone and iPad. Players listen for moles, enter the matching braille character, symbol, number, or contraction, and whack the current mole before it ducks away.
+Whack A Braille is an accessibility-first arcade braille and typing game for iPhone and iPad. Players listen for targets, enter the correct character, contraction, or word, and bonk the moles before they escape.
 
-The game is designed for blind players, braille learners, teachers, and anyone who wants a playful way to practice braille speed and confidence.
+The game is designed for blind players, braille learners, teachers, and anyone who wants a playful way to practice accuracy and speed.
 
 ## Supported Input Methods
 
-The app supports three main input styles:
+The app supports five input modes:
 
 1. Standard Keyboard or 8-Dot Braille
 2. Perkins Home Row
 3. Braille Screen Input
+4. Braille Display Input
+5. One-Handed Braille Input
 
-The available mole sets adapt to the selected input mode so the game only offers modes that make sense for that input method.
+The Mole Chooser adapts to the selected input mode. Typing modes appear only for Standard Keyboard, while Grade 2 choices that cannot be entered accurately in a particular braille mode are hidden.
 
-## Current Gameplay Features
+## Gameplay Modes
 
-The current iOS build includes:
+The Mole Chooser is organized into five groups:
 
-1. Grade 1 letter, number, and symbol practice
-2. Grade 2 whole-word contraction and word-sign modes
-3. Grade 1 Mole Invasion and Grade 2 Mole Invasion
-4. Training mode
-5. Adjustable difficulty and round length
-6. Timer music, speech controls, and system voice selection
-7. Cash In prize flow with persistent saved tickets
-8. Prize Shelf with individual deletion and prize detail sheets
+1. Grade 1
+   - Letters A-J
+   - Letters A-T
+   - Letters Only
+   - Numbers Only
+   - Letters and Numbers
+   - Grade 1 Mole Invasion
+2. Grade 2
+   - Symbol Contractions
+   - Whole Word Contractions
+   - Short-form Words
+   - Suffixes
+   - Dot 5 Initials
+   - Dots 4 5 Initials
+   - Dots 4 5 6 Initials
+   - Grade 2 Mole Invasion
+3. Mole Battles
+   - 3-Letter Words
+   - 4-Letter Words
+   - Grade 1 Mole Battle
+   - Wordy Mole Mayhem
+4. Typing
+   - Simple Home Row
+   - QWERTY Home Row
+   - QWERTY Home Row + Top Row
+   - QWERTY Home Row + Bottom Row
+5. Custom
+   - Custom Moles
 
-## Accessibility Notes
+Grade 1 Mole Battles present several letter-bearing moles at once. Wordy Mole Mayhem presents one word-bearing mole and accepts accurate text, uncontracted Perkins braille, or contracted Perkins braille.
 
-This project is accessibility-first.
+## Training and Mole Recon
+
+Every gameplay family supports untimed Training.
+
+After a round, Mole Recon collects missed and escaped targets. Recon can replay the complete set, while Grudge Match lets the player select particular targets for another training round. Word-mode Recon preserves whole words rather than reducing them to individual letters.
+
+## Accessibility
 
 Key accessibility behaviors include:
 
-1. VoiceOver support across the main game flow
-2. Native SwiftUI controls where possible
-3. Accessible focus return for modal screens such as How to Play and Prize details
-4. VoiceOver Z-scrub escape support on supported sheets
-5. Dynamic type support across the major custom screens
-6. Input-mode-specific filtering so unsupported mole sets are not surfaced for Braille Screen Input or Perkins modes
+1. VoiceOver support throughout the main game flow
+2. Native controls and semantic headings
+3. Source-order-based VoiceOver navigation without traversal overrides
+4. Focus restoration after sheets, pickers, purchases, and changing word targets
+5. Dynamic Type support across major screens
+6. Input-mode-specific instructions and Mole Chooser filtering
+7. A focusable current-word element above buffered braille entry
+8. Stereo and spatial mole audio with a mono-compatible center
+
+## Audio
+
+The app provides Original, Silly, Goofy, and Retro sound modes. Grade 1 Mole Battles use spatially distributed letter hits and one multi-mole completion sound. Buffered braille modes use one completion sound rather than replaying every letter hit at submission.
+
+Round scheduling reserves time for completion audio before the next target is announced. Headphone testing remains necessary because a successful build cannot establish perceived balance, stereo placement, or freedom from static.
+
+## Word Catalogs
+
+Battle and Mayhem words come only from the English word list in the WordBop iOS project. Android word-list sources are not part of this workflow.
+
+Wordy Mole Mayhem generation also applies the checked-in common-word allowlist and exact family-safety exclusions:
+
+1. `scripts/wordy-mole-mayhem-common-en.txt`
+2. `scripts/wordy-mole-mayhem-excluded-en.txt`
+3. `scripts/generate-wordy-mole-mayhem-catalog.sh`
+
+The generator expects the WordBop iOS repository as a sibling checkout by default:
+
+```bash
+./scripts/generate-wordy-mole-mayhem-catalog.sh
+```
+
+An explicit iOS source path may be supplied as the first argument:
+
+```bash
+./scripts/generate-wordy-mole-mayhem-catalog.sh '/path/to/wordBop-iOS/WordBop/WordBop/words-en.txt'
+```
+
+Generation uses Liblouis only as a development-time tool to produce the checked-in UEB data. The app does not use Liblouis at runtime.
+
+## Automated Testing
+
+The shared Xcode scheme includes the `Whack A BrailleTests` unit-test target. It checks:
+
+1. Battle and Mayhem catalog structure
+2. Common-word and family-safety filtering
+3. Coverage across supported word lengths
+4. Battle stereo positions
+5. Contracted and uncontracted Mayhem Perkins input
+6. Mole Chooser grouping and input-dependent visibility
+7. Legacy mode-name migration
+8. Mode-specific Round Results terminology
+
+Run the tests with:
+
+```bash
+xcodebuild -project 'Whack A Braille.xcodeproj' -scheme 'Whack A Braille' -destination 'platform=iOS Simulator,name=iPhone 16' test
+```
+
+The provenance test uses the sibling WordBop iOS checkout. Set `WORDBOP_IOS_WORDLIST_PATH` when the source is stored elsewhere. If the separate iOS checkout is unavailable, that external provenance assertion is skipped while all self-contained tests still run.
 
 ## Prize System
 
-Tickets are saved locally on device and can be spent later from the Home screen or after a round.
+Tickets are saved locally and can be spent from the Home screen or after a round. The prize system includes persistent tickets, randomized prize counters, tier-based fanfares, a shared prize catalog, duplicate ownership counts, claim dates, and prize detail sheets.
 
-The prize system currently includes:
+The web prize catalog remains the shared source of truth:
 
-1. persistent total tickets
-2. randomized prize counter choices based on the player’s available tickets
-3. tier-based prize fanfares
-4. a shared prize catalog source of truth with flavor text
-5. prize detail sheets showing:
-   1. prize name
-   2. latest claim date
-   3. tier and ticket cost
-   4. flavor text
-   5. total owned for duplicates
+1. `/Users/pallas/Documents/marconius.com/fun/whackABraille/scripts/prizeCatalog.js`
+2. `Whack A Braille/GameCore/PrizeCatalog.swift`
+
+Update the shared web catalog first, then run the project’s prize synchronization flow.
 
 ## Project Structure
 
-Important project areas:
-
 1. `Whack A Braille/Game/`
-   Main app screens and view models
+   App screens and view models
 2. `Whack A Braille/GameCore/`
-   Core gameplay types, registry data, and prize catalog
-3. `Whack A Braille/Audio/`
+   Gameplay models, catalogs, registry data, and scoring
+3. `Whack A Braille/Input/`
+   Keyboard and braille input bridges
+4. `Whack A Braille/Audio/`
    Generated sound effects, fanfares, and round audio
-4. `Whack A Braille/Speech/`
-   Central speech engine configuration and playback
-5. `scripts/`
-   Project support scripts, including prize catalog syncing
-
-## Shared Prize Data
-
-Prize data is intentionally kept in sync with the web version of the game.
-
-The web prize catalog is the shared source of truth:
-
-1. `/Users/pallas/Documents/marconius.com/fun/whackABraille/scripts/prizeCatalog.js`
-
-The iOS project syncs that source into:
-
-1. `Whack A Braille/GameCore/PrizeCatalog.swift`
-
-If new prizes or prize flavor text are added, update the shared web catalog first and then rerun the sync flow for the iOS app.
+5. `Whack A Braille/Speech/`
+   Speech configuration and playback
+6. `Whack A BrailleTests/`
+   Xcode unit tests
+7. `scripts/`
+   Catalog generation and project support scripts
 
 ## Build Notes
 
-This project is built with Xcode and currently targets iOS 17.0 and later.
-
-A typical device build command is:
+The project targets iOS 17.0 and later.
 
 ```bash
-xcodebuild -project 'Whack A Braille.xcodeproj' -scheme 'Whack A Braille' -destination 'platform=iOS,id=DEVICE_ID' build
+xcodebuild -project 'Whack A Braille.xcodeproj' -scheme 'Whack A Braille' -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build
 ```
 
-For real accessibility validation, prefer untethered on-device testing over debugger-attached launches when possible. VoiceOver behavior can differ slightly when the app is launched directly from Xcode.
+## Physical-Device Release Checklist
 
-## Release Prep Notes
+Before shipping, verify on physical iPhone or iPad hardware:
 
-Before archiving or shipping a build, it is worth checking:
+1. VoiceOver remains on the current word when a focused Mayhem target escapes and changes.
+2. Players can move from the current word back into Braille Screen Input, Braille Display Input, and One-Handed Braille Input.
+3. Perkins accepts both contracted and uncontracted Mayhem submissions.
+4. Standard Keyboard and 8-Dot entry produce one result for each character.
+5. Buffered input produces one completion hit rather than an overlapping series of letter hits.
+6. Keyboard and Perkins retain individual Battle hits followed by one completion sound.
+7. Every sound mode is balanced with speech using headphones.
+8. Stereo and spatial audio work both enabled and disabled.
+9. Round start and generated sounds remain free of static.
+10. Completion audio finishes before the next target is spoken.
+11. Training, Mole Recon, and Grudge Match work for both word-mode families.
+12. A human sample of every supported Mayhem word length remains recognizable and family-friendly.
+13. StoreKit support products load and complete correctly.
+14. VoiceOver focus remains correct on Home, How to Play, Round Results, Cash In, and Prize Shelf.
 
-1. first cold-launch round startup
-2. VoiceOver focus on Home, How to Play, Results, Cash In, and Prize Shelf
-3. Braille Screen Input, braille display, and external keyboard behavior
-4. Cash In and prize claiming flow
-5. app icon and App Store metadata
-
-## Development Priority
-
-When making changes to this app:
-
-1. do not regress accessible workflows
-2. avoid sight-centric assumptions
-3. keep input-mode behavior accurate to the selected braille entry method
-4. preserve parity with the web prize catalog wherever possible
+Prefer untethered device launches for final accessibility and audio validation. Build and simulator success are not substitutes for physical VoiceOver, braille hardware, audio, or StoreKit testing.

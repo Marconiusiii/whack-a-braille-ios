@@ -138,11 +138,9 @@ struct RoundResultsView: View {
 						.accessibilityElement(children: .combine)
 
 						VStack(alignment: .leading, spacing: 4) {
-							if result.isBlitzMode {
-								Text("Words completed: \(result.hits), Misses: \(result.misses), Escapes: \(result.escapes)")
-								Text("Letters whacked: \(result.lettersWhacked)")
-							} else {
-								Text("Hits: \(result.hits), Misses: \(result.misses), Escapes: \(result.escapes)")
+							Text("\(result.completedTargetLabel): \(result.hits), Misses: \(result.misses), Escapes: \(result.escapes)")
+							if let wordInputLabel = result.wordInputLabel {
+								Text("\(wordInputLabel): \(result.lettersWhacked)")
 							}
 						}
 						.fixedSize(horizontal: false, vertical: true)
@@ -167,9 +165,7 @@ struct RoundResultsView: View {
 						.accessibilityTouchRegion(verticalPadding: 5, alignment: .leading)
 						.accessibilityElement(children: .combine)
 					} else {
-						Text(result.isBlitzMode
-							? "Training words completed: \(result.trainingMolesCompleted)"
-							: "Training moles completed: \(result.trainingMolesCompleted)")
+						Text("\(result.trainingCompletedLabel): \(result.trainingMolesCompleted)")
 							.fixedSize(horizontal: false, vertical: true)
 							.summaryRowCard()
 							.accessibilityTouchRegion(verticalPadding: 5, alignment: .leading)
@@ -202,7 +198,7 @@ struct RoundResultsView: View {
 					}
 					.buttonStyle(FullRegionSecondaryGameButton(horizontalInset: 24, verticalInset: 20))
 					.frame(maxWidth: .infinity, minHeight: accessibilityLayout ? 104 : 88)
-					.accessibilityHint("Opens Mole Recon training options for this round's moles.")
+					.accessibilityHint("Opens Mole Recon training options for this round's \(result.reconTargetNoun).")
 					.accessibilityHidden(!isResultsContentAccessible)
 				}
 

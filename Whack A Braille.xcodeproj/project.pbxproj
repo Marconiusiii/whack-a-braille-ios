@@ -10,9 +10,20 @@
 		8267AFA730118CB200821E01 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8267AFA630118CB200821E01 /* StoreKit.framework */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		A1000000000000000000000A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 82789CD02F15B47F000CFC0A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 82789CD72F15B47F000CFC0A;
+			remoteInfo = "Whack A Braille";
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		8267AFA630118CB200821E01 /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 		82789CD82F15B47F000CFC0A /* Whack A Braille.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Whack A Braille.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A10000000000000000000001 /* Whack A BrailleTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Whack A BrailleTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -34,6 +45,11 @@
 			path = "Whack A Braille";
 			sourceTree = "<group>";
 		};
+		A10000000000000000000002 /* Whack A BrailleTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Whack A BrailleTests";
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -42,6 +58,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				8267AFA730118CB200821E01 /* StoreKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A10000000000000000000005 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -60,6 +83,7 @@
 			isa = PBXGroup;
 			children = (
 				82789CDA2F15B47F000CFC0A /* Whack A Braille */,
+				A10000000000000000000002 /* Whack A BrailleTests */,
 				8267AFA530118CB200821E01 /* Frameworks */,
 				82789CD92F15B47F000CFC0A /* Products */,
 			);
@@ -69,6 +93,7 @@
 			isa = PBXGroup;
 			children = (
 				82789CD82F15B47F000CFC0A /* Whack A Braille.app */,
+				A10000000000000000000001 /* Whack A BrailleTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -98,6 +123,29 @@
 			productReference = 82789CD82F15B47F000CFC0A /* Whack A Braille.app */;
 			productType = "com.apple.product-type.application";
 		};
+		A10000000000000000000003 /* Whack A BrailleTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A10000000000000000000007 /* Build configuration list for PBXNativeTarget "Whack A BrailleTests" */;
+			buildPhases = (
+				A10000000000000000000004 /* Sources */,
+				A10000000000000000000005 /* Frameworks */,
+				A10000000000000000000006 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A1000000000000000000000B /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				A10000000000000000000002 /* Whack A BrailleTests */,
+			);
+			name = "Whack A BrailleTests";
+			packageProductDependencies = (
+			);
+			productName = "Whack A BrailleTests";
+			productReference = A10000000000000000000001 /* Whack A BrailleTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -110,6 +158,10 @@
 				TargetAttributes = {
 					82789CD72F15B47F000CFC0A = {
 						CreatedOnToolsVersion = 26.2;
+					};
+					A10000000000000000000003 = {
+						CreatedOnToolsVersion = 26.2;
+						TestTargetID = 82789CD72F15B47F000CFC0A;
 					};
 				};
 			};
@@ -128,12 +180,20 @@
 			projectRoot = "";
 			targets = (
 				82789CD72F15B47F000CFC0A /* Whack A Braille */,
+				A10000000000000000000003 /* Whack A BrailleTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		82789CD62F15B47F000CFC0A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A10000000000000000000006 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -150,7 +210,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A10000000000000000000004 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A1000000000000000000000B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 82789CD72F15B47F000CFC0A /* Whack A Braille */;
+			targetProxy = A1000000000000000000000A /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		82789CE12F15B480000CFC0A /* Debug */ = {
@@ -282,7 +357,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				DEVELOPMENT_TEAM = 4FL3XZDQ9P;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -317,7 +392,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				DEVELOPMENT_TEAM = 4FL3XZDQ9P;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -346,6 +421,48 @@
 			};
 			name = Release;
 		};
+		A10000000000000000000008 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4FL3XZDQ9P;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.marconius.Whack-A-BrailleTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Whack A Braille.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Whack A Braille";
+			};
+			name = Debug;
+		};
+		A10000000000000000000009 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4FL3XZDQ9P;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.marconius.Whack-A-BrailleTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Whack A Braille.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Whack A Braille";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -363,6 +480,15 @@
 			buildConfigurations = (
 				82789CE42F15B480000CFC0A /* Debug */,
 				82789CE52F15B480000CFC0A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A10000000000000000000007 /* Build configuration list for PBXNativeTarget "Whack A BrailleTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A10000000000000000000008 /* Debug */,
+				A10000000000000000000009 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
