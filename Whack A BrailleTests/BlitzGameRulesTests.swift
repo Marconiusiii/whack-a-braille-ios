@@ -90,6 +90,12 @@ final class BlitzGameRulesTests: XCTestCase {
 
 	func testBattleModeRulesAndStereoPositions() {
 		let customWords = ["cat", "book", "tunes"]
+		XCTAssertTrue(BlitzWord.isWordMode(WordyMoleMayhemCatalog.modeId))
+		XCTAssertFalse(BlitzWord.isWordMode("grade1Letters"))
+		XCTAssertEqual(
+			BrailleItem.compactDotPatternText(for: [[1, 2, 5], [2, 5], [2, 3, 4]]),
+			"Dots 1 2 5, 2 5, 2 3 4"
+		)
 
 		XCTAssertTrue(
 			BlitzWordCatalog.words(for: "grade1ThreeLetterBlitz", customWords: customWords)
@@ -112,6 +118,7 @@ final class BlitzGameRulesTests: XCTestCase {
 			repeatedLetterItem?.perkinsSequenceDots[1],
 			repeatedLetterItem?.perkinsSequenceDots[2]
 		)
+		XCTAssertEqual(repeatedLetterItem?.dotPatternText, "Dots 1 2, 1 3 5, 1 3 5, 1 3")
 		XCTAssertEqual(repeatedLetterItem?.modeTags, ["grade1FourLetterBlitz"])
 	}
 

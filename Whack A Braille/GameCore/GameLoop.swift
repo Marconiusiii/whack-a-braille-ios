@@ -880,12 +880,10 @@ final class GameLoop {
 		}
 
 		let letterByID = Dictionary(uniqueKeysWithValues: BrailleRegistry.grade1Letters.map { ($0.id, $0) })
-		let patterns = word.letters.compactMap { letter -> String? in
-			guard let item = letterByID[String(letter)], let phrase = dotsPhrase(for: item.dots) else { return nil }
-			return "\(letter), \(phrase)"
-		}
-		if !patterns.isEmpty {
-			announcementParts.append(patterns.joined(separator: ", then "))
+		let patterns = word.letters.compactMap { letterByID[String($0)]?.dots }
+		let dotPattern = BrailleItem.compactDotPatternText(for: patterns)
+		if !dotPattern.isEmpty {
+			announcementParts.append(dotPattern)
 		}
 		return announcementParts.joined(separator: ", ")
 	}
@@ -1122,12 +1120,15 @@ final class GameLoop {
 
 	private func buildWordyMoleMayhemAnnounceText(for word: WordyMoleMayhemEntry) -> String {
 		var parts = [word.text]
+		if currentOptions.spellBlitzWords {
+			parts.append(word.text.map(String.init).joined(separator: " "))
+		}
 		if currentOptions.difficulty == .training, currentOptions.speakBrailleDots {
 			let patterns = word.contractedMasks
 				.map(WordyMoleMayhemEntry.dotsForSpeech(for:))
-				.compactMap(dotsPhrase)
-			if !patterns.isEmpty {
-				parts.append(patterns.joined(separator: ", then "))
+			let dotPattern = BrailleItem.compactDotPatternText(for: patterns)
+			if !dotPattern.isEmpty {
+				parts.append(dotPattern)
 			}
 		}
 		return parts.joined(separator: ", ")

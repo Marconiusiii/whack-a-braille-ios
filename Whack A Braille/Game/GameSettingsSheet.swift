@@ -95,7 +95,7 @@ struct GameSettingsSheet: View {
 					.accessibilityTouchRegion(minHeight: 54, alignment: .leading)
 					.accessibilityFocused($focusedElement, equals: .moleChooserButton)
 
-					if BlitzWord.isGrade1BattleMode(modeId) {
+					if BlitzWord.isWordMode(modeId) {
 						Toggle("Spell Word", isOn: $spellBlitzWords)
 							.accessibilityHint("Speaks each letter immediately after speaking the word.")
 							.accessibilityFocused($focusedElement, equals: .spellWordToggle)

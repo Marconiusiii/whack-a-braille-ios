@@ -82,12 +82,12 @@ struct RoundResultsView: View {
 
 	private var moleReconItems: [BrailleItem] {
 		guard let result else { return [] }
-		return result.moleReconItems.filter { !dotPatternText(for: $0).isEmpty }
+		return result.moleReconItems.filter { !$0.dotPatternText.isEmpty }
 	}
 
 	private var grudgeMatchItems: [BrailleItem] {
 		guard let result else { return [] }
-		return result.grudgeMatchItems.filter { !dotPatternText(for: $0).isEmpty }
+		return result.grudgeMatchItems.filter { !$0.dotPatternText.isEmpty }
 	}
 
 	private var currentMoleReconContext: MoleReconTrainingContext? {
@@ -435,9 +435,12 @@ private struct MoleReconView: View {
 	@Environment(\.colorScheme) private var colorScheme
 	@Environment(\.dismiss) private var dismiss
 	@AccessibilityFocusState private var isHeadingFocused: Bool
+	@AccessibilityFocusState private var focusedLookupItemID: String?
 	@State private var selectedMode: MoleReconPracticeMode = .recon
 	@State private var selectedItemIDs = Set<String>()
 	@State private var isShowingEmptySelectionAlert = false
+	@State private var dictionaryLookup: DictionaryLookupDestination?
+	@State private var lastLookupItemID: String?
 
 	var body: some View {
 		NavigationStack {
@@ -466,6 +469,11 @@ private struct MoleReconView: View {
 						Toggle("Speak Braille Dots", isOn: $speakBrailleDots)
 							.foregroundStyle(primaryTextColor)
 							.fixedSize(horizontal: false, vertical: true)
+							.accessibilityHint(
+								isBlitzContext
+									? "Shows Braille dots for words here and speaks them during practice."
+									: "Speaks Braille dots during practice."
+							)
 					}
 					.appCard()
 					.accessibilityTouchRegion(minHeight: 0, topPadding: 24, bottomPadding: 10, horizontalPadding: 24, alignment: .leading)
@@ -509,6 +517,14 @@ private struct MoleReconView: View {
 			Button("OK", role: .cancel) {}
 		} message: {
 			Text("Pick at least one mole. An empty recon mission is just dramatic standing around with nothing to whack.")
+		}
+		.sheet(item: $dictionaryLookup, onDismiss: restoreLookupFocus) { destination in
+			if destination.hasDefinition {
+				DictionaryLookupView(word: destination.word)
+					.ignoresSafeArea()
+			} else {
+				DictionaryLookupUnavailableView(word: destination.word)
+			}
 		}
 		.onAppear {
 			selectedMode = context.selectedMode
@@ -580,26 +596,75 @@ private struct MoleReconView: View {
 
 	@ViewBuilder
 	private func interactiveMoleRow(for item: BrailleItem) -> some View {
+		if isWordItem(item) {
+			HStack(alignment: .center, spacing: 12) {
+				selectionToggle(for: item)
+					.frame(maxWidth: .infinity, alignment: .leading)
+
+				Button {
+					lookUpDefinition(for: item)
+				} label: {
+					Image(systemName: "info.circle")
+						.font(.title2)
+						.frame(minWidth: 44, minHeight: 44)
+						.contentShape(Rectangle())
+				}
+				.buttonStyle(.plain)
+				.accessibilityLabel("Define \(item.announceText)")
+				.accessibilityHint("Looks \(item.announceText) up in the iOS dictionary")
+				.accessibilityInputLabels([
+					Text("Info on \(item.announceText)"),
+					Text("Look up \(item.announceText)"),
+					Text("Info about \(item.announceText)")
+				])
+				.accessibilityFocused($focusedLookupItemID, equals: item.id)
+			}
+			.summaryRowCard()
+			.accessibilityTouchRegion(verticalPadding: 5, alignment: .leading)
+		} else {
+			selectionToggle(for: item)
+				.summaryRowCard()
+				.accessibilityTouchRegion(verticalPadding: 5, alignment: .leading)
+		}
+	}
+
+	private func selectionToggle(for item: BrailleItem) -> some View {
 		Toggle(isOn: selectionBinding(for: item)) {
 			moleRowContent(for: item)
 		}
 		.toggleStyle(MoleReconSelectionToggleStyle())
-		.summaryRowCard()
-		.accessibilityTouchRegion(verticalPadding: 5, alignment: .leading)
 		.accessibilityElement(children: .ignore)
-		.accessibilityLabel("\(item.announceText), \(dotPatternText(for: item))")
+		.accessibilityLabel(accessibilityLabel(for: item))
 		.accessibilityHint("Toggles mole selection")
 		.accessibilityAddTraits(.isButton)
 		.accessibilityAddTraits(selectedItemIDs.contains(item.id) ? .isSelected : [])
 		.accessibilityRemoveTraits(selectedItemIDs.contains(item.id) ? [] : .isSelected)
 	}
 
+	@ViewBuilder
 	private func staticMoleRow(for item: BrailleItem) -> some View {
-		moleRowContent(for: item)
+		if isWordItem(item) {
+			Button {
+				lookUpDefinition(for: item)
+			} label: {
+				moleRowContent(for: item)
+					.frame(maxWidth: .infinity, alignment: .leading)
+					.contentShape(Rectangle())
+			}
+			.buttonStyle(.plain)
 			.summaryRowCard()
 			.accessibilityTouchRegion(verticalPadding: 5, alignment: .leading)
 			.accessibilityElement(children: .ignore)
-			.accessibilityLabel("\(item.announceText), \(dotPatternText(for: item))")
+			.accessibilityLabel(accessibilityLabel(for: item))
+			.accessibilityHint("Looks \(item.announceText) up in the iOS dictionary")
+			.accessibilityFocused($focusedLookupItemID, equals: item.id)
+		} else {
+			moleRowContent(for: item)
+				.summaryRowCard()
+				.accessibilityTouchRegion(verticalPadding: 5, alignment: .leading)
+				.accessibilityElement(children: .ignore)
+				.accessibilityLabel(accessibilityLabel(for: item))
+		}
 	}
 
 	private func moleRowContent(for item: BrailleItem) -> some View {
@@ -607,9 +672,40 @@ private struct MoleReconView: View {
 			Text(item.displayLabel)
 				.font(.headline)
 				.fixedSize(horizontal: false, vertical: true)
-			Text(dotPatternText(for: item))
-				.foregroundStyle(secondaryTextColor)
-				.fixedSize(horizontal: false, vertical: true)
+			if showsDotPattern(for: item) {
+				Text(item.dotPatternText)
+					.foregroundStyle(secondaryTextColor)
+					.fixedSize(horizontal: false, vertical: true)
+			}
+		}
+	}
+
+	private func accessibilityLabel(for item: BrailleItem) -> String {
+		guard showsDotPattern(for: item) else { return item.announceText }
+		return "\(item.announceText), \(item.dotPatternText)"
+	}
+
+	private func showsDotPattern(for item: BrailleItem) -> Bool {
+		!isWordItem(item) || speakBrailleDots
+	}
+
+	private func isWordItem(_ item: BrailleItem) -> Bool {
+		item.modeTags.contains(where: BlitzWord.isWordMode)
+	}
+
+	private func lookUpDefinition(for item: BrailleItem) {
+		lastLookupItemID = item.id
+		dictionaryLookup = DictionaryLookupDestination(
+			word: item.announceText,
+			hasDefinition: UIReferenceLibraryViewController.dictionaryHasDefinition(forTerm: item.announceText)
+		)
+	}
+
+	private func restoreLookupFocus() {
+		guard let lastLookupItemID else { return }
+		focusedLookupItemID = nil
+		DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+			focusedLookupItemID = lastLookupItemID
 		}
 	}
 
@@ -637,6 +733,53 @@ private struct MoleReconView: View {
 	}
 }
 
+private struct DictionaryLookupDestination: Identifiable {
+	let word: String
+	let hasDefinition: Bool
+
+	var id: String { word }
+}
+
+private struct DictionaryLookupView: UIViewControllerRepresentable {
+	let word: String
+
+	func makeUIViewController(context: Context) -> UIReferenceLibraryViewController {
+		UIReferenceLibraryViewController(term: word)
+	}
+
+	func updateUIViewController(_ uiViewController: UIReferenceLibraryViewController, context: Context) {}
+}
+
+private struct DictionaryLookupUnavailableView: View {
+	@Environment(\.dismiss) private var dismiss
+	let word: String
+
+	var body: some View {
+		NavigationStack {
+			VStack(spacing: 16) {
+				Text("Dictionary Lookup")
+					.font(.title2.weight(.bold))
+					.foregroundStyle(AppTheme.heading)
+					.accessibilityAddTraits(.isHeader)
+
+				Text("The iOS dictionary does not have a definition for \(word).")
+					.multilineTextAlignment(.center)
+					.fixedSize(horizontal: false, vertical: true)
+			}
+			.frame(maxWidth: .infinity, maxHeight: .infinity)
+			.padding(24)
+			.appBackground()
+			.toolbar {
+				ToolbarItem(placement: .topBarTrailing) {
+					Button("Close") {
+						dismiss()
+					}
+				}
+			}
+		}
+	}
+}
+
 private struct MoleReconSelectionToggleStyle: ToggleStyle {
 
 	func makeBody(configuration: Configuration) -> some View {
@@ -656,16 +799,4 @@ private struct MoleReconSelectionToggleStyle: ToggleStyle {
 		}
 		.buttonStyle(.plain)
 	}
-}
-
-private func dotPatternText(for item: BrailleItem) -> String {
-	let sequence = item.perkinsSequenceDots.isEmpty ? [item.dots] : item.perkinsSequenceDots
-	let cells = sequence
-		.filter { !$0.isEmpty }
-		.map { dots in
-			let label = dots.count == 1 ? "Dot" : "Dots"
-			return "\(label) \(dots.map(String.init).joined(separator: " "))"
-		}
-
-	return cells.joined(separator: ", then ")
 }

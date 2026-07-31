@@ -147,8 +147,10 @@ struct HowToPlayView: View {
 										title: "Battle Training and Mole Recon",
 										rows: [
 											"Training removes the timer so you can practice whole words without pressure. Repeat Current Word speaks the target again whenever you need it.",
-											"Spell Word is available for 3-Letter Words, 4-Letter Words, and Grade 1 Mole Battle. When enabled, speech says the word and then spells each letter.",
-											"Mole Recon remembers missed and escaped words, while Grudge Match lets you practice any word that appeared in the round."
+											"Spell Word is available for every word mode, including Wordy Mole Mayhem. When enabled, speech says the word and then spells each letter.",
+											"Mole Recon remembers missed and escaped words, while Grudge Match lets you practice any word that appeared in the round.",
+											"In word modes, each Recon word opens its iOS dictionary definition. Grudge Match provides a separate info button so selecting a practice word and looking it up remain distinct actions.",
+											"Speak Braille Dots shows each word's compact dot sequence in Mole Recon and speaks that sequence during practice."
 										]
 									)
 								}
