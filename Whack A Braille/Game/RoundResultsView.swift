@@ -657,6 +657,7 @@ private struct MoleReconView: View {
 			.accessibilityElement(children: .ignore)
 			.accessibilityLabel(accessibilityLabel(for: item))
 			.accessibilityHint("Looks \(item.announceText) up in the iOS dictionary")
+			.accessibilityAddTraits(.isButton)
 			.accessibilityFocused($focusedLookupItemID, equals: item.id)
 		} else {
 			moleRowContent(for: item)
